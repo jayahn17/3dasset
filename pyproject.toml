@@ -14,8 +14,11 @@ license = { text = "MIT" }
 dependencies = []
 
 [project.optional-dependencies]
-detect = ["ultralytics>=8.3"]              # YOLO-World
-reconstruct = ["trimesh>=4.0", "numpy>=1.26"]  # mesh IO / conversion helpers
+detect = ["ultralytics>=8.3"]                        # YOLO-World
+reconstruct = ["trimesh>=4.0", "numpy>=1.26",
+               "pillow>=10.0", "requests>=2.31"]     # crop + GLB + TRELLIS client
+service = ["fastapi>=0.110", "uvicorn>=0.29",
+           "python-multipart>=0.0.9"]                # TRELLIS GPU server
 dev = ["pytest>=8.0", "pillow>=10.0"]
 
 [project.scripts]

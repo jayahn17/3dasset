@@ -17,6 +17,20 @@ import os
 from .store import AssetCatalog
 
 
+def _resolve_obj(mesh_path: str) -> str | None:
+    """Return an OBJ the canvas viewer can read.
+
+    Procedural assets ARE obj. For a GLB/PLY asset, prefer the ``model.obj``
+    preview the pipeline writes alongside it.
+    """
+    if not mesh_path:
+        return None
+    if mesh_path.lower().endswith(".obj") and os.path.exists(mesh_path):
+        return mesh_path
+    preview = os.path.join(os.path.dirname(mesh_path), "model.obj")
+    return preview if os.path.exists(preview) else None
+
+
 def _read_obj(path: str) -> dict | None:
     if not path or not os.path.exists(path) or not path.lower().endswith(".obj"):
         return None
@@ -47,7 +61,7 @@ def build_viewer(catalog: AssetCatalog, out_path: str) -> str:
                 "source": a["source"],
                 "tags": json.loads(a["tags"] or "[]"),
                 "urdf": a["urdf_path"],
-                "mesh": _read_obj(a["mesh_path"]),
+                "mesh": _read_obj(_resolve_obj(a["mesh_path"])),
             }
         )
     html = _HTML_TEMPLATE.replace("__DATA__", json.dumps(payload))

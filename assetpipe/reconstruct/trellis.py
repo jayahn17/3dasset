@@ -1,21 +1,18 @@
-"""TRELLIS adapter — single-image -> textured 3D mesh.
+"""TRELLIS adapter — single-image -> textured 3D mesh (GPU).
 
-TRELLIS 2 (Microsoft Research) is currently the strongest open-source
-image-to-3D model; Hunyuan3D 2.1 (Tencent) is the leading alternative and
-drops into the same interface. Feed it one clean, background-removed crop
-of the detected object (use the SAM 2 mask to matte it out) and it returns
-a watertight, PBR-textured mesh — ideal for the "one glance = one asset"
-capture UX.
+TRELLIS 2 (Microsoft Research) is the strongest open-source image-to-3D
+model; Hunyuan3D 2.1 drops into the same client (point ``endpoint`` at
+either server). Feed one clean, matted crop of the detected object and get
+back a textured GLB.
 
-INSTALL / RUN
-    Easiest is to run TRELLIS as a local HTTP service (the official Gradio
-    / API server) and point ``endpoint`` at it, so the heavy CUDA deps stay
-    out of this package. Alternatively import microsoft/TRELLIS directly.
-    Repo: https://github.com/microsoft/TRELLIS
+Runs the heavy model as a SEPARATE GPU service so the CUDA/torch deps stay
+out of this package. Start it on your 4080 with:
 
-This adapter crops the frame to the detection (+ mask), POSTs it, and saves
-the returned GLB. The network call is left as a marked TODO so the package
-imports cleanly without the service.
+    python services/trellis_server.py            # serves POST /generate
+
+then use this adapter with ``endpoint="http://<gpu-host>:8080/generate"``.
+The client only needs ``requests`` + ``trimesh`` (the `reconstruct` extra).
+Repo: https://github.com/microsoft/TRELLIS
 """
 
 from __future__ import annotations
@@ -24,28 +21,56 @@ import os
 
 from .base import Reconstructor
 from ..types import Detection, Frame, Reconstruction
+from ..util import image as imgutil
 
 
 class TrellisReconstructor(Reconstructor):
-    def __init__(self, out_dir: str, endpoint: str = "http://localhost:8080/generate") -> None:
+    def __init__(
+        self,
+        out_dir: str,
+        endpoint: str = "http://localhost:8080/generate",
+        timeout_s: float = 300.0,
+    ) -> None:
         self.out_dir = out_dir
         self.endpoint = endpoint
+        self.timeout_s = timeout_s
         os.makedirs(out_dir, exist_ok=True)
         self._n = 0
 
-    def reconstruct(self, frame: Frame, det: Detection) -> Reconstruction | None:  # pragma: no cover
-        crop = self._crop(frame, det)  # matte using det.mask_path if present
-        self._n += 1
-        mesh_path = os.path.join(self.out_dir, f"trellis_{self._n:04d}.glb")
+    def reconstruct(self, frame: Frame, det: Detection) -> Reconstruction | None:
+        import requests  # lazy
 
-        # TODO: POST `crop` to self.endpoint, stream the GLB to mesh_path.
-        #   resp = requests.post(self.endpoint, files={"image": open(crop, "rb")})
-        #   open(mesh_path, "wb").write(resp.content)
-        raise NotImplementedError(
-            "Start a TRELLIS/Hunyuan3D server and implement the POST here — "
-            "see module docstring."
+        self._n += 1
+        stem = os.path.join(self.out_dir, f"trellis_{self._n:04d}")
+        crop = imgutil.crop_object(
+            frame.image_path, det.bbox, stem + "_crop.png", mask_path=det.mask_path
         )
 
-    def _crop(self, frame: Frame, det: Detection) -> str:
-        # Crop frame.image_path to det.bbox, apply det.mask_path as alpha.
-        raise NotImplementedError
+        with open(crop, "rb") as fh:
+            resp = requests.post(self.endpoint, files={"image": fh}, timeout=self.timeout_s)
+        resp.raise_for_status()
+
+        mesh_path = stem + ".glb"
+        with open(mesh_path, "wb") as out:
+            out.write(resp.content)
+
+        dims = self._dims(mesh_path)
+        return Reconstruction(
+            label=det.label,
+            mesh_path=mesh_path,
+            dimensions_m=dims,
+            method="trellis",
+            world_pose=frame.pose,
+            thumbnail_path=crop,
+            extra={"track_id": det.track_id, "endpoint": self.endpoint},
+        )
+
+    def _dims(self, mesh_path: str) -> tuple[float, float, float]:
+        # TRELLIS output is normalized (unitless); use the Quest depth-based
+        # metric size if the detector provided one, else the mesh bounds.
+        try:
+            from ..util.mesh import bounds_dimensions_m
+
+            return bounds_dimensions_m(mesh_path)
+        except Exception:
+            return (0.3, 0.3, 0.3)

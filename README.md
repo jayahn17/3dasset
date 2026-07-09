@@ -53,14 +53,25 @@ python -m assetpipe run --input ./photos --classes "cardboard box,shoe box" \
     --location "garage" --box-dims 0.4,0.3,0.3
 ```
 
-Out of the box this uses the zero-dep procedural reconstructor. To get real
-perception and textured meshes, enable the backends (all lazy-imported):
+Out of the box this uses the zero-dep procedural reconstructor. Select real
+backends with flags (all lazy-imported, so the core stays dependency-free):
 
-| Stage | Runs now | Upgrade to (adapter) | Install |
+```bash
+# on a GPU box — real detection + textured 3D (see docs/GPU_SETUP.md)
+python -m assetpipe run --input photos/ --classes "cardboard box,mug" \
+    --detector yolo-world --reconstruct trellis --location "garage"
+```
+
+| Stage | Runs now | `--flag` to real backend | Install |
 |---|---|---|---|
-| Identify | `HeuristicDetector` | `YoloWorldDetector`, `GroundedSam2Detector` | `pip install ultralytics` |
-| Reconstruct | `ProceduralBoxReconstructor` | `TrellisReconstructor`, `NerfstudioReconstructor` | GPU service (see docs) |
-| Capture | `FolderSource` | `Quest3SessionSource` | Unity PCA recorder (see docs) |
+| Identify | `HeuristicDetector` | `--detector yolo-world` / `grounded-sam2` | `pip install ultralytics` |
+| Reconstruct | `ProceduralBoxReconstructor` | `--reconstruct trellis` / `nerfstudio` | GPU service (`services/trellis_server.py`) |
+| Capture | `FolderSource` | `--quest-session DIR` | Unity PCA recorder (see docs) |
+
+**GPU box (Ubuntu 22.04 + RTX 4080):** `bash env/setup_ubuntu.sh` sets up the
+conda env and smoke-tests it. Full walkthrough — detection → TRELLIS →
+Nerfstudio → Quest capture, with VRAM notes — in
+**[docs/GPU_SETUP.md](docs/GPU_SETUP.md)**.
 
 ## Layout
 

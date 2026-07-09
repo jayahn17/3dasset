@@ -85,9 +85,20 @@ class AssetPipeline:
         asset_dir = os.path.join(self.config.out_dir, asset_id)
         os.makedirs(asset_dir, exist_ok=True)
 
-        # Normalize the mesh into the asset folder as OBJ.
-        mesh_dst = os.path.join(asset_dir, "model.obj")
+        # Copy the reconstructed mesh in, preserving its format (obj/glb/ply).
+        ext = os.path.splitext(recon.mesh_path)[1].lower() or ".obj"
+        mesh_dst = os.path.join(asset_dir, f"model{ext}")
         mesh_io.copy_or_convert(recon.mesh_path, mesh_dst)
+
+        # The offline viewer renders OBJ; for a GLB/PLY asset make a light
+        # OBJ preview next to it (best-effort; needs the `reconstruct` extra).
+        if ext != ".obj":
+            try:
+                from .util.mesh import to_preview_obj
+
+                to_preview_obj(mesh_dst, os.path.join(asset_dir, "model.obj"))
+            except Exception:
+                pass
 
         urdf_path = None
         if self.config.write_urdf:
@@ -95,7 +106,7 @@ class AssetPipeline:
             urdf.write_urdf(
                 urdf_path,
                 name=_safe_name(recon.label),
-                mesh_rel="model.obj",
+                mesh_rel=f"model{ext}",
                 dimensions_m=recon.dimensions_m,
             )
 

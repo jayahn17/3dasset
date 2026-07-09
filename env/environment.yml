@@ -1,0 +1,29 @@
+# Conda env for the GPU box (Ubuntu 22.04 + RTX 4080, CUDA 12.x, sm_89 / Ada).
+#   conda env create -f env/environment.yml
+#   conda activate assetpipe-gpu
+#
+# Torch is installed via pip with the cu121 index (works on the 4080). TRELLIS
+# / Grounded-SAM-2 / Nerfstudio have their own installers — see docs/GPU_SETUP.md.
+name: assetpipe-gpu
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - git
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cu121
+      - torch==2.4.1
+      - torchvision==0.19.1
+      # pipeline runtime + extras
+      - numpy>=1.26
+      - pillow>=10.0
+      - trimesh>=4.0
+      - requests>=2.31
+      # detection (YOLO-World)
+      - ultralytics>=8.3
+      # TRELLIS GPU service
+      - fastapi>=0.110
+      - uvicorn>=0.29
+      - python-multipart>=0.0.9
+      - pytest>=8.0

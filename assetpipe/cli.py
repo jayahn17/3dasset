@@ -19,12 +19,38 @@ from .pipeline import AssetPipeline, PipelineConfig
 from .reconstruct import ProceduralBoxReconstructor
 
 
-def _run_pipeline(source, classes, cfg: PipelineConfig, box_dims):
+def _make_detector(name: str, classes):
+    if name == "yolo-world":
+        from .detect import YoloWorldDetector
+
+        return YoloWorldDetector(classes=classes)
+    if name == "grounded-sam2":
+        from .detect import GroundedSam2Detector
+
+        return GroundedSam2Detector(classes=classes)
+    return HeuristicDetector(classes=classes, default_label="box")
+
+
+def _make_reconstructor(name: str, recon_dir: str, box_dims, trellis_endpoint: str):
+    if name == "trellis":
+        from .reconstruct import TrellisReconstructor
+
+        return TrellisReconstructor(recon_dir, endpoint=trellis_endpoint)
+    if name == "nerfstudio":
+        from .reconstruct import NerfstudioReconstructor
+
+        return NerfstudioReconstructor(recon_dir)
+    return ProceduralBoxReconstructor(recon_dir, default_dims=box_dims)
+
+
+def _run_pipeline(source, classes, cfg: PipelineConfig, box_dims, args):
     catalog = AssetCatalog(os.path.join(cfg.out_dir, "twin.db"))
-    detector = HeuristicDetector(classes=classes, default_label="box")
     recon_dir = os.path.join(cfg.out_dir, "_meshes")
     os.makedirs(recon_dir, exist_ok=True)
-    reconstructor = ProceduralBoxReconstructor(recon_dir, default_dims=box_dims)
+    detector = _make_detector(args.detector, classes)
+    reconstructor = _make_reconstructor(
+        args.reconstruct, recon_dir, box_dims, args.trellis_endpoint
+    )
     pipe = AssetPipeline(source, detector, reconstructor, catalog, cfg)
     assets = pipe.run()
     viewer_path = os.path.join(cfg.out_dir, "control_center.html")
@@ -83,8 +109,9 @@ def cmd_run(args) -> int:
         source = FolderSource(args.input)
         name = "folder"
     cfg = PipelineConfig(out_dir=args.out, source_name=name, location=args.location)
-    assets, viewer = _run_pipeline(source, classes, cfg, box_dims)
-    print(f"✔ {len(assets)} assets -> {cfg.out_dir}/  |  twin: {viewer}")
+    assets, viewer = _run_pipeline(source, classes, cfg, box_dims, args)
+    print(f"✔ {len(assets)} assets ({args.detector} + {args.reconstruct}) "
+          f"-> {cfg.out_dir}/  |  twin: {viewer}")
     return 0
 
 
@@ -128,6 +155,14 @@ def main(argv=None) -> int:
     r.add_argument("--classes", help="comma-separated open-vocab labels")
     r.add_argument("--location", help="human location label for these captures")
     r.add_argument("--box-dims", default="0.3,0.3,0.3", help="fallback WxHxD meters")
+    r.add_argument("--detector", default="heuristic",
+                   choices=["heuristic", "yolo-world", "grounded-sam2"],
+                   help="perception backend (GPU backends need extras installed)")
+    r.add_argument("--reconstruct", default="procedural",
+                   choices=["procedural", "trellis", "nerfstudio"],
+                   help="reconstruction backend")
+    r.add_argument("--trellis-endpoint", default="http://localhost:8080/generate",
+                   help="URL of the TRELLIS GPU service")
     r.set_defaults(fn=cmd_run)
 
     l = sub.add_parser("list", help="print the catalog")
