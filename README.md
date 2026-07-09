@@ -82,11 +82,28 @@ assetpipe/
   reconstruct/  procedural box + TRELLIS + Nerfstudio   (Reconstructor)
   digitalize/   OBJ writer + URDF generator
   catalog/      SQLite twin store + control-center viewer
+  integrations/ son_twin.py — bridge to the LifeTwin/JayAsset platform
   pipeline.py   wires the stages together
-  cli.py        demo | run | list | viewer
-docs/           ARCHITECTURE · QUEST3_CAPTURE · ROADMAP
-tests/          end-to-end box-test (zero deps)
+  cli.py        demo | run | list | viewer | export-son
+docs/           ARCHITECTURE · QUEST3_CAPTURE · GPU_SETUP · ROADMAP · SON_INTEGRATION
+tests/          box-test + gpu-glue + son-bridge (zero deps to run)
 ```
+
+## Fits the existing LifeTwin platform (`son`)
+
+This repo is the **CV + reconstruction compute worker** for the `son`
+LifeTwin/JayAsset platform, which already owns the canonical schema, the
+`quest-asset-scan` API, the mesh→URDF/USD converter, and the control-center
+apps (`jay3d`, `jayasset`, `life-twin`) — but has no code that actually
+detects + reconstructs objects. assetpipe produces those detections and feeds
+them in:
+
+```bash
+python -m assetpipe export-son --endpoint http://localhost:3000/api/quest-asset-scan
+```
+
+Verified against son's real handler. Full reconciliation +
+field mapping: **[docs/SON_INTEGRATION.md](docs/SON_INTEGRATION.md)**.
 
 ## Status
 

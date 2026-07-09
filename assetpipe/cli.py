@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 
@@ -137,6 +138,32 @@ def cmd_viewer(args) -> int:
     return 0
 
 
+def cmd_export_son(args) -> int:
+    """Emit the son `quest-asset-scan` payload from the catalog (optionally POST)."""
+    from .integrations import build_quest_scan_payload, post_scan
+
+    catalog = AssetCatalog(os.path.join(args.out, "twin.db"))
+    rows = catalog.all()
+    catalog.close()
+    action = "ingest_scan" if args.ingest else "preview_scan"
+    payload = build_quest_scan_payload(rows, scan_id=args.scan_id, action=action)
+
+    out_json = os.path.join(args.out, "son_quest_scan.json")
+    with open(out_json, "w") as fh:
+        json.dump(payload, fh, indent=2)
+    print(f"✔ {len(payload['detected_assets'])} detections -> {out_json}")
+
+    if args.endpoint:
+        try:
+            resp = post_scan(payload, args.endpoint)
+            print(f"✔ POST {args.endpoint} -> persisted={resp.get('persisted')} "
+                  f"status={resp.get('status')}")
+        except Exception as e:  # noqa: BLE001
+            print(f"!! POST to {args.endpoint} failed: {e}")
+            return 1
+    return 0
+
+
 def _add_out(parser):
     parser.add_argument("--out", default="twin_out", help="output directory")
 
@@ -172,6 +199,14 @@ def main(argv=None) -> int:
 
     v = sub.add_parser("viewer", help="rebuild the control-center HTML")
     _add_out(v); v.set_defaults(fn=cmd_viewer)
+
+    e = sub.add_parser("export-son", help="emit son quest-asset-scan payload (optionally POST)")
+    _add_out(e)
+    e.add_argument("--scan-id", default="assetpipe-scan", help="scan id for the batch")
+    e.add_argument("--endpoint", help="son /api/quest-asset-scan URL to POST to")
+    e.add_argument("--ingest", action="store_true",
+                   help="use action=ingest_scan (persist) instead of preview_scan")
+    e.set_defaults(fn=cmd_export_son)
 
     args = p.parse_args(argv)
     return args.fn(args)
