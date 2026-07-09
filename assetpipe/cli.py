@@ -138,30 +138,35 @@ def cmd_viewer(args) -> int:
     return 0
 
 
-def cmd_export_son(args) -> int:
-    """Emit the son `quest-asset-scan` payload from the catalog (optionally POST)."""
+def _export_son(out_dir: str, scan_id: str, endpoint: str | None, ingest: bool) -> int:
+    """Build the son quest-asset-scan payload from the catalog; optionally POST."""
     from .integrations import build_quest_scan_payload, post_scan
 
-    catalog = AssetCatalog(os.path.join(args.out, "twin.db"))
+    catalog = AssetCatalog(os.path.join(out_dir, "twin.db"))
     rows = catalog.all()
     catalog.close()
-    action = "ingest_scan" if args.ingest else "preview_scan"
-    payload = build_quest_scan_payload(rows, scan_id=args.scan_id, action=action)
+    action = "ingest_scan" if ingest else "preview_scan"
+    payload = build_quest_scan_payload(rows, scan_id=scan_id, action=action)
 
-    out_json = os.path.join(args.out, "son_quest_scan.json")
+    out_json = os.path.join(out_dir, "son_quest_scan.json")
     with open(out_json, "w") as fh:
         json.dump(payload, fh, indent=2)
-    print(f"✔ {len(payload['detected_assets'])} detections -> {out_json}")
+    print(f"✔ {len(payload['detected_assets'])} detections ({action}) -> {out_json}")
 
-    if args.endpoint:
+    if endpoint:
         try:
-            resp = post_scan(payload, args.endpoint)
-            print(f"✔ POST {args.endpoint} -> persisted={resp.get('persisted')} "
-                  f"status={resp.get('status')}")
+            resp = post_scan(payload, endpoint)
+            print(f"✔ POST {endpoint} -> ok={resp.get('ok')} "
+                  f"persisted={resp.get('persisted')} status={resp.get('status')}")
         except Exception as e:  # noqa: BLE001
-            print(f"!! POST to {args.endpoint} failed: {e}")
+            print(f"!! POST to {endpoint} failed: {e}")
             return 1
     return 0
+
+
+def cmd_export_son(args) -> int:
+    """Emit the son `quest-asset-scan` payload from the catalog (optionally POST)."""
+    return _export_son(args.out, args.scan_id, args.endpoint, args.ingest)
 
 
 def _add_out(parser):
