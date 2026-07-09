@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "assetpipe"
+version = "0.1.0"
+description = "Meta Quest 3 -> digital-twin 3D asset recording pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+# The box-test slice runs on the stdlib alone. Real perception /
+# reconstruction backends are optional extras so the core stays light.
+dependencies = []
+
+[project.optional-dependencies]
+detect = ["ultralytics>=8.3"]              # YOLO-World
+reconstruct = ["trimesh>=4.0", "numpy>=1.26"]  # mesh IO / conversion helpers
+dev = ["pytest>=8.0", "pillow>=10.0"]
+
+[project.scripts]
+assetpipe = "assetpipe.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["assetpipe*"]

@@ -1,0 +1,15 @@
+# The box-test slice (python -m assetpipe demo) needs NOTHING here — stdlib only.
+# Install these only when you wire up real perception / reconstruction backends.
+
+# --- perception (open-vocabulary detection + segmentation) ---
+# ultralytics>=8.3          # YOLO-World (real-time, text-prompted)
+# See docs/ARCHITECTURE.md for Grounded-SAM-2 (git install).
+
+# --- reconstruction ---
+# trimesh>=4.0              # mesh IO / GLB<->OBJ conversion, convex hulls
+# numpy>=1.26
+# TRELLIS / Hunyuan3D / Nerfstudio are run as separate GPU services — see docs.
+
+# --- dev ---
+# pytest>=8.0
+# pillow>=10.0              # lets the heuristic detector read real image sizes
