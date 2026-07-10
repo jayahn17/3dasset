@@ -22,6 +22,8 @@ dependencies:
       - requests>=2.31
       # detection (YOLO-World)
       - ultralytics>=8.3
+      # video ingestion (--video): bundled ffmpeg for Quest recordings
+      - imageio-ffmpeg>=0.5
       # TRELLIS GPU service
       - fastapi>=0.110
       - uvicorn>=0.29
