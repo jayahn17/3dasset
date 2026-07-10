@@ -68,6 +68,34 @@ Verified end-to-end: the payload is accepted by son's real handler and turned
 into JayAsset drafts + closet updates (`tests/test_son_bridge.py` checks the
 shape; a node harness confirmed the live handler returns `ok:true`).
 
+### Large meshes / scans (PLY, GLB) → blob storage
+
+Raw scans (Gaussian-splat / point-cloud **PLY**, textured GLB) are 30 MB–500 MB
+— too big for git (100 MB cap + permanent history bloat), for son's 4 MB API
+body, and for Vercel's ~4.5 MB function limit. They go to **blob storage**;
+only the URL travels into the twin as `model_3d_ref`.
+
+`assetpipe/integrations/blob.py` provides three uploaders, wired into
+`export-son` via `--upload`:
+
+```bash
+# dev / self-hosted (serve a dir off the 4080 box, e.g. on your tailnet)
+python -m assetpipe export-son --upload local \
+    --blob-dir ./blobstore --blob-base-url https://box.tail1234.ts.net/blobs \
+    --endpoint http://localhost:3000/api/quest-asset-scan
+
+# production: Vercel Blob (token from env)
+BLOB_READ_WRITE_TOKEN=... python -m assetpipe export-son --upload vercel \
+    --endpoint https://son.example.com/api/quest-asset-scan --ingest
+```
+
+Each asset's mesh is uploaded under `<asset_id>/<file>` (namespaced so the
+per-asset `model.obj` names don't collide), and `model_3d_ref` becomes the
+returned URL. The raw bytes never enter son's request body — verified: the
+exported payload contains only URLs + metadata. `PresignedPutUploader` covers
+S3 / R2 / GCS / Vercel client-upload when you'd rather mint per-file URLs (e.g.
+from a son endpoint) than hold a static token.
+
 ### Field mapping (assetpipe → son detection)
 
 | assetpipe `Asset` | son `detected_assets[]` | notes |

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from typing import Any, Iterable
 
 # recon method -> son's per-detection `jay3d_state`
@@ -48,8 +49,13 @@ def _pose_to_xyz_yaw(world_pose: list[float] | None) -> tuple[float, float, floa
     return (round(x, 4), round(y, 4), round(z, 4), round(yaw, 2))
 
 
-def asset_to_detection(row: dict[str, Any]) -> dict[str, Any]:
-    """One assetpipe catalog row -> one son `detected_assets[]` entry."""
+def asset_to_detection(row: dict[str, Any], mesh_ref: str | None = None) -> dict[str, Any]:
+    """One assetpipe catalog row -> one son `detected_assets[]` entry.
+
+    ``mesh_ref`` overrides ``model_3d_ref`` with a blob URL when the mesh was
+    uploaded to storage (see build_quest_scan_payload's ``uploader``); the raw
+    PLY/GLB never travels through son's API body.
+    """
     extra = _loads(row.get("extra"), {})
     tags = _loads(row.get("tags"), [])
     method = extra.get("recon_method", "")
@@ -76,7 +82,7 @@ def asset_to_detection(row: dict[str, Any]) -> dict[str, Any]:
         "state_change": "assetpipe reconstruction ready for owner review",
         "jay3d_state": _JAY3D_STATE.get(method, "proxy pending"),
         # extra refs son's TwinItem schema can carry (model_3d_ref etc.)
-        "model_3d_ref": row.get("mesh_path", ""),
+        "model_3d_ref": mesh_ref if mesh_ref is not None else row.get("mesh_path", ""),
         "urdf_ref": row.get("urdf_path") or "",
         "preview_image_ref": row.get("thumbnail_path") or "",
         "dimensions_m": [row.get("dim_w"), row.get("dim_h"), row.get("dim_d")],
@@ -89,9 +95,26 @@ def build_quest_scan_payload(
     label: str = "assetpipe reconstruction batch",
     account_id: str = "acct_lifetwin_shared",
     action: str = "preview_scan",
+    uploader=None,
 ) -> dict[str, Any]:
-    """Assemble the full POST body for `api/quest-asset-scan.js`."""
-    detections = [asset_to_detection(r) for r in rows]
+    """Assemble the full POST body for `api/quest-asset-scan.js`.
+
+    When ``uploader`` is given (see integrations.blob), each asset's mesh file
+    is uploaded to blob storage and ``model_3d_ref`` is set to the returned
+    URL — so a 30 MB+ PLY/GLB flows to storage while only its URL + metadata
+    go through son's 4 MB API body.
+    """
+    detections = []
+    for r in rows:
+        mesh_ref = None
+        if uploader is not None:
+            mesh_path = r.get("mesh_path", "")
+            if mesh_path and os.path.exists(mesh_path):
+                # namespace by asset_id so identically-named meshes
+                # (every asset has a "model.obj") don't collide in storage
+                dest = f"{r['asset_id']}/{os.path.basename(mesh_path)}"
+                mesh_ref = uploader.upload(mesh_path, dest_name=dest)
+        detections.append(asset_to_detection(r, mesh_ref=mesh_ref))
     sources = {d["evidence"][0] for d in detections} if detections else set()
     return {
         "action": action,  # preview_scan (no persist) | ingest_scan

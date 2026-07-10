@@ -138,20 +138,26 @@ def cmd_viewer(args) -> int:
     return 0
 
 
-def _export_son(out_dir: str, scan_id: str, endpoint: str | None, ingest: bool) -> int:
-    """Build the son quest-asset-scan payload from the catalog; optionally POST."""
+def _export_son(out_dir, scan_id, endpoint, ingest, uploader=None) -> int:
+    """Build the son quest-asset-scan payload from the catalog; optionally POST.
+
+    When ``uploader`` is set, large meshes/scans (PLY/GLB) are pushed to blob
+    storage and ``model_3d_ref`` becomes the URL — the raw file never touches
+    son's API body.
+    """
     from .integrations import build_quest_scan_payload, post_scan
 
     catalog = AssetCatalog(os.path.join(out_dir, "twin.db"))
     rows = catalog.all()
     catalog.close()
     action = "ingest_scan" if ingest else "preview_scan"
-    payload = build_quest_scan_payload(rows, scan_id=scan_id, action=action)
+    payload = build_quest_scan_payload(rows, scan_id=scan_id, action=action, uploader=uploader)
 
     out_json = os.path.join(out_dir, "son_quest_scan.json")
     with open(out_json, "w") as fh:
         json.dump(payload, fh, indent=2)
-    print(f"✔ {len(payload['detected_assets'])} detections ({action}) -> {out_json}")
+    up = " + blob-upload" if uploader else ""
+    print(f"✔ {len(payload['detected_assets'])} detections ({action}{up}) -> {out_json}")
 
     if endpoint:
         try:
@@ -164,9 +170,27 @@ def _export_son(out_dir: str, scan_id: str, endpoint: str | None, ingest: bool) 
     return 0
 
 
+def _uploader_from_args(args):
+    from .integrations import make_uploader
+
+    if args.upload in (None, "none"):
+        return None
+    if args.upload == "local":
+        if not args.blob_dir or not args.blob_base_url:
+            raise SystemExit("--upload local needs --blob-dir and --blob-base-url")
+        return make_uploader("local", dest_dir=args.blob_dir, base_url=args.blob_base_url)
+    if args.upload == "vercel":
+        token = args.blob_token or os.environ.get("BLOB_READ_WRITE_TOKEN")
+        if not token:
+            raise SystemExit("--upload vercel needs --blob-token or $BLOB_READ_WRITE_TOKEN")
+        return make_uploader("vercel", token=token, prefix=args.blob_prefix)
+    raise SystemExit(f"unknown --upload {args.upload!r}")
+
+
 def cmd_export_son(args) -> int:
     """Emit the son `quest-asset-scan` payload from the catalog (optionally POST)."""
-    return _export_son(args.out, args.scan_id, args.endpoint, args.ingest)
+    return _export_son(args.out, args.scan_id, args.endpoint, args.ingest,
+                       uploader=_uploader_from_args(args))
 
 
 def _add_out(parser):
@@ -211,6 +235,13 @@ def main(argv=None) -> int:
     e.add_argument("--endpoint", help="son /api/quest-asset-scan URL to POST to")
     e.add_argument("--ingest", action="store_true",
                    help="use action=ingest_scan (persist) instead of preview_scan")
+    # blob upload for large meshes/scans (PLY/GLB) -> model_3d_ref becomes a URL
+    e.add_argument("--upload", default="none", choices=["none", "local", "vercel"],
+                   help="upload meshes to blob storage and reference by URL")
+    e.add_argument("--blob-dir", help="[local] directory served at --blob-base-url")
+    e.add_argument("--blob-base-url", help="[local] public base URL for --blob-dir")
+    e.add_argument("--blob-token", help="[vercel] token (or $BLOB_READ_WRITE_TOKEN)")
+    e.add_argument("--blob-prefix", default="scans", help="[vercel] path prefix")
     e.set_defaults(fn=cmd_export_son)
 
     args = p.parse_args(argv)
