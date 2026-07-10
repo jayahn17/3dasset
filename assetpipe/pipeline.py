@@ -47,6 +47,10 @@ class PipelineConfig:
     source_name: str = "folder"
     location: str | None = None
     write_urdf: bool = True
+    # Keep only the highest-score detection per label across the whole run.
+    # Right default for a walk-around capture of a few distinct objects until
+    # Grounded SAM 2 track ids provide true instance-level dedup.
+    dedupe_labels: bool = False
 
 
 class AssetPipeline:
@@ -69,15 +73,27 @@ class AssetPipeline:
 
     def run(self) -> list[Asset]:
         """Execute the full flow and return the assets that were created."""
+        pairs = (
+            (frame, det)
+            for frame in self.capture.frames()
+            for det in self.detector.detect(frame)
+        )
+        if self.config.dedupe_labels:
+            best: dict[str, tuple] = {}
+            for frame, det in pairs:
+                key = det.track_id or det.label.lower()
+                if key not in best or det.score > best[key][1].score:
+                    best[key] = (frame, det)
+            pairs = best.values()
+
         assets: list[Asset] = []
-        for frame in self.capture.frames():
-            for det in self.detector.detect(frame):
-                recon = self.reconstructor.reconstruct(frame, det)
-                if recon is None:
-                    continue
-                asset = self._digitalize(det, recon)
-                self.catalog.add(asset)
-                assets.append(asset)
+        for frame, det in pairs:
+            recon = self.reconstructor.reconstruct(frame, det)
+            if recon is None:
+                continue
+            asset = self._digitalize(det, recon)
+            self.catalog.add(asset)
+            assets.append(asset)
         return assets
 
     def _digitalize(self, det, recon) -> Asset:

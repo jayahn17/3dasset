@@ -73,6 +73,23 @@ conda env and smoke-tests it. Full walkthrough — detection → TRELLIS →
 Nerfstudio → Quest capture, with VRAM notes — in
 **[docs/GPU_SETUP.md](docs/GPU_SETUP.md)**.
 
+## Test with a real Quest 3 — today
+
+Record a passthrough video on the headset (Meta button → Camera → Record),
+pull it to the box, and run the whole pipeline on it:
+
+```bash
+python -m assetpipe run --video recording.mp4 --fps 2 --dedupe \
+    --detector yolo-world --classes "cardboard box,mug" --location garage
+```
+
+For the **live loop**, `services/capture_worker.py` is the 4080-side service:
+the Quest streams keyframes (`/session/*/keyframe`), finishing a session runs
+detect→reconstruct and serves the results at `/blobs/...` — `model_3d_ref`
+URLs that son's `/spark` VR room hot-loads, with optional auto-post to
+`/api/quest-asset-scan`. Step-by-step:
+**[docs/QUEST3_TEST_PLAN.md](docs/QUEST3_TEST_PLAN.md)**.
+
 ## Layout
 
 ```

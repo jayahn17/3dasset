@@ -63,6 +63,23 @@ def test_pipeline_digitalizes_and_catalogs():
         catalog.close()
 
 
+def test_dedupe_labels_yields_one_asset_per_label():
+    with tempfile.TemporaryDirectory() as d:
+        # three frames of the "same" object -> heuristic emits 3 detections
+        for i in range(3):
+            open(os.path.join(d, f"f{i}.jpg"), "wb").write(b"\xff\xd8\xff\xdb")
+        cfg = PipelineConfig(out_dir=os.path.join(d, "out"), dedupe_labels=True)
+        catalog = AssetCatalog(os.path.join(cfg.out_dir, "twin.db"))
+        pipe = AssetPipeline(
+            FolderSource(d), HeuristicDetector(classes=["box"]),
+            ProceduralBoxReconstructor(os.path.join(d, "_m")), catalog, cfg,
+        )
+        assets = pipe.run()
+        assert len(assets) == 1  # 3 frames, 1 label -> 1 asset
+        assert catalog.count() == 1
+        catalog.close()
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

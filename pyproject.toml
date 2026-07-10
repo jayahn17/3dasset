@@ -18,7 +18,8 @@ detect = ["ultralytics>=8.3"]                        # YOLO-World
 reconstruct = ["trimesh>=4.0", "numpy>=1.26",
                "pillow>=10.0", "requests>=2.31"]     # crop + GLB + TRELLIS client
 service = ["fastapi>=0.110", "uvicorn>=0.29",
-           "python-multipart>=0.0.9"]                # TRELLIS GPU server
+           "python-multipart>=0.0.9"]                # TRELLIS server + capture worker
+video = ["imageio-ffmpeg>=0.5"]                      # bundled ffmpeg for --video
 dev = ["pytest>=8.0", "pillow>=10.0"]
 
 [project.scripts]

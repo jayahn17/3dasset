@@ -106,10 +106,16 @@ def cmd_run(args) -> int:
     if args.quest_session:
         source = Quest3SessionSource(args.quest_session)
         name = "quest3"
+    elif args.video:
+        from .capture.video import VideoSource
+
+        source = VideoSource(args.video, work_dir=args.out, fps=args.fps)
+        name = "quest3"  # a Quest passthrough recording is the expected input
     else:
         source = FolderSource(args.input)
         name = "folder"
-    cfg = PipelineConfig(out_dir=args.out, source_name=name, location=args.location)
+    cfg = PipelineConfig(out_dir=args.out, source_name=name, location=args.location,
+                         dedupe_labels=args.dedupe)
     assets, viewer = _run_pipeline(source, classes, cfg, box_dims, args)
     print(f"✔ {len(assets)} assets ({args.detector} + {args.reconstruct}) "
           f"-> {cfg.out_dir}/  |  twin: {viewer}")
@@ -208,6 +214,10 @@ def main(argv=None) -> int:
     _add_out(r)
     r.add_argument("--input", default=".", help="folder of images")
     r.add_argument("--quest-session", help="Quest 3 session dir (overrides --input)")
+    r.add_argument("--video", help="video file (e.g. Quest passthrough recording); frames extracted via ffmpeg")
+    r.add_argument("--fps", type=float, default=2.0, help="frame extraction rate for --video")
+    r.add_argument("--dedupe", action="store_true",
+                   help="keep only the best detection per label (one asset per object)")
     r.add_argument("--classes", help="comma-separated open-vocab labels")
     r.add_argument("--location", help="human location label for these captures")
     r.add_argument("--box-dims", default="0.3,0.3,0.3", help="fallback WxHxD meters")
