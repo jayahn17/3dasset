@@ -1,5 +1,12 @@
 # Mac ↔ Linux workflow — iPad RGB-D → nvblox
 
+**Short daily checklist.** For the full Engin170 picture (clone, Linux backend,
+results back to iPad **view-only**), use:
+
+→ **[ENGIN170_WORKFLOW.md](ENGIN170_WORKFLOW.md)**
+
+---
+
 **This is the only capture path we use going forward.**
 
 Do **not** use old Camera HEICs, gym photo folders, plain video, or COLMAP-only dumps.
