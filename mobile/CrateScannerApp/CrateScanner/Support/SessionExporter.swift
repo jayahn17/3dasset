@@ -25,7 +25,11 @@ import simd
 final class SessionExporter {
 
     let rootURL: URL
-    private let colorDir: URL
+    /// Color JPEGs. Named `images/` (not `color/`) so it reads plainly when the
+    /// user browses the session in Files. assetpipe is path-agnostic — it reads
+    /// whatever path the manifest's `color` field points at — so the folder name
+    /// is free to be human-friendly.
+    private let imagesDir: URL
     private let depthDir: URL
     private let minInterval: TimeInterval
     private let maxColorWidth: CGFloat
@@ -57,11 +61,11 @@ final class SessionExporter {
          maxColorWidth: CGFloat = 640) throws {
         let id = UUID().uuidString.prefix(8)
         rootURL = directory.appendingPathComponent("session-\(id)", isDirectory: true)
-        colorDir = rootURL.appendingPathComponent("color", isDirectory: true)
+        imagesDir = rootURL.appendingPathComponent("images", isDirectory: true)
         depthDir = rootURL.appendingPathComponent("depth", isDirectory: true)
         self.minInterval = minInterval
         self.maxColorWidth = maxColorWidth
-        try FileManager.default.createDirectory(at: colorDir, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: depthDir, withIntermediateDirectories: true)
     }
 
@@ -113,14 +117,16 @@ final class SessionExporter {
         frames.append([
             "id": String(format: "f%05d", idx),
             "t": t,
-            "color": "color/\(colorName)",
+            // JSON key stays `color` (assetpipe schema); the path points at the
+            // human-friendly images/ folder.
+            "color": "images/\(colorName)",
             "depth": "depth/\(depthName)",
             "pose": float4x4ToRowMajorArray(pose),
             "intrinsics": [Double(fx * sx), Double(fy * sy), Double(cx * sx), Double(cy * sy)],
         ])
         lock.unlock()
 
-        let colorURL = colorDir.appendingPathComponent(colorName)
+        let colorURL = imagesDir.appendingPathComponent(colorName)
         let depthURL = depthDir.appendingPathComponent(depthName)
         ioQueue.async {
             try? writeJPEG(colorImage, to: colorURL)

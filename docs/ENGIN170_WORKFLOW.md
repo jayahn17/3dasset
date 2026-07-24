@@ -91,11 +91,13 @@ open CrateScanner.xcodeproj
 Regenerating is what pulls newly added Swift files into the app target. Details:
 [../mobile/CrateScannerApp/README.md](../mobile/CrateScannerApp/README.md)
 
-### Step 2 — iPad: finish capture (images / RGB-D “video” frames)
+### Step 2 — iPad: capture
 
-1. Slow orbit (watch **RGB-D** count rise)  
-2. Place Box → Fit → **Capture**  
-3. **Share full package (mesh + RGB-D)** → AirDrop to Mac  
+1. Aim at the object → **Start Scan**  
+2. Slow orbit (watch the **RGB-D** count rise) — Measure/box is optional  
+3. **Finish Scan**  
+4. On review: if a Google Drive folder is set, the package **auto-saves** there
+   (Drive uploads it). First time, tap **Choose** and pick the folder once.  
 
 Package:
 
@@ -105,7 +107,7 @@ CrateScan-<id>.zip
   mesh.obj              # quick on-device mesh (optional Path A)
   session/              # ← what Linux nvblox needs
     manifest.json
-    color/*.jpg
+    images/*.jpg          # color frames (manifest keys them "color")
     depth/*.png
 ```
 

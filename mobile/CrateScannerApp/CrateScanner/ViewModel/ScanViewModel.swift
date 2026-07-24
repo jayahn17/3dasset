@@ -19,7 +19,10 @@ import simd
 
 /// Which stage of the flow we're in.
 enum ScanPhase: Equatable {
-    /// Live scanning: mesh streaming in, box placement/fit available.
+    /// AR is live (camera preview + tracking warming up) but nothing is being
+    /// recorded yet — the user lines up the shot and presses Start.
+    case ready
+    /// Live scanning: RGB-D frames + mesh streaming in.
     case scanning
     /// Frozen: a captured mesh + result exist, ready to review/orbit/export.
     case reviewing
@@ -30,8 +33,9 @@ final class ScanViewModel: NSObject, ObservableObject {
 
     // MARK: Published UI state
 
-    /// Current stage of the flow.
-    @Published private(set) var phase: ScanPhase = .scanning
+    /// Current stage of the flow. Starts in `.ready`: AR is live so the user
+    /// can aim, but recording waits for the Start button.
+    @Published private(set) var phase: ScanPhase = .ready
 
     /// Live, human-readable guidance ("Move slower", "Needs more light"…).
     @Published private(set) var feedback: ScanFeedback = .initializing
@@ -90,18 +94,30 @@ final class ScanViewModel: NSObject, ObservableObject {
 
     // MARK: Session lifecycle
 
-    /// Wire this view model to the ARView and start scene reconstruction.
+    /// Wire this view model to the ARView and start the live preview.
+    ///
+    /// The session runs immediately so the camera and tracking warm up, but
+    /// recording does NOT begin — the user aims, then presses Start.
     func attach(to arView: ARView) {
         self.arView = arView
         // Order matters: the queue must be set before the delegate, or the
         // first callbacks still land on the main queue.
         arView.session.delegateQueue = captureQueue
         arView.session.delegate = self
-        runSession(resetting: true)
+        runSession(resetting: true, record: false)
+    }
+
+    /// Begin recording RGB-D + mesh. Called from the Start button.
+    func start() {
+        guard phase == .ready else { return }
+        phase = .scanning
+        recorder.isRecording = true
     }
 
     /// Configure + run the world-tracking session with mesh reconstruction.
-    private func runSession(resetting: Bool) {
+    /// - Parameter record: whether to begin recording immediately (false while
+    ///   in `.ready`, true when resuming an already-started scan).
+    private func runSession(resetting: Bool, record: Bool) {
         guard let arView else { return }
 
         let config = ARWorldTrackingConfiguration()
@@ -125,7 +141,7 @@ final class ScanViewModel: NSObject, ObservableObject {
             rgbdFrameCount = 0
             lastSessionURL = nil
         }
-        recorder.isRecording = true
+        recorder.isRecording = record
     }
 
     /// Pause the session (e.g. when leaving the screen or entering review).
@@ -273,15 +289,24 @@ final class ScanViewModel: NSObject, ObservableObject {
         return try PackageExporter.zipForSharing(session)
     }
 
+    /// Build the Linux package and copy it into the user's saved destination
+    /// (e.g. a Google Drive folder in Files). Off the main actor — zipping ~440
+    /// frames takes a moment. Returns the destination's display name on success.
+    nonisolated func exportAndAutoSave() async throws -> String {
+        let zip = try await MainActor.run { try self.exportLinuxPackage() }
+        return try DestinationStore.shared.copy(zip)
+    }
+
     /// Return from review to continue scanning the same object (mesh persists).
+    /// Already started once, so recording resumes without another Start tap.
     func resumeScanning() {
         capturedMesh = nil
         lastSessionURL = nil
         phase = .scanning
-        runSession(resetting: false)
+        runSession(resetting: false, record: true)
     }
 
-    /// Clear everything for a fresh scan.
+    /// Clear everything for a fresh scan and return to the pre-Start state.
     func reset() {
         meshes.removeAll()
         capturedVertexCount = 0
@@ -292,10 +317,10 @@ final class ScanViewModel: NSObject, ObservableObject {
         rgbdFrameCount = 0
         recorder.exporter = nil
         isBoxPlaced = false
-        phase = .scanning
+        phase = .ready
         ghostAnchor?.removeFromParent()
         ghostAnchor = nil
-        runSession(resetting: true)
+        runSession(resetting: true, record: false)
     }
 
     // MARK: Internal helpers
@@ -427,8 +452,9 @@ extension ScanViewModel: ARSessionDelegate {
 
     /// Map tracking state + light level to a single guidance message.
     private func updateFeedback(state: ARCamera.TrackingState, ambientIntensity: CGFloat) {
-        // Don't overwrite guidance while frozen in review.
-        guard phase == .scanning else { return }
+        // Runs in .ready too, so the banner reflects tracking/light before the
+        // user presses Start. Only review freezes it.
+        guard phase != .reviewing else { return }
 
         switch state {
         case .notAvailable:

@@ -199,7 +199,7 @@ On Linux:
 mkdir -p ~/3dasset/captures
 cd ~/3dasset/captures
 unzip -o session-XXXXXXXX.zip -d scan1
-# Expect: scan1/manifest.json  scan1/color/  scan1/depth/
+# Expect: scan1/manifest.json  scan1/images/  scan1/depth/
 ```
 
 Add to `~/3dasset/.gitignore` if needed:

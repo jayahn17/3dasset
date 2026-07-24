@@ -78,7 +78,7 @@ CrateScan-<id>.zip
   mesh.obj
   session/
     manifest.json
-    color/*.jpg
+    images/*.jpg          # color frames (manifest key stays "color")
     depth/*.png
 ```
 

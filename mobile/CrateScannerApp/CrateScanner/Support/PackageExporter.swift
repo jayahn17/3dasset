@@ -10,7 +10,7 @@
 //        mesh.obj                 (inches — Path A: assetpipe cratescan)
 //        session/                 (RGB-D — Path B: assetpipe rgbd)
 //          manifest.json
-//          color/*.jpg
+//          images/*.jpg           (color frames — manifest still keys them "color")
 //          depth/*.png
 //
 //  Zip with NSFileCoordinator (.forUploading) for ShareSheet.

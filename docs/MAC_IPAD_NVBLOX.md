@@ -102,7 +102,7 @@ measurement.json
 mesh.obj
 session/
   manifest.json
-  color/*.jpg
+  images/*.jpg         # color frames (manifest key stays "color")
   depth/*.png          # LiDAR, mm
 README_LINUX.txt
 ```
@@ -198,6 +198,6 @@ python -m assetpipe cratescan captures/scan1 --out demo_out/ipad_crate1
 
 - [ ] Mac `git pull` / app rebuilt with SessionExporter  
 - [ ] iPad RGB-D count &gt; 0 during scan  
-- [ ] Zip has `session/manifest.json` + `color/` + `depth/`  
+- [ ] Zip has `session/manifest.json` + `images/` + `depth/`  
 - [ ] `rgbd --inspect-only` → `ok_for_nvblox: true`  
 - [ ] Fuse with `--backend nvblox` (or `auto`)

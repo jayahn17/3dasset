@@ -31,8 +31,8 @@ struct ScanView: View {
             ARViewContainer(viewModel: viewModel)
                 .ignoresSafeArea()
 
-            // Center reticle while aiming to place the box.
-            if !viewModel.isBoxPlaced {
+            // Center reticle while aiming (pre-start, and before a box).
+            if viewModel.phase == .ready || !viewModel.isBoxPlaced {
                 Image(systemName: "plus")
                     .font(.system(size: 28, weight: .thin))
                     .foregroundStyle(.white.opacity(0.8))
@@ -41,9 +41,33 @@ struct ScanView: View {
             VStack {
                 feedbackBanner
                 Spacer()
-                controls
+                if viewModel.phase == .ready {
+                    startControls
+                } else {
+                    controls
+                }
             }
             .padding()
+        }
+    }
+
+    // MARK: Pre-start
+
+    private var startControls: some View {
+        VStack(spacing: 12) {
+            Text("Aim at the object, then start. Orbit it slowly so every side is seen.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button {
+                viewModel.start()
+            } label: {
+                Label("Start Scan", systemImage: "record.circle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(.red)
         }
     }
 
