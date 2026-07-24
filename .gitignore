@@ -1,3 +1,7 @@
+# reference clone of the client project (its own git repo + a 317 MB .build/).
+# Kept locally to compare against; never part of this repo.
+E170_Client_Project_temp/
+
 # pipeline outputs
 twin_out/
 scan_out/

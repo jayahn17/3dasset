@@ -1,0 +1,50 @@
+#  project.yml — XcodeGen spec for CrateScanner
+#
+#  The .xcodeproj is GENERATED, never committed. Regenerate after every pull:
+#
+#      cd mobile/CrateScannerApp
+#      xcodegen generate && open CrateScanner.xcodeproj
+#
+#  Why: `sources` globs the CrateScanner/ folder, so Swift files that arrive in
+#  a git pull join the app target automatically. Hand-maintained .pbxproj files
+#  don't — that's how SessionExporter.swift lands on disk but fails to compile
+#  with "Cannot find 'SessionExporter' in scope".
+#
+#  Install once:  brew install xcodegen
+
+name: CrateScanner
+
+options:
+  bundleIdPrefix: com.jayahn
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+targets:
+  CrateScanner:
+    type: application
+    platform: iOS
+
+    sources:
+      - path: CrateScanner
+        excludes:
+          # Referenced via INFOPLIST_FILE below; excluded here so it isn't also
+          # copied in as a bundle resource.
+          - "Info.plist"
+
+    settings:
+      base:
+        INFOPLIST_FILE: CrateScanner/Info.plist
+        TARGETED_DEVICE_FAMILY: "1,2"          # iPhone + iPad
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: "5.0"
+
+        # Merged into the custom Info.plist by the build system. Without the
+        # launch-screen key an iPad app runs letterboxed in compatibility mode.
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+
+        # Signing team is deliberately NOT committed. Set it once in Xcode under
+        # Signing & Capabilities, or uncomment and fill in to survive regenerate:
+        # DEVELOPMENT_TEAM: XXXXXXXXXX

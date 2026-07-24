@@ -1,4 +1,6 @@
 # Xcode / Swift
+# The project is generated from project.yml by XcodeGen — never commit it.
+*.xcodeproj
 build/
 DerivedData/
 *.xcuserstate
