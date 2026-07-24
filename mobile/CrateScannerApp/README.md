@@ -14,29 +14,49 @@ Upstream origin: [NathanJim17/E170_Client_Project](https://github.com/NathanJim1
 
 ## Mac — open & run on iPad
 
-### First time (if you don’t have an `.xcodeproj` yet)
+The `.xcodeproj` is **generated from [`project.yml`](project.yml)** and is
+gitignored. This is deliberate: the spec globs the `CrateScanner/` folder, so
+Swift files that arrive in a `git pull` join the app target automatically. A
+hand-maintained `.pbxproj` does not — new files land on disk and then fail to
+build with `Cannot find 'SessionExporter' in scope`.
 
-1. Xcode → **File → New → Project → iOS → App**
-2. Product Name: `CrateScanner`, Interface: **SwiftUI**, Language: **Swift**
-3. Delete template `ContentView.swift` / `*App.swift`
-4. Drag the entire `CrateScanner/` folder into the project (**Copy items if needed**, target membership checked)
-5. Add **Privacy – Camera Usage Description** (or use included `Info.plist`)
-6. Deployment **iOS 17+**, Team = your Apple ID
-7. Destination = **iPad** (LiDAR) → **⌘R**
+```bash
+brew install xcodegen          # once
 
-### If you already have a working Xcode project
+cd ~/3dasset/mobile/CrateScannerApp
+git pull
+xcodegen generate             # after EVERY pull that touches CrateScanner/
+open CrateScanner.xcodeproj
+```
 
-Replace/merge these files from this package into your project (ensure target membership):
+Then in Xcode: **Signing & Capabilities → Team =** your Apple ID (this is not
+committed, so re-select it after a regenerate — or fill in `DEVELOPMENT_TEAM`
+in `project.yml`, which is your repo). Destination = **iPad**, then **⌘R**.
+
+Verified: `xcodebuild -scheme CrateScanner` → **BUILD SUCCEEDED**, all 17
+sources in the target.
+
+> Simulator builds and runs, but has no LiDAR — `LiDARAvailability.isSupported`
+> is false there, so you get `UnsupportedDeviceView`. Real scanning needs the
+> device.
+
+### Using the E170_Client_Project Xcode project instead
+
+If you build from [NathanJim17/E170_Client_Project](https://github.com/NathanJim17/E170_Client_Project),
+that repo owns its own `.pbxproj` — copy these files in and check target
+membership by hand:
 
 | File | Role |
 |------|------|
-| `Support/SessionExporter.swift` | **NEW** — RGB-D frames |
-| `Support/PackageExporter.swift` | **NEW** — Linux zip |
-| `ViewModel/ScanViewModel.swift` | Wired recorder + package export |
-| `View/ResultReviewView.swift` | Share package / session buttons |
-| `View/ScanView.swift` | Shows RGB-D frame count |
+| `Support/SessionExporter.swift` | **NEW** — must be added to the target |
+| `Support/PackageExporter.swift` | **NEW** — must be added to the target |
+| `ViewModel/ScanViewModel.swift` | replace — wired recorder + package export |
+| `View/ResultReviewView.swift` | replace — share package / session buttons |
+| `View/ScanView.swift` | replace — shows RGB-D frame count |
 
-Then **⌘R** on iPad.
+The two **NEW** files are the ones that silently go missing: replacing existing
+files works over a plain `git pull`, but new paths are absent from that repo's
+`.pbxproj` until you drag them in.
 
 ---
 
@@ -91,7 +111,7 @@ From the **3dasset** repo (this package lives at `mobile/CrateScannerApp/`):
 ```bash
 cd ~/3dasset
 git pull
-# open mobile/CrateScannerApp/CrateScanner/ in your Xcode project
+cd mobile/CrateScannerApp && xcodegen generate && open CrateScanner.xcodeproj
 ```
 
-Do not commit scan zips.
+Do not commit scan zips, or the generated `CrateScanner.xcodeproj`.

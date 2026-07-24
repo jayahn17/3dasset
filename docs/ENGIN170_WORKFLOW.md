@@ -77,11 +77,19 @@ your Xcode project if you already opened `E170_Client_Project`.
 
 ### Step 1 — Mac: build app onto iPad
 
+The `.xcodeproj` is generated (gitignored), so regenerate after every pull:
+
 ```bash
 cd ~/3dasset && git pull
-# Open CrateScanner in Xcode (see mobile/CrateScannerApp/README.md)
+cd mobile/CrateScannerApp
+xcodegen generate            # brew install xcodegen — once
+open CrateScanner.xcodeproj
+# Signing & Capabilities → Team = your Apple ID
 # Destination = iPad (LiDAR) → ⌘R
 ```
+
+Regenerating is what pulls newly added Swift files into the app target. Details:
+[../mobile/CrateScannerApp/README.md](../mobile/CrateScannerApp/README.md)
 
 ### Step 2 — iPad: finish capture (images / RGB-D “video” frames)
 
@@ -103,9 +111,17 @@ CrateScan-<id>.zip
 
 This is **not** a normal Camera video. It is a **frame sequence with depth + pose**.
 
-### Step 3 — Mac → Linux: send input
+### Step 3 — iPad → Linux: send input
+
+Every scan is kept on the iPad at **Files → On My iPad → CrateScanner →
+CrateScans/Packages** (persistent, survives restarts), so you can transfer it
+later — not only from the share sheet at capture time.
 
 ```bash
+# Route A — Drive: drag the zip into Google Drive in Files, then on Linux
+rclone copy gdrive:CrateScans ~/3dasset/captures/
+
+# Route B — AirDrop to Mac, then
 scp ~/Downloads/CrateScan-XXXXXXXX.zip USER@LINUX_IP:~/3dasset/captures/
 ```
 

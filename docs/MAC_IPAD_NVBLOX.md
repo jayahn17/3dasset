@@ -35,7 +35,7 @@ Linux 4080
 | [jayahn17/3dasset](https://github.com/jayahn17/3dasset) | Linux pipeline + packaged iOS sources |
 | Branch | `claude/3d-asset-recording-quest-e1jvtx` |
 
-App sources in this repo: [`mobile/CrateScannerApp/`](mobile/CrateScannerApp/)
+App sources in this repo: [`mobile/CrateScannerApp/`](../mobile/CrateScannerApp/)
 
 ---
 
@@ -62,13 +62,24 @@ On Linux: `git pull` before fusing.
 
 ## Mac — build & run on iPad
 
-1. Open Xcode project that contains `CrateScanner/` from `mobile/CrateScannerApp/CrateScanner/`
-   - First time: see [`mobile/CrateScannerApp/README.md`](mobile/CrateScannerApp/README.md)
-   - Or merge updated Swift files into your existing project, then ⌘R
-2. Destination = **iPad** (LiDAR), not Simulator
+The `.xcodeproj` is generated from `project.yml` and gitignored — regenerate
+after every pull so new Swift files join the app target:
+
+```bash
+cd ~/3dasset/mobile/CrateScannerApp
+xcodegen generate            # brew install xcodegen — once
+open CrateScanner.xcodeproj
+```
+
+1. Signing & Capabilities → **Team** = your Apple ID (not committed)
+2. Destination = **iPad** (LiDAR), not Simulator — the Simulator has no LiDAR
+   and lands on `UnsupportedDeviceView`
 3. ⌘R → grant Camera
 
-Key files (must be in the app target):
+First time / E170_Client_Project route:
+[`../mobile/CrateScannerApp/README.md`](../mobile/CrateScannerApp/README.md)
+
+Key files (XcodeGen picks these up automatically):
 
 - `Support/SessionExporter.swift` — records RGB-D
 - `Support/PackageExporter.swift` — builds Linux zip
@@ -98,7 +109,27 @@ README_LINUX.txt
 
 ---
 
-## Mac → Linux transfer
+## iPad → Linux transfer
+
+Scans are saved on the iPad in a **visible, persistent** folder — not temp — so
+you can get at them any time, not just from the share sheet right after capture:
+
+```text
+Files → On My iPad → CrateScanner → CrateScans/
+  Sessions/session-XXXXXXXX/     RGB-D frames
+  Packages/CrateScan-XXXXXXXX.zip   ← transfer this
+```
+
+**Route A — Google Drive (no Mac in the loop):**
+
+1. iPad Files app → drag `CrateScan-XXXXXXXX.zip` into your Drive folder
+2. On Linux:
+
+```bash
+rclone copy gdrive:CrateScans ~/3dasset/captures/   # rclone config once
+```
+
+**Route B — AirDrop via Mac:**
 
 ```bash
 # On Mac (set USER + LINUX_IP)
@@ -156,10 +187,10 @@ python -m assetpipe cratescan captures/scan1 --out demo_out/ipad_crate1
 
 ## Related docs
 
-- [`mobile/CrateScannerApp/README.md`](mobile/CrateScannerApp/README.md) — Xcode package details  
-- [`docs/CRATESCANNER_BRIDGE.md`](docs/CRATESCANNER_BRIDGE.md) — app ↔ assetpipe  
-- [`docs/NVBLOX_WORKFLOW.md`](docs/NVBLOX_WORKFLOW.md) — server fuse details  
-- [`docs/DUAL_MACHINE_PLAYBOOK.md`](docs/DUAL_MACHINE_PLAYBOOK.md) — longer dual-machine notes  
+- [`mobile/CrateScannerApp/README.md`](../mobile/CrateScannerApp/README.md) — Xcode package details  
+- [`docs/CRATESCANNER_BRIDGE.md`](CRATESCANNER_BRIDGE.md) — app ↔ assetpipe  
+- [`docs/NVBLOX_WORKFLOW.md`](NVBLOX_WORKFLOW.md) — server fuse details  
+- [`docs/DUAL_MACHINE_PLAYBOOK.md`](DUAL_MACHINE_PLAYBOOK.md) — longer dual-machine notes  
 
 ---
 
