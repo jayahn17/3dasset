@@ -65,8 +65,17 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// The RealityKit view we drive. Set once by the representable in makeUIView.
     private weak var arView: ARView?
 
+    /// ARKit delivers frames here instead of the main queue. Recording a frame
+    /// means a JPEG encode and a depth copy; on the main queue that is a visible
+    /// stutter and it caps the achievable frame rate.
+    private let captureQueue = DispatchQueue(label: "CrateScanner.arsession.delegate",
+                                             qos: .userInitiated)
+
     /// Records color + LiDAR depth + pose for Linux `assetpipe rgbd`.
-    private var sessionExporter: SessionExporter?
+    ///
+    /// Held in a lock box because it is written from the main actor and read
+    /// from `captureQueue` inside the ARSessionDelegate callbacks.
+    private let recorder = RecorderBox()
 
     /// The anchored ghost box, added to the scene when the user places it.
     private var ghost = GhostBoxEntity()
@@ -84,6 +93,9 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// Wire this view model to the ARView and start scene reconstruction.
     func attach(to arView: ARView) {
         self.arView = arView
+        // Order matters: the queue must be set before the delegate, or the
+        // first callbacks still land on the main queue.
+        arView.session.delegateQueue = captureQueue
         arView.session.delegate = self
         runSession(resetting: true)
     }
@@ -108,11 +120,12 @@ final class ScanViewModel: NSObject, ObservableObject {
         arView.session.run(config, options: options)
 
         // Fresh RGB-D recorder on reset; keep accumulating if resuming.
-        if resetting || sessionExporter == nil {
-            sessionExporter = try? SessionExporter(minInterval: 0.25) // ~4 Hz
+        if resetting || recorder.exporter == nil {
+            recorder.exporter = try? SessionExporter(minInterval: 0.1) // ~10 Hz
             rgbdFrameCount = 0
             lastSessionURL = nil
         }
+        recorder.isRecording = true
     }
 
     /// Pause the session (e.g. when leaving the screen or entering review).
@@ -183,35 +196,49 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// compute the object's tight dimensions, freeze it for review/export, and
     /// pause live scanning. This is the "Capture" action.
     func capture() {
-        guard let box = currentBox else { return }
+        recorder.isRecording = false
 
-        // Merge all per-anchor meshes into one, then keep only what's in the box.
-        var combined = CapturedMesh()
-        for mesh in meshes.values { combined.append(mesh) }
-        let cropped = combined.cropped(to: box)
-
-        guard !cropped.isEmpty,
-              let fitted = AABB.fitting(cropped.vertices), !fitted.isEmpty else {
-            feedback = .noGeometry
-            return
-        }
-
-        // Snap the box to the true object bounds and publish final dimensions.
-        setBox(fitted)
-        result = MeasurementResult(extentsMeters: fitted.extents, padding: paddingInches)
-        capturedMesh = cropped
-
-        // Finalize RGB-D session for Linux nvblox / Open3D TSDF.
-        if let exporter = sessionExporter {
+        // 1. The RGB-D session is the deliverable — Linux nvblox builds the 3D
+        //    asset from it and the crate is designed off that afterwards. So it
+        //    is finalized FIRST and unconditionally. Earlier this ran last and
+        //    behind a `guard currentBox != nil`, which threw away a perfectly
+        //    good recording whenever no box was placed or the LiDAR crop came
+        //    back empty.
+        if let exporter = recorder.exporter {
             do {
-                lastSessionURL = try exporter.finalize(
-                    objectHint: "scanned object",
-                    location: nil
-                )
+                lastSessionURL = try exporter.finalize(objectHint: "scanned object")
                 rgbdFrameCount = exporter.frameCount
             } catch {
                 lastSessionURL = nil
             }
+        }
+
+        // 2. The on-device mesh and dimensions are an optional convenience.
+        var combined = CapturedMesh()
+        for mesh in meshes.values { combined.append(mesh) }
+
+        if let box = currentBox {
+            // A box was placed: crop to it and report object dimensions.
+            let cropped = combined.cropped(to: box)
+            if !cropped.isEmpty,
+               let fitted = AABB.fitting(cropped.vertices), !fitted.isEmpty {
+                setBox(fitted)
+                result = MeasurementResult(extentsMeters: fitted.extents,
+                                           padding: paddingInches)
+                capturedMesh = cropped
+            }
+        } else {
+            // No box: keep the whole scan for preview. Deliberately no
+            // MeasurementResult — the bounds would describe the room, not an
+            // object, and crating is computed from the fused asset on Linux.
+            capturedMesh = combined.isEmpty ? nil : combined
+        }
+
+        // 3. Only a total miss is a failure.
+        guard capturedMesh != nil || lastSessionURL != nil else {
+            feedback = .noGeometry
+            recorder.isRecording = true
+            return
         }
 
         phase = .reviewing
@@ -263,7 +290,7 @@ final class ScanViewModel: NSObject, ObservableObject {
         capturedMesh = nil
         lastSessionURL = nil
         rgbdFrameCount = 0
-        sessionExporter = nil
+        recorder.exporter = nil
         isBoxPlaced = false
         phase = .scanning
         ghostAnchor?.removeFromParent()
@@ -326,13 +353,17 @@ extension ScanViewModel: ARSessionDelegate {
     /// Translate ARKit tracking state into user guidance on every frame.
     /// Also samples RGB-D for the Linux pipeline while scanning.
     nonisolated func session(_ session: ARSession, didUpdate frame: ARFrame) {
+        // Runs on `captureQueue`. Record synchronously, while the frame's pixel
+        // buffers are still valid and owned by us — an ARFrame must never be
+        // captured by a Task that outlives this call, or ARKit's buffer pool
+        // drains and frame delivery stops.
+        let recorded = recorder.record(frame)
+
         let state = frame.camera.trackingState
         let intensity = frame.lightEstimate?.ambientIntensity ?? 1000
         Task { @MainActor in
             self.updateFeedback(state: state, ambientIntensity: intensity)
-            guard self.phase == .scanning else { return }
-            self.sessionExporter?.maybeRecord(frame)
-            self.rgbdFrameCount = self.sessionExporter?.frameCount ?? 0
+            if let recorded { self.rgbdFrameCount = recorded }
         }
     }
 
@@ -420,6 +451,47 @@ extension ScanViewModel: ARSessionDelegate {
                 feedback = .scanning
             }
         }
+    }
+}
+
+// MARK: - Recorder isolation
+
+/// Thread-safe holder for the RGB-D recorder.
+///
+/// `ScanViewModel` is `@MainActor`, but ARKit delivers frames on `captureQueue`
+/// so that encoding never blocks the UI. The exporter is therefore reachable
+/// from both, and this box owns that hand-off explicitly rather than leaving it
+/// to an unchecked cross-actor property access.
+final class RecorderBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _exporter: SessionExporter?
+    private var _isRecording = false
+
+    var exporter: SessionExporter? {
+        get { lock.lock(); defer { lock.unlock() }; return _exporter }
+        set { lock.lock(); _exporter = newValue; lock.unlock() }
+    }
+
+    /// False while frozen in review, so a paused session records nothing.
+    var isRecording: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _isRecording }
+        set { lock.lock(); _isRecording = newValue; lock.unlock() }
+    }
+
+    /// Record this frame if enabled. Returns the new frame count, or nil when
+    /// nothing was written (throttled, paused, or no depth on this tick) so the
+    /// caller can skip a pointless hop to the main actor.
+    func record(_ frame: ARFrame) -> Int? {
+        lock.lock()
+        let exporter = _exporter
+        let recording = _isRecording
+        lock.unlock()          // never hold the lock across encode + file I/O
+
+        guard recording, let exporter else { return nil }
+        let before = exporter.frameCount
+        exporter.maybeRecord(frame)
+        let after = exporter.frameCount
+        return after > before ? after : nil
     }
 }
 

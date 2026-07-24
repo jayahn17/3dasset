@@ -23,5 +23,17 @@
     <array>
         <string>arkit</string>
     </array>
+
+    <!--
+        These two expose Documents/ in Files → On My iPad → CrateScanner, which
+        is how a finished scan gets from the iPad to Google Drive (the Drive app
+        registers as a Files provider) and on to Linux. Without them the folder
+        exists but is invisible, and the only way off the device is the share
+        sheet. See Support/ScanStorage.swift.
+    -->
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
 </dict>
 </plist>

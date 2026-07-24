@@ -42,6 +42,8 @@ enum PackageExporter {
         baseName: String
     ) throws -> URL {
         let fm = FileManager.default
+        // Staging only — the finished zip is written to the user-visible
+        // Documents/CrateScans/Packages by zipForSharing below.
         let root = fm.temporaryDirectory
             .appendingPathComponent("CrateScan-\(baseName)", isDirectory: true)
         try? fm.removeItem(at: root)
@@ -81,6 +83,15 @@ enum PackageExporter {
         CrateScanner → Linux assetpipe package
         ======================================
 
+        This zip also lives on the iPad at:
+          Files → On My iPad → CrateScanner → CrateScans → Packages
+
+        Getting it to Linux — any one of:
+          a) Files app: drag the zip into your Google Drive folder, then on
+             Linux:  rclone copy gdrive:CrateScans ~/3dasset/captures/
+          b) AirDrop to the Mac, then:
+             scp ~/Downloads/CrateScan-*.zip USER@LINUX_IP:~/3dasset/captures/
+
         On the Linux box (4080):
 
           unzip this folder, then:
@@ -101,12 +112,21 @@ enum PackageExporter {
         try readme.write(to: root.appendingPathComponent("README_LINUX.txt"),
                          atomically: true, encoding: .utf8)
 
-        return try zipForSharing(root)
+        let zip = try zipForSharing(root)
+        try? fm.removeItem(at: root)      // drop the staging copy
+        return zip
     }
 
-    /// Zip a directory for UIActivityViewController / AirDrop.
-    static func zipForSharing(_ directory: URL) throws -> URL {
-        let zipURL = directory.appendingPathExtension("zip")
+    /// Zip a directory into the user-visible packages folder.
+    ///
+    /// The result lands in Documents/CrateScans/Packages, so it survives app
+    /// restarts and shows up in Files → On My iPad → CrateScanner — which is
+    /// what makes the Google Drive hand-off possible without the share sheet.
+    static func zipForSharing(_ directory: URL,
+                              into destination: URL = ScanStorage.packagesDirectory) throws -> URL {
+        let zipURL = destination
+            .appendingPathComponent(directory.lastPathComponent)
+            .appendingPathExtension("zip")
         try? FileManager.default.removeItem(at: zipURL)
 
         var coordinatorError: NSError?

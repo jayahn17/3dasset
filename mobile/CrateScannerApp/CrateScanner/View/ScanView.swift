@@ -92,44 +92,41 @@ struct ScanView: View {
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
             }
 
+            // Finish is always available: the RGB-D session is the deliverable
+            // and Linux builds the asset (and the crate) from it. The ghost box
+            // is an optional on-device measuring aid, not a step in the flow.
             if !viewModel.isBoxPlaced {
-                Text("Aim at the machine, then place the box around it")
+                Text("Orbit the object slowly until coverage looks complete")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 12) {
                 Button {
-                    viewModel.placeBox()
+                    viewModel.isBoxPlaced ? viewModel.fitToObject() : viewModel.placeBox()
                 } label: {
-                    Label("Place Box", systemImage: "cube")
+                    Label(viewModel.isBoxPlaced ? "Fit to Object" : "Measure (optional)",
+                          systemImage: viewModel.isBoxPlaced ? "scope" : "cube")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+
+                Button {
+                    viewModel.capture()
+                } label: {
+                    Label("Finish Scan", systemImage: "checkmark.circle")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-            } else {
-                HStack(spacing: 12) {
-                    Button {
-                        viewModel.fitToObject()
-                    } label: {
-                        Label("Fit to Object", systemImage: "scope")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
-
-                    Button {
-                        viewModel.capture()
-                    } label: {
-                        Label("Capture", systemImage: "camera.metering.matrix")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                }
-
-                Button("Reset", role: .destructive) {
-                    viewModel.reset()
-                }
-                .font(.footnote)
+                .disabled(viewModel.rgbdFrameCount == 0)
             }
+
+            Button("Reset", role: .destructive) {
+                viewModel.reset()
+            }
+            .font(.footnote)
         }
     }
 }

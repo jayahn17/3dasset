@@ -90,6 +90,20 @@ struct ResultReviewView: View {
             Text("Share to Linux (assetpipe)")
                 .font(.caption).foregroundStyle(.secondary)
 
+            // Scans are kept in Documents/, so they survive app restarts and are
+            // reachable from Files — drag one into Google Drive to sync to Linux.
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "folder")
+                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Saved to Files → On My iPad → CrateScanner")
+                    Text("CrateScans/Packages · \(ScanStorage.totalSizeDescription) stored")
+                        .foregroundStyle(.tertiary)
+                }
+                .font(.caption2)
+                Spacer()
+            }
+
             Button {
                 exportLinuxPackage()
             } label: {
