@@ -35,12 +35,18 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: CrateScanner/Info.plist
+        # REQUIRED alongside INFOPLIST_FILE. The INFOPLIST_KEY_* settings below
+        # are only merged into the plist when this is YES; with it off they are
+        # silently dropped, and the app ships with no orientations and no launch
+        # screen ("All interface orientations must be supported…" in Xcode).
+        # The custom file is still the base — this only adds the keys on top.
+        GENERATE_INFOPLIST_FILE: YES
         TARGETED_DEVICE_FAMILY: "1,2"          # iPhone + iPad
         CODE_SIGN_STYLE: Automatic
         SWIFT_VERSION: "5.0"
 
-        # Merged into the custom Info.plist by the build system. Without the
-        # launch-screen key an iPad app runs letterboxed in compatibility mode.
+        # Without the launch-screen key an iPad app runs letterboxed in
+        # compatibility mode.
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
