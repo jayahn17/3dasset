@@ -9,10 +9,21 @@ Everything below runs on the 4080 Linux box after:
 ```bash
 git clone https://github.com/jayahn17/3dasset && cd 3dasset      # or git pull
 git checkout claude/3d-asset-recording-quest-e1jvtx
-pip install pillow numpy trimesh requests imageio-ffmpeg          # light deps
-pip install ultralytics                                           # YOLO-World
-pip install fastapi uvicorn python-multipart                      # worker
+
+# conda env (pins Python 3.10 + torch/CUDA + YOLO + worker deps)
+# install Miniconda first if needed: https://docs.conda.io/en/latest/miniconda.html
+bash env/setup_ubuntu.sh                       # creates assetpipe + smoke-tests it
+# or manually:
+#   conda env create -f env/environment.yml
+#   conda activate assetpipe
+#   pip install -e .
+
+conda activate assetpipe
 ```
+
+All `python -m assetpipe …` / `python services/…` commands below assume
+`assetpipe` is active (or prefix with `conda run -n assetpipe`).
+Full GPU backend walkthrough: `docs/GPU_SETUP.md`.
 
 ---
 

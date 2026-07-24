@@ -1,10 +1,13 @@
-# Conda env for the GPU box (Ubuntu 22.04 + RTX 4080, CUDA 12.x, sm_89 / Ada).
+# THE assetpipe conda env — one env for everything (Ubuntu 22.04 + RTX 4080,
+# CUDA 12.x, sm_89 / Ada): core pipeline, `scan` (pycolmap), capture worker,
+# and the GPU backends.
 #   conda env create -f env/environment.yml
-#   conda activate assetpipe-gpu
+#   conda activate assetpipe
+#   conda env config vars set -n assetpipe PYTHONNOUSERSITE=1   # keep ~/.local out
 #
 # Torch is installed via pip with the cu121 index (works on the 4080). TRELLIS
 # / Grounded-SAM-2 / Nerfstudio have their own installers — see docs/GPU_SETUP.md.
-name: assetpipe-gpu
+name: assetpipe
 channels:
   - conda-forge
 dependencies:
@@ -24,6 +27,8 @@ dependencies:
       - ultralytics>=8.3
       # video ingestion (--video): bundled ffmpeg for Quest recordings
       - imageio-ffmpeg>=0.5
+      # `assetpipe scan` / live scan: sparse SfM point clouds
+      - pycolmap>=3.10
       # TRELLIS GPU service
       - fastapi>=0.110
       - uvicorn>=0.29

@@ -49,6 +49,7 @@ class VideoSource(CaptureSource):
         work_dir: str,
         fps: float = 2.0,
         max_frames: int = 300,
+        max_width: int | None = None,
         ffmpeg_bin: str | None = None,
     ) -> None:
         if not os.path.exists(video_path):
@@ -57,16 +58,20 @@ class VideoSource(CaptureSource):
         self.work_dir = work_dir
         self.fps = fps
         self.max_frames = max_frames
-        self.ffmpeg_bin = find_ffmpeg(ffmpeg_bin)
+        self.max_width = max_width  # downscale: SfM peaks ~1280px; full-res
+        self.ffmpeg_bin = find_ffmpeg(ffmpeg_bin)  # 1080p+ can OOM SIFT
 
     def extract(self) -> list[str]:
         """Run ffmpeg once; return the extracted frame paths."""
         frames_dir = os.path.join(self.work_dir, "frames")
         os.makedirs(frames_dir, exist_ok=True)
         pattern = os.path.join(frames_dir, "f%05d.jpg")
+        vf = f"fps={self.fps}"
+        if self.max_width:
+            vf += f",scale='min({self.max_width},iw)':-2"
         cmd = [
             self.ffmpeg_bin, "-y", "-i", self.video_path,
-            "-vf", f"fps={self.fps}",
+            "-vf", vf,
             "-frames:v", str(self.max_frames),
             "-q:v", "2",  # high-quality JPEG
             pattern,

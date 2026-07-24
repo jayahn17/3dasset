@@ -1,8 +1,19 @@
 # pipeline outputs
 twin_out/
+scan_out/
+demo_out/
+captures/
 *.db
 *.ply
 *.glb
+*.splat
+
+# conda (temp requirements file written during `conda env create`)
+env/condaenv.*.requirements.txt
+
+# capture worker runtime data + self-signed TLS certs
+worker_data/
+*.pem
 
 # python
 __pycache__/
@@ -13,3 +24,12 @@ build/
 dist/
 .venv/
 venv/
+
+# scanner exports + generated assets (large binaries)
+*.spz
+mouse_asset/
+asset_out/
+views/
+
+# model weights (auto-downloaded by ultralytics; multi-hundred MB)
+*.pt

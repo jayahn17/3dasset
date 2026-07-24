@@ -7,7 +7,7 @@ This isolates the CUDA/torch/TRELLIS dependency stack from the pipeline
 package. The pipeline's TrellisReconstructor just POSTs a crop here.
 
 SETUP (see docs/GPU_SETUP.md for the full walkthrough)
-    conda env create -f env/environment.yml && conda activate assetpipe-gpu
+    conda env create -f env/environment.yml && conda activate assetpipe
     git clone https://github.com/microsoft/TRELLIS && cd TRELLIS
     . ./setup.sh --new-env --basic --xformers --flash-attn --diffoctreerast \
         --spconv --mipgaussian --kaolin --nvdiffrast

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Info.plist for CrateScanner
+
+    The two things ARKit needs:
+      • NSCameraUsageDescription — REQUIRED. The app crashes on launch of the AR
+        session without a camera-usage string. Edit the text to taste.
+      • arkit UIRequiredDeviceCapabilities — restricts App Store installs to
+        AR-capable devices. Combined with our runtime LiDAR check, unsupported
+        hardware never reaches the scan.
+
+    If your Xcode target uses an auto-generated Info.plist ("Generate Info.plist
+    File" = Yes), add NSCameraUsageDescription under the target's Info tab
+    instead of using this file. See the README.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSCameraUsageDescription</key>
+    <string>CrateScanner uses the camera and LiDAR scanner to measure machines for custom crating.</string>
+
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arkit</string>
+    </array>
+</dict>
+</plist>

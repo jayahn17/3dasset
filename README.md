@@ -22,6 +22,9 @@ library choices behind every stage.
 
 ## Quickstart (no dependencies)
 
+The box-test slice runs on the **Python 3.10+ stdlib alone** — no install, no
+env required. From the repo root:
+
 ```bash
 # 1. Run the box test: synthesize boxes → meshes → URDF → twin → viewer
 python -m assetpipe demo
@@ -34,6 +37,27 @@ python -m assetpipe list --location closet
 #    twin_out/control_center.html
 ```
 
+> On systems where `python` is Python 2 or unavailable (many Linux boxes only
+> ship `python3`), use `python3` instead — or make the commands above work
+> verbatim with the optional conda env below.
+
+### The conda env (one env for everything: `assetpipe`)
+
+Not required for the box test, but everything beyond it (scan, worker, GPU
+backends) runs in the single **`assetpipe`** env:
+
+```bash
+conda env create -f env/environment.yml        # torch cu121 + pycolmap + the rest
+conda activate assetpipe
+pip install -e .                                # `assetpipe` + `python -m assetpipe` anywhere
+
+python -m assetpipe demo        # or just:  assetpipe demo
+pytest                          # full suite (zero-dep core + scene/scan tests)
+```
+
+GPU backend setup (YOLO-World, TRELLIS, Nerfstudio) and VRAM notes:
+**[docs/GPU_SETUP.md](docs/GPU_SETUP.md)**.
+
 Output for each recorded object:
 
 ```
@@ -44,6 +68,68 @@ twin_out/
     model.obj                 # reconstructed mesh
     model.urdf                # simulatable twin (PyBullet/Isaac/Gazebo/MuJoCo)
 ```
+
+> **Copy-paste command walkthrough for everything below:
+> [docs/WORKFLOW.md](docs/WORKFLOW.md)** · **LiDAR / nvblox RGB-D path:
+> [docs/NVBLOX_WORKFLOW.md](docs/NVBLOX_WORKFLOW.md)** · **CrateScanner app bridge:
+> [docs/CRATESCANNER_BRIDGE.md](docs/CRATESCANNER_BRIDGE.md)** · **Mac+iPad+Linux steps:
+> [docs/DUAL_MACHINE_PLAYBOOK.md](docs/DUAL_MACHINE_PLAYBOOK.md)**
+
+## Scan — Scaniverse-style (click → point cloud → .ply / .splat)
+
+No detector, no classes, no catalog: record a walkaround video, get ONE
+point cloud of the scene plus a self-contained viewer:
+
+```bash
+python -m assetpipe scan recording.mp4 --splat --clean
+# scan_out/scene.ply         colored point cloud (MeshLab/Blender/son)
+# scan_out/scene.splat       antimatter15 splat (any web splat viewer)
+# scan_out/scene_clean.ply   background removed — the ASSET   (--clean)
+# scan_out/scan_view.html    offline viewer — drag orbit / pinch zoom
+```
+
+Backends (`--backend`, default `auto` = best installed): `colmap`
+(pycolmap sparse SfM, CPU, the reliable default), `vggt` (feed-forward
+dense cloud, GPU, seconds), `splatfacto` (nerfstudio-trained gaussians,
+GPU, ~10 min), `3dgut` (nv-tlabs/3dgrut 3DGUT + optional USDZ for Isaac),
+`stub` (zero-dep plumbing test).
+
+**Auto background removal** (`--clean`, or `assetpipe clean scene.ply` on an
+old scan): outliers → RANSAC ground plane → clutter clusters are stripped
+automatically, leaving just the object — no manual cropping. The worker does
+this by default, so what lands in son is the asset, not the floor.
+
+## Scanner app → generative → real asset (the quality path)
+
+Photogrammetry *measures* what the camera saw; it cannot invent the
+underside it never scanned. A generative image-to-3D model can. So: let a
+LiDAR scanner app capture (it has depth hardware we don't), isolate the
+object here, and let TRELLIS/Hunyuan3D turn it into a watertight textured
+asset.
+
+```bash
+# Scaniverse -> Export -> PLY
+python -m assetpipe views Mouse.ply --out mouse_asset/views   # isolate + orbit renders
+python -m assetpipe generate Mouse.ply --backend trellis --out mouse_asset
+#   -> mouse_asset/asset_trellis.glb   (Blender / KeyShot / three.js / jay3d)
+```
+
+The generator runs as a GPU service in its own env
+(`bash env/setup_gen3d.sh`, then `python services/gen3d_server.py`) so its
+CUDA extension stack stays out of `assetpipe`. Full command walkthrough:
+**[docs/WORKFLOW.md](docs/WORKFLOW.md)**.
+
+Two ways to drive it from a browser (capture worker):
+
+* **`/scan`** — one button: record/pick a walkaround video, links to
+  `.ply`/`.splat`/viewer come back when reconstruction finishes.
+* **`/live`** — Scaniverse-style: the page streams camera frames while COLMAP
+  re-solves in the background, and you *watch the point cloud grow* as you
+  move; **Finish** runs the final solve + cleanup. (Phone/laptop browsers
+  need HTTPS for the camera — set `WORKER_SSL_CERT`/`WORKER_SSL_KEY`. The
+  Quest browser doesn't expose the passthrough camera to web pages, so on the
+  headset use `/scan` with a recording — the future on-device capture app can
+  stream to the same `/live` endpoints.)
 
 ## Run it on real images
 
@@ -94,14 +180,15 @@ URLs that son's `/spark` VR room hot-loads, with optional auto-post to
 
 ```
 assetpipe/
-  capture/      folder + Quest 3 session sources        (CaptureSource)
+  capture/      folder + video + Quest 3 session sources (CaptureSource)
   detect/       heuristic + YOLO-World + Grounded SAM 2 (Detector)
   reconstruct/  procedural box + TRELLIS + Nerfstudio   (Reconstructor)
+  scene/        Scaniverse path: scan/live/clean -> .ply/.splat (SceneBackend)
   digitalize/   OBJ writer + URDF generator
   catalog/      SQLite twin store + control-center viewer
   integrations/ son_twin.py — bridge to the LifeTwin/JayAsset platform
   pipeline.py   wires the stages together
-  cli.py        demo | run | list | viewer | export-son
+  cli.py        demo | scan | rgbd | clean | run | list | viewer | export-son
 docs/           ARCHITECTURE · QUEST3_CAPTURE · GPU_SETUP · ROADMAP · SON_INTEGRATION
 tests/          box-test + gpu-glue + son-bridge (zero deps to run)
 ```

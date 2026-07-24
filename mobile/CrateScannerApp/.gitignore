@@ -1,0 +1,16 @@
+# Xcode / Swift
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+.swiftpm/
+Packages/
+*.moved-aside
+
+# macOS
+.DS_Store
+
+# Secrets / config
+*.xcconfig.local

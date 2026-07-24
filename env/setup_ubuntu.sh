@@ -14,29 +14,29 @@ if ! command -v conda >/dev/null 2>&1; then
   exit 1
 fi
 
-echo ">> creating conda env 'assetpipe-gpu'"
+echo ">> creating conda env 'assetpipe'"
 conda env create -f env/environment.yml || conda env update -f env/environment.yml
 
 echo ">> CPU smoke test (no GPU needed)"
-conda run -n assetpipe-gpu python -m assetpipe demo
-conda run -n assetpipe-gpu python -m assetpipe list
+conda run -n assetpipe python -m assetpipe demo
+conda run -n assetpipe python -m assetpipe list
 
 echo ">> torch/CUDA visibility"
-conda run -n assetpipe-gpu python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else '')"
+conda run -n assetpipe python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else '')"
 
 cat <<'EOF'
 
 Next steps (see docs/GPU_SETUP.md):
   # 1) detection on real photos (YOLO-World, runs on the 4080 easily)
-  conda run -n assetpipe-gpu python -m assetpipe run \
+  conda run -n assetpipe python -m assetpipe run \
       --input photos/ --classes "cardboard box" \
       --detector yolo-world --reconstruct procedural --location "garage"
 
   # 2) install + serve TRELLIS, then reconstruct textured meshes
   bash env/setup_ubuntu.sh trellis      # clones + builds TRELLIS
-  conda run -n assetpipe-gpu env TRELLIS_ROOT="$PWD/TRELLIS" \
+  conda run -n assetpipe env TRELLIS_ROOT="$PWD/TRELLIS" \
       python services/trellis_server.py &
-  conda run -n assetpipe-gpu python -m assetpipe run \
+  conda run -n assetpipe python -m assetpipe run \
       --input photos/ --detector yolo-world --reconstruct trellis
 EOF
 

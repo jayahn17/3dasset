@@ -23,10 +23,10 @@ Expected: `python -m assetpipe demo` prints 3 assets; torch reports
 ## 2. Real detection — YOLO-World (10 min, low VRAM)
 ```bash
 mkdir photos && cp ~/some_box_pics/*.jpg photos/
-conda run -n assetpipe-gpu python -m assetpipe run \
+conda run -n assetpipe python -m assetpipe run \
     --input photos/ --classes "cardboard box,shoe box,book,mug" \
     --detector yolo-world --reconstruct procedural --location "garage"
-conda run -n assetpipe-gpu python -m assetpipe list
+conda run -n assetpipe python -m assetpipe list
 ```
 Now the label + bounding box come from the image (not `--classes` guesses).
 Open `twin_out/control_center.html`. **Milestone: the box test is real.**
@@ -38,12 +38,12 @@ the two marked `TODO`s in `assetpipe/detect/grounded_sam.py`.
 ## 3. Real reconstruction — TRELLIS (30–60 min first build)
 ```bash
 bash env/setup_ubuntu.sh trellis               # clones + builds TRELLIS
-conda run -n assetpipe-gpu env TRELLIS_ROOT="$PWD/TRELLIS" \
+conda run -n assetpipe env TRELLIS_ROOT="$PWD/TRELLIS" \
     python services/trellis_server.py          # serves :8080 ; GET /health
 ```
 In another shell:
 ```bash
-conda run -n assetpipe-gpu python -m assetpipe run \
+conda run -n assetpipe python -m assetpipe run \
     --input photos/ --detector yolo-world --reconstruct trellis \
     --location "garage"
 ```
@@ -70,7 +70,7 @@ https://github.com/nerfstudio-project/nerfstudio (+ gsplat).
 Build the Unity recorder in `docs/QUEST3_CAPTURE.md`, upload a `session/`
 dir, and run:
 ```bash
-conda run -n assetpipe-gpu python -m assetpipe run \
+conda run -n assetpipe python -m assetpipe run \
     --quest-session /path/to/session --detector yolo-world --reconstruct trellis
 ```
 Pose + depth from the session give **metric scale** and **world placement**.
