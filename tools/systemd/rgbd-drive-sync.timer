@@ -1,0 +1,10 @@
+[Unit]
+Description=Poll Google Drive for new CrateScanner packages
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+Unit=rgbd-drive-sync.service
+
+[Install]
+WantedBy=timers.target

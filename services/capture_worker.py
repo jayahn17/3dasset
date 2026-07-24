@@ -24,6 +24,11 @@ served over HTTP (so the /spark VR room or the twin can hot-load them via
     GET  /live/{sid}/asset?since=V      live generated 3D asset (needs the
                                         segment+generate extra; else says so)
     POST /live/{sid}/finish             -> scene.ply/.splat/mesh/viewer
+    POST /rgbd/upload                   multipart: package (CrateScan-*.zip from
+                                        the iPad) -> queued into captures/inbox
+                                        for tools/watch_inbox.py to fuse
+    GET  /rgbd/status/{name}            queued | done | failed + artifacts
+    GET  /rgbd/queue                    what's waiting / recently processed
     GET  /assets                        catalog dump (id, label, urls)
     GET  /blobs/<asset_id>/<file>       meshes/URDFs, fetchable by Quest//spark
     GET  /health                        backends + counts
@@ -763,6 +768,82 @@ def live_finish(sid: str):
                       "viewer") if k in res}
     return {"ok": True, "scan_id": f"live-{sid}", "backend": res["backend"],
             "points": res["points"], "urls": urls}
+
+
+# ------------------------------------------------------- iPad RGB-D packages
+# The CrateScanner iPad app posts its finished CrateScan-*.zip here. We do NOT
+# fuse inline: the zip is dropped into the same inbox that `rclone` writes to,
+# and tools/watch_inbox.py is the single thing that unzips + fuses. That way the
+# Tailscale route and the Google Drive route share one code path, and a long
+# nvblox run never blocks this request.
+
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+CAPTURES = os.path.abspath(os.environ.get(
+    "RGBD_CAPTURES", os.path.join(REPO_ROOT, "captures")))
+RGBD_INBOX = os.path.join(CAPTURES, "inbox")
+RGBD_STATUS = os.path.join(CAPTURES, "status")
+for _d in (RGBD_INBOX, RGBD_STATUS):
+    os.makedirs(_d, exist_ok=True)
+
+
+def _safe_stem(name: str) -> str:
+    """Filename-safe stem — never let an upload escape the inbox."""
+    stem = os.path.splitext(os.path.basename(name or ""))[0]
+    stem = "".join(c for c in stem if c.isalnum() or c in "-_")[:60]
+    return stem or f"scan-{uuid.uuid4().hex[:8]}"
+
+
+@app.post("/rgbd/upload")
+async def rgbd_upload(package: UploadFile = File(...)):
+    """Accept a CrateScanner package zip and queue it for fusion.
+
+    Written to a .part file and renamed, so the watcher (which polls for stable
+    files) can never observe a half-uploaded zip.
+    """
+    stem = _safe_stem(package.filename)
+    final = os.path.join(RGBD_INBOX, f"{stem}.zip")
+    if os.path.exists(final):                     # same scan sent twice
+        stem = f"{stem}-{uuid.uuid4().hex[:4]}"
+        final = os.path.join(RGBD_INBOX, f"{stem}.zip")
+    part = final + ".part"
+
+    size = 0
+    with open(part, "wb") as fh:
+        while chunk := await package.read(1 << 20):   # 1 MB at a time
+            fh.write(chunk)
+            size += len(chunk)
+    if size == 0:
+        os.remove(part)
+        raise HTTPException(422, "empty upload")
+    os.replace(part, final)
+
+    return {"ok": True, "name": stem, "bytes": size,
+            "status_url": f"{PUBLIC_BASE_URL}/rgbd/status/{stem}",
+            "note": "queued — tools/watch_inbox.py will fuse it"}
+
+
+@app.get("/rgbd/status/{name}")
+def rgbd_status(name: str):
+    """Poll one scan. `queued` until the watcher has written its status file."""
+    stem = _safe_stem(name)
+    path = os.path.join(RGBD_STATUS, f"{stem}.json")
+    if not os.path.exists(path):
+        queued = os.path.exists(os.path.join(RGBD_INBOX, f"{stem}.zip"))
+        return {"ok": True, "name": stem,
+                "state": "queued" if queued else "unknown"}
+    with open(path) as fh:
+        status = json.load(fh)
+    status["state"] = "done" if status.get("ok") else "failed"
+    return {"ok": True, **status}
+
+
+@app.get("/rgbd/queue")
+def rgbd_queue():
+    """What's waiting and what's finished — a quick health view for the iPad."""
+    waiting = sorted(f for f in os.listdir(RGBD_INBOX) if f.endswith(".zip"))
+    finished = sorted(f[:-5] for f in os.listdir(RGBD_STATUS) if f.endswith(".json"))
+    return {"ok": True, "queued": waiting, "processed": finished[-20:],
+            "inbox": RGBD_INBOX}
 
 
 @app.get("/assets")

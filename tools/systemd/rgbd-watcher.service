@@ -1,0 +1,20 @@
+[Unit]
+Description=assetpipe RGB-D inbox watcher (CrateScanner -> nvblox)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/3dasset
+# conda env "assetpipe" — adjust if yours lives elsewhere
+ExecStart=%h/miniconda3/envs/assetpipe/bin/python %h/3dasset/tools/watch_inbox.py \
+    --root %h/3dasset/captures \
+    --out %h/3dasset/demo_out \
+    --backend auto \
+    --interval 5
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
