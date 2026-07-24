@@ -69,7 +69,7 @@ final class SessionExporter {
         try FileManager.default.createDirectory(at: depthDir, withIntermediateDirectories: true)
     }
 
-    /// Sample one frame if enough time has elapsed.
+    /// Sample one frame.
     ///
     /// Call this from `ARSession`'s delegate queue — NOT the main actor, and
     /// never from inside a `Task` that outlives the callback. `ARFrame` owns
@@ -77,9 +77,12 @@ final class SessionExporter {
     /// call starves ARKit and it stops delivering frames. Everything that needs
     /// the buffers happens synchronously here; the expensive encode + write is
     /// handed to `ioQueue` afterwards.
-    func maybeRecord(_ frame: ARFrame) {
+    ///
+    /// - Parameter force: bypass the interval throttle. Photo mode passes true
+    ///   for each shutter tap (including high-resolution still frames).
+    func record(_ frame: ARFrame, force: Bool = false) {
         let t = frame.timestamp
-        guard t - lastRecordTime >= minInterval else { return }
+        if !force { guard t - lastRecordTime >= minInterval else { return } }
         guard let depth = frame.smoothedSceneDepth ?? frame.sceneDepth else { return }
         lastRecordTime = t
 
@@ -97,18 +100,28 @@ final class SessionExporter {
         guard let depthMM = depthMillimetres(depth.depthMap) else { return }
 
         let pose = frame.camera.transform  // camera-to-world, column-major float4x4
-        let K = frame.camera.intrinsics    // 3x3 column-major
+        let K = frame.camera.intrinsics    // 3x3 column-major, for the NATIVE color size
         let fx = K.columns.0.x
         let fy = K.columns.1.y
         let cx = K.columns.2.x
         let cy = K.columns.2.y
 
-        // Intrinsics are emitted in DEPTH pixel coordinates, because the fuser
-        // pairs them with the depth image's shape. This is independent of the
-        // resolution we store color at — which is why downscaling color above
-        // is transparent to the pipeline.
+        // What we actually stored on disk (after any downscale).
+        let storedW = colorImage.width
+        let storedH = colorImage.height
+
+        // Depth-space intrinsics for nvblox: the fuser pairs `intrinsics` with
+        // the depth image's shape, so scale native color K by depth/nativeColor.
+        // Independent of the stored color size — downscaling color is invisible
+        // to the fusion path.
         let sx = Float(depthW) / Float(max(colorW, 1))
         let sy = Float(depthH) / Float(max(colorH, 1))
+
+        // Color-space intrinsics for the STORED image, so a later texture pass
+        // (OpenMVS / TRELLIS) can project full-res color correctly. Scales by
+        // stored/native, which is 1 at .max4K and <1 when downscaled.
+        let cScaleX = Float(storedW) / Float(max(colorW, 1))
+        let cScaleY = Float(storedH) / Float(max(colorH, 1))
 
         lock.lock()
         let idx = frames.count
@@ -123,6 +136,11 @@ final class SessionExporter {
             "depth": "depth/\(depthName)",
             "pose": float4x4ToRowMajorArray(pose),
             "intrinsics": [Double(fx * sx), Double(fy * sy), Double(cx * sx), Double(cy * sy)],
+            // Extra keys (ignored by assetpipe's loader) that make the stored
+            // color usable for texturing:
+            "color_size": [storedW, storedH],
+            "K_color": [Double(fx * cScaleX), Double(fy * cScaleY),
+                        Double(cx * cScaleX), Double(cy * cScaleY)],
         ])
         lock.unlock()
 

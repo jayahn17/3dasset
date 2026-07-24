@@ -64,6 +64,27 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// How many RGB-D frames were written during this scan (live counter).
     @Published private(set) var rgbdFrameCount = 0
 
+    /// Colour resolution to store (Fast … 4K). Set on the pre-Start screen.
+    @Published var quality: CaptureQuality = CaptureSettings.shared.quality {
+        didSet {
+            CaptureSettings.shared.quality = quality
+            if phase == .ready { runSession(resetting: true, record: false) }
+        }
+    }
+
+    /// Auto (stream) vs Photo (manual high-res stills).
+    @Published var mode: CaptureMode = CaptureSettings.shared.mode {
+        didSet {
+            CaptureSettings.shared.mode = mode
+            recorder.autoRecord = (mode == .auto)
+            if phase == .ready { runSession(resetting: true, record: false) }
+        }
+    }
+
+    /// True briefly while a high-resolution still is being captured (Photo mode),
+    /// so the shutter button can show progress.
+    @Published private(set) var isCapturingPhoto = false
+
     // MARK: AR plumbing
 
     /// The RealityKit view we drive. Set once by the representable in makeUIView.
@@ -126,6 +147,9 @@ final class ScanViewModel: NSObject, ObservableObject {
         config.frameSemantics.insert(.sceneDepth)
         config.environmentTexturing = .none
 
+        // Pick the capture video format for the chosen quality/mode.
+        applyVideoFormat(to: config)
+
         // We render the mesh ourselves via RealityKit's debug visualization so
         // the user literally sees coverage fill in and where the gaps are.
         arView.debugOptions.insert(.showSceneUnderstanding)
@@ -135,13 +159,53 @@ final class ScanViewModel: NSObject, ObservableObject {
             : []
         arView.session.run(config, options: options)
 
+        recorder.autoRecord = (mode == .auto)
+
         // Fresh RGB-D recorder on reset; keep accumulating if resuming.
         if resetting || recorder.exporter == nil {
-            recorder.exporter = try? SessionExporter(minInterval: 0.1) // ~10 Hz
+            recorder.exporter = try? SessionExporter(minInterval: quality.autoInterval,
+                                                     maxColorWidth: quality.maxColorWidth)
             rgbdFrameCount = 0
             lastSessionURL = nil
         }
         recorder.isRecording = record
+    }
+
+    /// Choose the AR video format for the current quality + mode.
+    ///
+    /// - Photo mode prefers the format flagged for high-resolution still capture,
+    ///   which is what `captureHighResolutionFrame` needs to reach ~12 MP.
+    /// - 4K quality in Auto mode selects ARKit's dedicated 4K streaming format.
+    /// - Otherwise ARKit's default (≈1920×1440) is used.
+    ///
+    /// All three return nil on devices that don't support them; we just keep the
+    /// default in that case.
+    private func applyVideoFormat(to config: ARWorldTrackingConfiguration) {
+        if mode == .photo,
+           let hi = ARWorldTrackingConfiguration.recommendedVideoFormatForHighResolutionFrameCapturing {
+            config.videoFormat = hi
+        } else if quality.wants4KVideoFormat,
+                  let fourK = ARWorldTrackingConfiguration.recommendedVideoFormatFor4KResolution {
+            config.videoFormat = fourK
+        }
+    }
+
+    /// Photo mode: grab one high-resolution still (with pose + depth) and record
+    /// it. `captureHighResolutionFrame` briefly taps the photo pipeline to return
+    /// a ~12 MP frame — far larger than the AR video feed — which is the point of
+    /// Photo mode. The completion runs off the main actor; we extract synchronously
+    /// (the frame is valid for the callback) then publish the count.
+    func capturePhoto() {
+        guard phase == .scanning, mode == .photo, let arView, !isCapturingPhoto else { return }
+        isCapturingPhoto = true
+        arView.session.captureHighResolutionFrame { [weak self] frame, _ in
+            guard let self else { return }
+            let n = frame.flatMap { self.recorder.recordPhoto($0) }
+            Task { @MainActor in
+                self.isCapturingPhoto = false
+                if let n { self.rgbdFrameCount = n }
+            }
+        }
     }
 
     /// Pause the session (e.g. when leaving the screen or entering review).
@@ -492,6 +556,7 @@ final class RecorderBox: @unchecked Sendable {
     private let lock = NSLock()
     private var _exporter: SessionExporter?
     private var _isRecording = false
+    private var _autoRecord = true
 
     var exporter: SessionExporter? {
         get { lock.lock(); defer { lock.unlock() }; return _exporter }
@@ -504,18 +569,41 @@ final class RecorderBox: @unchecked Sendable {
         set { lock.lock(); _isRecording = newValue; lock.unlock() }
     }
 
-    /// Record this frame if enabled. Returns the new frame count, or nil when
-    /// nothing was written (throttled, paused, or no depth on this tick) so the
+    /// True in Auto mode (stream frames). False in Photo mode, where frames are
+    /// only written on an explicit shutter tap via `recordPhoto`.
+    var autoRecord: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _autoRecord }
+        set { lock.lock(); _autoRecord = newValue; lock.unlock() }
+    }
+
+    /// Auto-mode streaming path. Returns the new frame count, or nil when nothing
+    /// was written (throttled, paused, photo mode, or no depth this tick) so the
     /// caller can skip a pointless hop to the main actor.
     func record(_ frame: ARFrame) -> Int? {
         lock.lock()
         let exporter = _exporter
-        let recording = _isRecording
+        let recording = _isRecording && _autoRecord
         lock.unlock()          // never hold the lock across encode + file I/O
 
         guard recording, let exporter else { return nil }
+        return writing(exporter, frame, force: false)
+    }
+
+    /// Photo-mode path: record this frame unconditionally (bypasses the rate
+    /// throttle). Used for high-resolution still frames.
+    func recordPhoto(_ frame: ARFrame) -> Int? {
+        lock.lock()
+        let exporter = _exporter
+        let recording = _isRecording
+        lock.unlock()
+
+        guard recording, let exporter else { return nil }
+        return writing(exporter, frame, force: true)
+    }
+
+    private func writing(_ exporter: SessionExporter, _ frame: ARFrame, force: Bool) -> Int? {
         let before = exporter.frameCount
-        exporter.maybeRecord(frame)
+        exporter.record(frame, force: force)
         let after = exporter.frameCount
         return after > before ? after : nil
     }
