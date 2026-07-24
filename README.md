@@ -6,6 +6,8 @@ send RGB-D to this box, fuse with **nvblox**.
 → **Full Engin170 loop (iPad capture → Linux backend → iPad view-only):**  
 > **[docs/ENGIN170_WORKFLOW.md](docs/ENGIN170_WORKFLOW.md)**
 >
+> → **Launch fuse / open-source RGB-D demo:** **[docs/RGBD_LAUNCH.md](docs/RGBD_LAUNCH.md)**
+>
 > → **Short daily Mac checklist:** **[docs/MAC_IPAD_NVBLOX.md](docs/MAC_IPAD_NVBLOX.md)**
 
 ```text

@@ -132,14 +132,14 @@ conda activate assetpipe
 cd ~/3dasset
 unzip -o captures/CrateScan-XXXXXXXX.zip -d captures/scan1
 
-python -m assetpipe rgbd captures/scan1/session --inspect-only
-# expect ok_for_nvblox: true
+# one-shot launcher (prefers nvblox)
+bash scripts/launch_rgbd_fuse.sh captures/scan1 demo_out/ipad_scan1
 
-python -m assetpipe rgbd captures/scan1/session --backend nvblox \
-  --out demo_out/ipad_scan1
-# if nvblox_torch ABI fails on this box:
-#   --backend open3d
+# or watch folder for new iPad zips
+# bash scripts/watch_ipad_captures.sh
 ```
+
+Open-source dry-run (no iPad): see **[RGBD_LAUNCH.md](RGBD_LAUNCH.md)**.
 
 Outputs (examples):
 
