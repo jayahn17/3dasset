@@ -1,12 +1,20 @@
-# assetpipe — Quest 3 → Digital-Twin 3D Asset Recording
+# assetpipe — iPad LiDAR RGB-D → nvblox → 3D asset
 
-Point a **Meta Quest 3** at a real object, "record" it, and have it identified,
-reconstructed in 3D, and filed into your personal **digital twin** (the *Life
-Twin Control Center → Asset*) — so you can always answer *"what did I own, and
-where was it?"*
+**Primary path (Mac + iPad + Linux):** scan with **CrateScanner** (Xcode / LiDAR),
+send RGB-D to this box, fuse with **nvblox**.
 
-This repo is a **modular, swappable pipeline** for that flow, plus a
-**zero-dependency box-test slice that runs today**.
+→ **Follow this every day:** **[docs/MAC_IPAD_NVBLOX.md](docs/MAC_IPAD_NVBLOX.md)**
+
+```text
+iPad CrateScanner  →  session zip (RGB+depth+pose)  →  Linux nvblox  →  mesh
+```
+
+App sources: [`mobile/CrateScannerApp/`](mobile/CrateScannerApp/)
+
+---
+
+Also includes a Quest 3 / digital-twin pipeline and a zero-dependency box-test
+slice. Older RGB-only photo dumps are **not** the product path.
 
 ```
 CAPTURE ──▶ IDENTIFY ──▶ RECONSTRUCT ──▶ DIGITALIZE ──▶ ORGANIZE
@@ -69,11 +77,13 @@ twin_out/
     model.urdf                # simulatable twin (PyBullet/Isaac/Gazebo/MuJoCo)
 ```
 
-> **Copy-paste command walkthrough for everything below:
-> [docs/WORKFLOW.md](docs/WORKFLOW.md)** · **LiDAR / nvblox RGB-D path:
-> [docs/NVBLOX_WORKFLOW.md](docs/NVBLOX_WORKFLOW.md)** · **CrateScanner app bridge:
-> [docs/CRATESCANNER_BRIDGE.md](docs/CRATESCANNER_BRIDGE.md)** · **Mac+iPad+Linux steps:
-> [docs/DUAL_MACHINE_PLAYBOOK.md](docs/DUAL_MACHINE_PLAYBOOK.md)**
+> **Daily Mac + iPad + nvblox workflow (use this):**
+> **[docs/MAC_IPAD_NVBLOX.md](docs/MAC_IPAD_NVBLOX.md)**
+>
+> More detail: [docs/WORKFLOW.md](docs/WORKFLOW.md) ·
+> [docs/NVBLOX_WORKFLOW.md](docs/NVBLOX_WORKFLOW.md) ·
+> [docs/CRATESCANNER_BRIDGE.md](docs/CRATESCANNER_BRIDGE.md) ·
+> [docs/DUAL_MACHINE_PLAYBOOK.md](docs/DUAL_MACHINE_PLAYBOOK.md)
 
 ## Scan — Scaniverse-style (click → point cloud → .ply / .splat)
 
