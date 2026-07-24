@@ -16,6 +16,7 @@ import ARKit
 import RealityKit
 import Combine
 import simd
+import UIKit
 
 /// Which stage of the flow we're in.
 enum ScanPhase: Equatable {
@@ -107,6 +108,10 @@ final class ScanViewModel: NSObject, ObservableObject {
 
     /// Fires ~1.5 Hz in Hybrid mode to grab a 12 MP keyframe automatically.
     private var keyframeTimer: Timer?
+
+    /// Holds the floating AR markers dropped at each keyframe's capture pose, so
+    /// the user can see where they've already shot and where coverage is thin.
+    private var markersAnchor: AnchorEntity?
 
     /// The anchored ghost box, added to the scene when the user places it.
     private var ghost = GhostBoxEntity()
@@ -227,12 +232,50 @@ final class ScanViewModel: NSObject, ObservableObject {
         isCapturingPhoto = true
         arView.session.captureHighResolutionFrame { [weak self] frame, _ in
             guard let self else { return }
+            let pose = frame?.camera.transform
             let n = frame.flatMap { self.recorder.recordKeyframe($0) }
             Task { @MainActor in
                 self.isCapturingPhoto = false
-                if let n { self.keyframeCount = n }
+                if let n {
+                    self.keyframeCount = n
+                    // Drop a marker only when a keyframe was actually written.
+                    if let pose { self.addCaptureMarker(at: pose) }
+                }
             }
         }
+    }
+
+    /// Place a floating marker in the AR scene at a keyframe's camera pose — a
+    /// green dot with a short stick pointing the way the camera looked. As the
+    /// user orbits, the ring of markers shows covered angles; the gaps are where
+    /// more shots are needed.
+    private func addCaptureMarker(at transform: simd_float4x4) {
+        guard let arView else { return }
+        if markersAnchor == nil {
+            let anchor = AnchorEntity(world: .zero)
+            arView.scene.addAnchor(anchor)
+            markersAnchor = anchor
+        }
+        let marker = Self.makeMarkerEntity()
+        marker.transform = Transform(matrix: transform)
+        markersAnchor?.addChild(marker)
+    }
+
+    /// A cheap, legible capture marker: a small emissive sphere at the camera
+    /// position plus a thin box along local −Z (ARKit's view direction). Uses
+    /// only sphere/box mesh generators, which exist well before iOS 17.
+    private static func makeMarkerEntity() -> Entity {
+        let root = Entity()
+        let dot = ModelEntity(
+            mesh: .generateSphere(radius: 0.02),
+            materials: [SimpleMaterial(color: .systemGreen, isMetallic: false)])
+        root.addChild(dot)
+        let stick = ModelEntity(
+            mesh: .generateBox(size: [0.005, 0.005, 0.05]),
+            materials: [SimpleMaterial(color: .systemGreen, roughness: 0.4, isMetallic: false)])
+        stick.position = [0, 0, -0.03]     // forward, along the camera's view dir
+        root.addChild(stick)
+        return root
     }
 
     /// Pause the session (e.g. when leaving the screen or entering review).
@@ -417,6 +460,8 @@ final class ScanViewModel: NSObject, ObservableObject {
         phase = .ready
         ghostAnchor?.removeFromParent()
         ghostAnchor = nil
+        markersAnchor?.removeFromParent()
+        markersAnchor = nil
         runSession(resetting: true, record: false)
     }
 
