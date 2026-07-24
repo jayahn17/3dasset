@@ -70,22 +70,29 @@ enum CaptureQuality: String, CaseIterable, Identifiable {
 enum CaptureMode: String, CaseIterable, Identifiable {
     case auto       // continuous stream while scanning
     case photo      // one high-resolution still per shutter tap
+    case hybrid     // 10 Hz RGB-D stream + automatic ~1.5 Hz 12 MP keyframes
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .auto:  return "Auto"
-        case .photo: return "Photo"
+        case .auto:   return "Auto"
+        case .photo:  return "Photo"
+        case .hybrid: return "Detail"
         }
     }
 
     var caption: String {
         switch self {
-        case .auto:  return "Streams frames as you orbit"
-        case .photo: return "Tap the shutter for each high-res photo"
+        case .auto:   return "Streams frames as you orbit"
+        case .photo:  return "Tap the shutter for each high-res photo"
+        case .hybrid: return "10 Hz depth + auto 12 MP keyframes (best quality)"
         }
     }
+
+    /// Seconds between automatic 12 MP keyframes in Hybrid mode (~1.5 Hz → about
+    /// 90–135 keyframes over a 60–90 s orbit, the 80–150 sweet spot for MVS).
+    var keyframeInterval: TimeInterval { 0.67 }
 }
 
 /// Persisted capture preferences (survive app launches).

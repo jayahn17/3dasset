@@ -85,6 +85,9 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// so the shutter button can show progress.
     @Published private(set) var isCapturingPhoto = false
 
+    /// 12 MP keyframes written this scan (Photo taps, or Hybrid auto-keyframes).
+    @Published private(set) var keyframeCount = 0
+
     // MARK: AR plumbing
 
     /// The RealityKit view we drive. Set once by the representable in makeUIView.
@@ -101,6 +104,9 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// Held in a lock box because it is written from the main actor and read
     /// from `captureQueue` inside the ARSessionDelegate callbacks.
     private let recorder = RecorderBox()
+
+    /// Fires ~1.5 Hz in Hybrid mode to grab a 12 MP keyframe automatically.
+    private var keyframeTimer: Timer?
 
     /// The anchored ghost box, added to the scene when the user places it.
     private var ghost = GhostBoxEntity()
@@ -133,6 +139,21 @@ final class ScanViewModel: NSObject, ObservableObject {
         guard phase == .ready else { return }
         phase = .scanning
         recorder.isRecording = true
+        if mode == .hybrid { startKeyframeTimer() }
+    }
+
+    /// Auto 12 MP keyframe capture for Hybrid mode.
+    private func startKeyframeTimer() {
+        keyframeTimer?.invalidate()
+        let interval = mode.keyframeInterval
+        keyframeTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.capturePhoto() }
+        }
+    }
+
+    private func stopKeyframeTimer() {
+        keyframeTimer?.invalidate()
+        keyframeTimer = nil
     }
 
     /// Configure + run the world-tracking session with mesh reconstruction.
@@ -166,6 +187,7 @@ final class ScanViewModel: NSObject, ObservableObject {
             recorder.exporter = try? SessionExporter(minInterval: quality.autoInterval,
                                                      maxColorWidth: quality.maxColorWidth)
             rgbdFrameCount = 0
+            keyframeCount = 0
             lastSessionURL = nil
         }
         recorder.isRecording = record
@@ -190,26 +212,32 @@ final class ScanViewModel: NSObject, ObservableObject {
         }
     }
 
-    /// Photo mode: grab one high-resolution still (with pose + depth) and record
-    /// it. `captureHighResolutionFrame` briefly taps the photo pipeline to return
-    /// a ~12 MP frame — far larger than the AR video feed — which is the point of
-    /// Photo mode. The completion runs off the main actor; we extract synchronously
-    /// (the frame is valid for the callback) then publish the count.
+    /// Capture one 12 MP keyframe (with pose + intrinsics + depth) and record it
+    /// on the keyframe track. Used by the manual shutter (Photo mode) and the
+    /// automatic timer (Hybrid mode).
+    ///
+    /// `captureHighResolutionFrame` briefly taps the photo pipeline to return a
+    /// ~12 MP `ARFrame` — far larger than the AR video feed — carrying the pose,
+    /// intrinsics, timestamp, and sceneDepth in the session's world frame. The
+    /// completion runs off the main actor; we extract synchronously (the frame is
+    /// valid for the callback) then publish the count.
     func capturePhoto() {
-        guard phase == .scanning, mode == .photo, let arView, !isCapturingPhoto else { return }
+        guard phase == .scanning, mode == .photo || mode == .hybrid,
+              let arView, !isCapturingPhoto else { return }
         isCapturingPhoto = true
         arView.session.captureHighResolutionFrame { [weak self] frame, _ in
             guard let self else { return }
-            let n = frame.flatMap { self.recorder.recordPhoto($0) }
+            let n = frame.flatMap { self.recorder.recordKeyframe($0) }
             Task { @MainActor in
                 self.isCapturingPhoto = false
-                if let n { self.rgbdFrameCount = n }
+                if let n { self.keyframeCount = n }
             }
         }
     }
 
     /// Pause the session (e.g. when leaving the screen or entering review).
     func pause() {
+        stopKeyframeTimer()
         arView?.session.pause()
     }
 
@@ -277,6 +305,7 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// pause live scanning. This is the "Capture" action.
     func capture() {
         recorder.isRecording = false
+        stopKeyframeTimer()
 
         // 1. The RGB-D session is the deliverable — Linux nvblox builds the 3D
         //    asset from it and the crate is designed off that afterwards. So it
@@ -318,6 +347,7 @@ final class ScanViewModel: NSObject, ObservableObject {
         guard capturedMesh != nil || lastSessionURL != nil else {
             feedback = .noGeometry
             recorder.isRecording = true
+            if mode == .hybrid { startKeyframeTimer() }
             return
         }
 
@@ -368,10 +398,12 @@ final class ScanViewModel: NSObject, ObservableObject {
         lastSessionURL = nil
         phase = .scanning
         runSession(resetting: false, record: true)
+        if mode == .hybrid { startKeyframeTimer() }
     }
 
     /// Clear everything for a fresh scan and return to the pre-Start state.
     func reset() {
+        stopKeyframeTimer()
         meshes.removeAll()
         capturedVertexCount = 0
         currentBox = nil
@@ -379,6 +411,7 @@ final class ScanViewModel: NSObject, ObservableObject {
         capturedMesh = nil
         lastSessionURL = nil
         rgbdFrameCount = 0
+        keyframeCount = 0
         recorder.exporter = nil
         isBoxPlaced = false
         phase = .ready
@@ -599,6 +632,19 @@ final class RecorderBox: @unchecked Sendable {
 
         guard recording, let exporter else { return nil }
         return writing(exporter, frame, force: true)
+    }
+
+    /// Hybrid-mode path: store a 12 MP keyframe alongside the RGB-D stream.
+    /// Returns the new keyframe count.
+    func recordKeyframe(_ frame: ARFrame) -> Int? {
+        lock.lock()
+        let exporter = _exporter
+        let recording = _isRecording
+        lock.unlock()
+
+        guard recording, let exporter else { return nil }
+        exporter.recordKeyframe(frame)
+        return exporter.keyframeCount
     }
 
     private func writing(_ exporter: SessionExporter, _ frame: ARFrame, force: Bool) -> Int? {

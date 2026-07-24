@@ -10,8 +10,9 @@
 //        mesh.obj                 (inches — Path A: assetpipe cratescan)
 //        session/                 (RGB-D — Path B: assetpipe rgbd)
 //          manifest.json
-//          images/*.jpg           (color frames — manifest still keys them "color")
-//          depth/*.png
+//          images/*.jpg           (10 Hz color — manifest still keys them "color")
+//          depth/*.png            (256×192 LiDAR depth)
+//          keyframes/*.jpg,*.png  (Detail mode: 12 MP + pose for MVS/BA; optional)
 //
 //  Zip with NSFileCoordinator (.forUploading) for ShareSheet.
 //

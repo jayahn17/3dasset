@@ -31,6 +31,9 @@ final class SessionExporter {
     /// is free to be human-friendly.
     private let imagesDir: URL
     private let depthDir: URL
+    /// 12 MP keyframes for the photogrammetry / bundle-adjust pass. Full-res
+    /// color, kept separate from the throttled RGB-D stream in `images/`.
+    private let keyframesDir: URL
     private let minInterval: TimeInterval
     private let maxColorWidth: CGFloat
 
@@ -38,12 +41,13 @@ final class SessionExporter {
     /// caller is ARKit's delegate queue; blocking it drops AR frames.
     private let ioQueue = DispatchQueue(label: "CrateScanner.SessionExporter.io",
                                         qos: .utility)
-    /// `frames` is appended from the delegate queue and read by finalize() on
-    /// the main actor, so it needs a lock.
+    /// `frames` / `keyframes` are appended from the delegate queue and read by
+    /// finalize() on the main actor, so they need a lock.
     private let lock = NSLock()
 
     private var lastRecordTime: TimeInterval = -1   // delegate queue only
     private var frames: [[String: Any]] = []        // guarded by `lock`
+    private var keyframes: [[String: Any]] = []     // guarded by `lock`
 
     /// - Parameters:
     ///   - directory: parent folder (a UUID subfolder is created). Defaults to
@@ -63,10 +67,12 @@ final class SessionExporter {
         rootURL = directory.appendingPathComponent("session-\(id)", isDirectory: true)
         imagesDir = rootURL.appendingPathComponent("images", isDirectory: true)
         depthDir = rootURL.appendingPathComponent("depth", isDirectory: true)
+        keyframesDir = rootURL.appendingPathComponent("keyframes", isDirectory: true)
         self.minInterval = minInterval
         self.maxColorWidth = maxColorWidth
         try FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: depthDir, withIntermediateDirectories: true)
+        // Created lazily on first keyframe so a stream-only session has no empty dir.
     }
 
     /// Sample one frame.
@@ -152,6 +158,67 @@ final class SessionExporter {
         }
     }
 
+    /// Record a full-resolution keyframe (a 12 MP `captureHighResolutionFrame`).
+    ///
+    /// Same synchronous-in-callback contract as `record`. Keyframes are the
+    /// high-detail color views a downstream bundle-adjust + MVS pass uses to
+    /// reconstruct fine geometry; their poses come from the SAME ARKit world
+    /// frame as the RGB-D stream, so the two tracks are already co-registered.
+    /// Depth is stored too (256×192) so LiDAR can seed/constrain the solve.
+    func recordKeyframe(_ frame: ARFrame) {
+        guard let cg = downscaledCGImage(frame.capturedImage, maxWidth: maxColorWidth)
+        else { return }
+        let depth = frame.smoothedSceneDepth ?? frame.sceneDepth
+        let depthMM = depth.flatMap { depthMillimetres($0.depthMap) }
+        let depthW = depth.map { CVPixelBufferGetWidth($0.depthMap) } ?? 0
+        let depthH = depth.map { CVPixelBufferGetHeight($0.depthMap) } ?? 0
+
+        let colorW = CVPixelBufferGetWidth(frame.capturedImage)
+        let colorH = CVPixelBufferGetHeight(frame.capturedImage)
+        let storedW = cg.width, storedH = cg.height
+
+        let K = frame.camera.intrinsics
+        let cScaleX = Float(storedW) / Float(max(colorW, 1))
+        let cScaleY = Float(storedH) / Float(max(colorH, 1))
+        let fx = K.columns.0.x, fy = K.columns.1.y
+        let cx = K.columns.2.x, cy = K.columns.2.y
+
+        try? FileManager.default.createDirectory(at: keyframesDir,
+                                                 withIntermediateDirectories: true)
+
+        lock.lock()
+        let idx = keyframes.count
+        let name = String(format: "k%04d.jpg", idx)
+        var entry: [String: Any] = [
+            "id": String(format: "k%05d", idx),
+            "t": frame.timestamp,
+            "color": "keyframes/\(name)",
+            "color_size": [storedW, storedH],
+            "pose": float4x4ToRowMajorArray(frame.camera.transform),
+            // Color-space intrinsics at the STORED resolution — for MVS/BA.
+            "K_color": [Double(fx * cScaleX), Double(fy * cScaleY),
+                        Double(cx * cScaleX), Double(cy * cScaleY)],
+        ]
+        var depthName: String?
+        if depthMM != nil {
+            let dn = String(format: "k%04d.png", idx)
+            depthName = dn
+            entry["depth"] = "keyframes/\(dn)"
+            entry["depth_size"] = [depthW, depthH]
+        }
+        keyframes.append(entry)
+        lock.unlock()
+
+        let colorURL = keyframesDir.appendingPathComponent(name)
+        let depthURL = depthName.map { keyframesDir.appendingPathComponent($0) }
+        ioQueue.async {
+            try? writeJPEG(cg, to: colorURL)
+            if let depthMM, let depthURL {
+                try? writeDepthPNG16(depthMM, width: depthW, height: depthH, to: depthURL)
+            }
+        }
+    }
+
     /// Write manifest.json. Returns session root URL (zip this for upload).
     @discardableResult
     func finalize(objectHint: String? = nil, location: String? = nil) throws -> URL {
@@ -160,6 +227,8 @@ final class SessionExporter {
             "source": "cratescanner",
             "frames": frames,
         ]
+        // The keyframe track (12 MP + pose) is optional; only present in Hybrid.
+        if !keyframes.isEmpty { man["keyframes"] = keyframes }
         if let objectHint { man["object_hint"] = objectHint }
         if let location { man["location"] = location }
         let data = try JSONSerialization.data(withJSONObject: man, options: [.prettyPrinted, .sortedKeys])
@@ -168,6 +237,7 @@ final class SessionExporter {
     }
 
     var frameCount: Int { frames.count }
+    var keyframeCount: Int { lock.lock(); defer { lock.unlock() }; return keyframes.count }
 }
 
 // MARK: - Writers

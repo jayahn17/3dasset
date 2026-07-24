@@ -114,6 +114,11 @@ struct ScanView: View {
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
+            if viewModel.keyframeCount > 0 {
+                Text("· \(viewModel.keyframeCount) key")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -152,9 +157,20 @@ struct ScanView: View {
                 .controlSize(.large)
                 .disabled(viewModel.isCapturingPhoto)
 
-                Text("\(viewModel.rgbdFrameCount) photos · walk around for full coverage")
+                Text("\(viewModel.keyframeCount) photos · walk around for full coverage")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            // Hybrid mode: keyframes are automatic — just guide the orbit.
+            if viewModel.mode == .hybrid {
+                HStack(spacing: 6) {
+                    Image(systemName: "livephoto")
+                        .foregroundStyle(viewModel.isCapturingPhoto ? .yellow : .secondary)
+                    Text("Auto-keyframing · orbit slowly, aim for 80–150 across all sides")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             // Finish is always available: the RGB-D session is the deliverable
@@ -185,7 +201,8 @@ struct ScanView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(viewModel.rgbdFrameCount == 0)
+                // Photo mode has no RGB-D stream, only keyframes — accept either.
+                .disabled(viewModel.rgbdFrameCount == 0 && viewModel.keyframeCount == 0)
             }
 
             Button("Reset", role: .destructive) {
