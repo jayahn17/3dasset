@@ -3,10 +3,13 @@
 **Primary path (Mac + iPad + Linux):** scan with **CrateScanner** (Xcode / LiDAR),
 send RGB-D to this box, fuse with **nvblox**.
 
-→ **Follow this every day:** **[docs/MAC_IPAD_NVBLOX.md](docs/MAC_IPAD_NVBLOX.md)**
+→ **Full Engin170 loop (iPad capture → Linux backend → iPad view-only):**  
+> **[docs/ENGIN170_WORKFLOW.md](docs/ENGIN170_WORKFLOW.md)**
+>
+> → **Short daily Mac checklist:** **[docs/MAC_IPAD_NVBLOX.md](docs/MAC_IPAD_NVBLOX.md)**
 
 ```text
-iPad CrateScanner  →  session zip (RGB+depth+pose)  →  Linux nvblox  →  mesh
+iPad capture  →  Linux nvblox (all compute)  →  iPad view-only results
 ```
 
 App sources: [`mobile/CrateScannerApp/`](mobile/CrateScannerApp/)
@@ -77,7 +80,10 @@ twin_out/
     model.urdf                # simulatable twin (PyBullet/Isaac/Gazebo/MuJoCo)
 ```
 
-> **Daily Mac + iPad + nvblox workflow (use this):**
+> **Engin170 full loop (Linux = backend, iPad = capture + view-only):**
+> **[docs/ENGIN170_WORKFLOW.md](docs/ENGIN170_WORKFLOW.md)**
+>
+> **Daily Mac checklist:**
 > **[docs/MAC_IPAD_NVBLOX.md](docs/MAC_IPAD_NVBLOX.md)**
 >
 > More detail: [docs/WORKFLOW.md](docs/WORKFLOW.md) ·
