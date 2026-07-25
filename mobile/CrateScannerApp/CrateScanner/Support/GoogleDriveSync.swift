@@ -174,12 +174,18 @@ final class GoogleDriveSync: NSObject, ObservableObject {
         comps.queryItems = [.init(name: "q", value: q), .init(name: "fields", value: "files(id)")]
         var find = URLRequest(url: comps.url!)
         find.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        let (data, _) = try await URLSession.shared.data(for: find)
-        if let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-           let files = json["files"] as? [[String: Any]],
-           let id = files.first?["id"] as? String {
-            cachedFolderID = id
-            return id
+        let (data, findResp) = try await URLSession.shared.data(for: find)
+        if let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+            if let files = json["files"] as? [[String: Any]],
+               let id = files.first?["id"] as? String {
+                cachedFolderID = id
+                return id
+            }
+            // Surface Google's own error (e.g. Drive API disabled) rather than
+            // silently falling through to a create that will fail the same way.
+            if let err = json["error"] as? [String: Any] {
+                throw DriveError.upload(driveErrorText(err, status: findResp))
+            }
         }
         // Create it.
         var create = URLRequest(url: URL(string: "https://www.googleapis.com/drive/v3/files")!)
@@ -190,13 +196,26 @@ final class GoogleDriveSync: NSObject, ObservableObject {
             "name": GoogleDriveConfig.folderName,
             "mimeType": "application/vnd.google-apps.folder",
         ])
-        let (cData, _) = try await URLSession.shared.data(for: create)
-        guard let json = (try? JSONSerialization.jsonObject(with: cData)) as? [String: Any],
-              let id = json["id"] as? String else {
-            throw DriveError.upload("Could not create the Drive folder.")
+        let (cData, cResp) = try await URLSession.shared.data(for: create)
+        let cJSON = (try? JSONSerialization.jsonObject(with: cData)) as? [String: Any]
+        if let id = cJSON?["id"] as? String {
+            cachedFolderID = id
+            return id
         }
-        cachedFolderID = id
-        return id
+        if let err = cJSON?["error"] as? [String: Any] {
+            throw DriveError.upload(driveErrorText(err, status: cResp))
+        }
+        throw DriveError.upload("Could not create the Drive folder (HTTP \((cResp as? HTTPURLResponse)?.statusCode ?? 0)).")
+    }
+
+    /// Human-readable text from a Drive API error object.
+    private func driveErrorText(_ err: [String: Any], status: URLResponse) -> String {
+        let code = (status as? HTTPURLResponse)?.statusCode ?? 0
+        let msg = (err["message"] as? String) ?? "unknown error"
+        if code == 403 && msg.contains("has not been used") {
+            return "Google Drive API isn't enabled for this project yet. Enable it at console.cloud.google.com → APIs & Services → Enable APIs → Google Drive API, then wait a minute. (\(msg))"
+        }
+        return "HTTP \(code): \(msg)"
     }
 
     // MARK: Web auth
