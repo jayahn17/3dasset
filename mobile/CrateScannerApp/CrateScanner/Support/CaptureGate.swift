@@ -35,9 +35,9 @@ final class CaptureGate: @unchecked Sendable {
     private let sharpFraction: Float = 0.45     // sharp if ≥ this × recent peak
     private let maxAngularSpeed: Float = 0.6    // rad/s of view direction (blur onset)
     private let maxLinearSpeed: Float = 0.25    // m/s
-    private let minKeyframeGap: TimeInterval = 0.4
-    private let minMoveMeters: Float = 0.04     // spread keyframes across the orbit
-    private let minTurnRadians: Float = 0.07    // ~4°
+    private let minKeyframeGap: TimeInterval = 1.0
+    private let minMoveMeters: Float = 0.12     // spread keyframes across the orbit
+    private let minTurnRadians: Float = 0.14    // ~8°
 
     private let lock = NSLock()
     private var lastT: TimeInterval = -1

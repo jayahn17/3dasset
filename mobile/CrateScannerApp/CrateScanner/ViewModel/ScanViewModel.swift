@@ -280,14 +280,15 @@ final class ScanViewModel: NSObject, ObservableObject {
     private static func makeMarkerEntity() -> Entity {
         let root = Entity()
 
-        if let mesh = frustumMesh(depth: 0.07, halfW: 0.045, halfH: 0.034) {
+        // Small (~3.5 cm) so a ring of many markers reads as a ring, not a blob.
+        if let mesh = frustumMesh(depth: 0.035, halfW: 0.022, halfH: 0.017) {
             // Two-sided via reversed-winding geometry (faceCulling is iOS 18+).
-            let mat = UnlitMaterial(color: UIColor.systemGreen.withAlphaComponent(0.25))
+            let mat = UnlitMaterial(color: UIColor.systemGreen.withAlphaComponent(0.3))
             root.addChild(ModelEntity(mesh: mesh, materials: [mat]))
         }
 
         let apex = ModelEntity(
-            mesh: .generateSphere(radius: 0.012),
+            mesh: .generateSphere(radius: 0.007),
             materials: [SimpleMaterial(color: .systemGreen, isMetallic: false)])
         root.addChild(apex)
         return root
