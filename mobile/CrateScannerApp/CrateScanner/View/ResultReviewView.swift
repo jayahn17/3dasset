@@ -11,7 +11,7 @@ import SwiftUI
 struct ResultReviewView: View {
     @ObservedObject var viewModel: ScanViewModel
 
-    @State private var shareURL: URL?
+    @State private var shareItem: ShareItem?
     @State private var exportError: String?
 
     // Tailscale worker (the automatic iPad → Linux path).
@@ -51,8 +51,8 @@ struct ResultReviewView: View {
 
             dimensionsPanel
         }
-        .sheet(item: $shareURL) { url in
-            ShareSheet(items: [url])
+        .sheet(item: $shareItem) { item in
+            ShareSheet(items: [item.url])
         }
         .alert("Export failed",
                isPresented: Binding(
@@ -322,7 +322,7 @@ struct ResultReviewView: View {
 
     private func export(_ format: MeshExportFormat) {
         do {
-            shareURL = try viewModel.exportCapturedMesh(as: format)
+            shareItem = ShareItem(url: try viewModel.exportCapturedMesh(as: format))
         } catch {
             exportError = error.localizedDescription
         }
@@ -330,13 +330,17 @@ struct ResultReviewView: View {
 
     private func exportLinuxPackage() {
         do {
-            shareURL = try viewModel.exportLinuxPackage()
+            shareItem = ShareItem(url: try viewModel.exportLinuxPackage())
         } catch {
             exportError = error.localizedDescription
         }
     }
 }
 
-extension URL: Identifiable {
-    public var id: String { absoluteString }
+/// Wrapper so `.sheet(item:)` has an Identifiable without conforming Foundation's
+/// URL to Identifiable ourselves (a retroactive conformance that warns under
+/// Swift 5 and errors under Swift 6).
+private struct ShareItem: Identifiable {
+    let id = UUID()
+    let url: URL
 }
