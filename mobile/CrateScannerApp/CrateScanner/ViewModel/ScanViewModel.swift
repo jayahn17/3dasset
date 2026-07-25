@@ -93,6 +93,16 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// enabled state so blurry frames aren't saved.
     @Published private(set) var readiness: CaptureReadiness = .focusing
 
+    /// Guided capture: show a dome of target viewpoints and walk the user to each.
+    @Published var guidedEnabled = false {
+        didSet { guidedEnabled ? buildGuidedTargets() : clearGuidedTargets() }
+    }
+    /// Live "Move left / Hold steady…" instruction while guided.
+    @Published private(set) var guidanceText = ""
+    /// Captured / total target viewpoints.
+    @Published private(set) var guidedDone = 0
+    @Published private(set) var guidedTotal = 0
+
     // MARK: AR plumbing
 
     /// The RealityKit view we drive. Set once by the representable in makeUIView.
@@ -118,6 +128,12 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// Holds the floating AR markers dropped at each keyframe's capture pose, so
     /// the user can see where they've already shot and where coverage is thin.
     private var markersAnchor: AnchorEntity?
+
+    /// Guided-capture target viewpoints and their AR markers.
+    private var targets: [CaptureTarget] = []
+    private var targetEntities: [ModelEntity] = []
+    private var targetsAnchor: AnchorEntity?
+    private var highlightedTarget: Int?
 
     /// The anchored ghost box, added to the scene when the user places it.
     private var ghost = GhostBoxEntity()
@@ -222,7 +238,7 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// completion runs off the main actor; we extract synchronously (the frame is
     /// valid for the callback) then publish the count.
     func capturePhoto() {
-        guard phase == .scanning, mode == .photo || mode == .hybrid,
+        guard phase == .scanning, mode == .photo || mode == .hybrid || guidedEnabled,
               let arView, !isCapturingPhoto else { return }
         isCapturingPhoto = true
         arView.session.captureHighResolutionFrame { [weak self] frame, _ in
@@ -305,6 +321,110 @@ final class ScanViewModel: NSObject, ObservableObject {
         desc.positions = MeshBuffers.Positions(positions)
         desc.primitives = .triangles(indices)
         return try? MeshResource.generate(from: [desc])
+    }
+
+    // MARK: Guided capture
+
+    /// Generate the dome of target viewpoints around the object and show them in
+    /// AR. Center/radius come from the placed box if there is one, else a point
+    /// ~1 m in front of the camera.
+    private func buildGuidedTargets() {
+        guard let arView else { return }
+        clearGuidedTargets()
+
+        let center: SIMD3<Float>
+        let radius: Float
+        if let box = currentBox {
+            center = box.center
+            radius = simd_length(box.extents) / 2 + 0.4
+        } else {
+            let cam = arView.cameraTransform
+            center = cam.translation + (-cam.matrix.forward) * 1.0
+            radius = 0.6
+        }
+
+        targets = GuidedCapture.makeTargets(center: center, radius: radius)
+        guidedTotal = targets.count
+        guidedDone = 0
+        highlightedTarget = nil
+
+        let anchor = AnchorEntity(world: .zero)
+        for t in targets {
+            let e = Self.makeTargetEntity(color: .systemBlue)
+            e.transform = Self.lookAtTransform(position: t.position, forward: t.forward)
+            anchor.addChild(e)
+            targetEntities.append(e)
+        }
+        arView.scene.addAnchor(anchor)
+        targetsAnchor = anchor
+        guidanceText = "Walk to the highlighted marker"
+    }
+
+    private func clearGuidedTargets() {
+        targetsAnchor?.removeFromParent()
+        targetsAnchor = nil
+        targetEntities.removeAll()
+        targets.removeAll()
+        guidedTotal = 0
+        guidedDone = 0
+        highlightedTarget = nil
+        guidanceText = ""
+    }
+
+    /// Each frame while guided: point the user at the nearest unshot target and
+    /// auto-capture when they arrive sharp + steady.
+    private func updateGuidance(cameraTransform m: simd_float4x4, ready: Bool) {
+        guard phase == .scanning, recorder.isRecording, !targets.isEmpty else { return }
+        let camPos = m.translation
+        let camFwd = -SIMD3<Float>(m.columns.2.x, m.columns.2.y, m.columns.2.z)
+
+        guard let i = GuidedCapture.nearestPending(to: camPos, in: targets) else {
+            guidanceText = "All viewpoints captured ✓"
+            return
+        }
+        if highlightedTarget != i { highlight(i) }
+
+        if GuidedCapture.reached(targets[i], camPos: camPos, camForward: camFwd) {
+            if ready, !isCapturingPhoto {
+                targets[i].done = true
+                Self.tint(targetEntities[i], color: .systemGreen, alpha: 0.35)
+                guidedDone += 1
+                highlightedTarget = nil          // re-highlight the next one
+                capturePhoto()
+            } else {
+                guidanceText = "Hold steady…"
+            }
+        } else {
+            guidanceText = GuidedCapture.instruction(to: targets[i], cameraTransform: m)
+        }
+    }
+
+    private func highlight(_ i: Int) {
+        // Dim the previous next, brighten the new one.
+        if let prev = highlightedTarget, prev < targetEntities.count, !targets[prev].done {
+            Self.tint(targetEntities[prev], color: .systemBlue, alpha: 0.16)
+        }
+        if i < targetEntities.count {
+            Self.tint(targetEntities[i], color: .systemYellow, alpha: 0.4)
+        }
+        highlightedTarget = i
+    }
+
+    private static func tint(_ entity: ModelEntity, color: UIColor, alpha: CGFloat) {
+        entity.model?.materials = [UnlitMaterial(color: color.withAlphaComponent(alpha))]
+    }
+
+    /// A translucent target frustum (no apex dot — these are goals, not captures).
+    private static func makeTargetEntity(color: UIColor) -> ModelEntity {
+        let mesh = frustumMesh(depth: 0.08, halfW: 0.05, halfH: 0.038)
+            ?? .generateSphere(radius: 0.03)
+        return ModelEntity(mesh: mesh, materials: [UnlitMaterial(color: color.withAlphaComponent(0.16))])
+    }
+
+    /// Transform placing an entity at `position` with local −Z aimed at `forward`.
+    private static func lookAtTransform(position: SIMD3<Float>, forward: SIMD3<Float>) -> Transform {
+        let q = simd_quatf(from: SIMD3<Float>(0, 0, -1), to: simd_normalize(forward))
+        return Transform(scale: .one, rotation: q, translation: position)
     }
 
     /// Pause the session (e.g. when leaving the screen or entering review).
@@ -486,6 +606,7 @@ final class ScanViewModel: NSObject, ObservableObject {
     func reset() {
         gate.reset()
         readiness = .focusing
+        guidedEnabled = false          // didSet clears the target markers
         meshes.removeAll()
         capturedVertexCount = 0
         currentBox = nil
@@ -530,6 +651,9 @@ final class ScanViewModel: NSObject, ObservableObject {
         if result != nil {
             result = MeasurementResult(extentsMeters: box.extents, padding: paddingInches)
         }
+
+        // Re-center the guided targets on the object once it's boxed/fitted.
+        if guidedEnabled { buildGuidedTargets() }
     }
 }
 
@@ -574,11 +698,17 @@ extension ScanViewModel: ARSessionDelegate {
 
         let state = frame.camera.trackingState
         let intensity = frame.lightEstimate?.ambientIntensity ?? 1000
+        let camTransform = frame.camera.transform
         Task { @MainActor in
             self.updateFeedback(state: state, ambientIntensity: intensity)
             if let recorded { self.rgbdFrameCount = recorded }
             self.readiness = ready
-            if autoFire { self.capturePhoto() }
+            if self.guidedEnabled {
+                // Guided drives its own captures at target viewpoints.
+                self.updateGuidance(cameraTransform: camTransform, ready: ready.isReady)
+            } else if autoFire {
+                self.capturePhoto()
+            }
         }
     }
 

@@ -43,6 +43,9 @@ struct ScanView: View {
 
             VStack {
                 feedbackBanner
+                if viewModel.phase == .scanning && viewModel.guidedEnabled {
+                    guidedBanner
+                }
                 Spacer()
                 if viewModel.phase == .ready {
                     startControls
@@ -74,6 +77,15 @@ struct ScanView: View {
                 Text(viewModel.quality.caption)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+
+                Divider()
+                Toggle(isOn: $viewModel.guidedEnabled) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Guided capture").font(.caption)
+                        Text("Show target viewpoints and walk you to each")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
             }
             .padding(12)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -95,6 +107,22 @@ struct ScanView: View {
             .controlSize(.large)
             .tint(.red)
         }
+    }
+
+    private var guidedBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "figure.walk")
+                .foregroundStyle(.yellow)
+            Text(viewModel.guidanceText.isEmpty ? "Walk to the highlighted marker" : viewModel.guidanceText)
+                .font(.subheadline.weight(.semibold))
+            Spacer()
+            Text("\(viewModel.guidedDone)/\(viewModel.guidedTotal)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var shutterLabel: String {
