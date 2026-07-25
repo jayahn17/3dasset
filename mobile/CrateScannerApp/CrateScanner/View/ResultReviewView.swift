@@ -7,7 +7,6 @@
 //
 
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct ResultReviewView: View {
     @ObservedObject var viewModel: ScanViewModel
@@ -15,16 +14,15 @@ struct ResultReviewView: View {
     @State private var shareURL: URL?
     @State private var exportError: String?
 
-    // Auto-save destination (a Google Drive / Files folder chosen once).
-    @State private var destinationName: String? = DestinationStore.shared.destinationName
-    @State private var autoSaveOn: Bool = DestinationStore.shared.autoSaveEnabled
-    @State private var showFolderPicker = false
-    @State private var autoSaveState: AutoSaveState = .idle
-    @State private var didAutoSave = false
+    // Tailscale worker (the automatic iPad → Linux path).
+    @State private var workerURL: String = WorkerSettings.shared.url
+    @State private var autoSendOn: Bool = WorkerSettings.shared.autoSend
+    @State private var sendState: SendState = .idle
+    @State private var didAutoSend = false
 
-    enum AutoSaveState: Equatable {
-        case idle, saving
-        case saved(String)
+    enum SendState: Equatable {
+        case idle, sending
+        case sent(String)
         case failed(String)
     }
 
@@ -51,25 +49,6 @@ struct ResultReviewView: View {
         .sheet(item: $shareURL) { url in
             ShareSheet(items: [url])
         }
-        .fileImporter(isPresented: $showFolderPicker,
-                      allowedContentTypes: [.folder],
-                      allowsMultipleSelection: false) { result in
-            switch result {
-            case .success(let urls):
-                guard let folder = urls.first else { return }
-                do {
-                    try DestinationStore.shared.setDestination(folder)
-                    destinationName = DestinationStore.shared.destinationName
-                    autoSaveState = .idle
-                    // Just chose a folder — save this scan into it now.
-                    Task { await runAutoSave() }
-                } catch {
-                    exportError = error.localizedDescription
-                }
-            case .failure(let error):
-                exportError = error.localizedDescription
-            }
-        }
         .alert("Export failed",
                isPresented: Binding(
                 get: { exportError != nil },
@@ -78,12 +57,12 @@ struct ResultReviewView: View {
                actions: { Button("OK") { exportError = nil } },
                message: { Text(exportError ?? "") })
         .task {
-            // Auto-save once when the review appears, if a folder is set.
-            guard !didAutoSave, autoSaveOn,
-                  DestinationStore.shared.hasDestination,
+            // Auto-send once when review appears, if a worker URL is set.
+            guard !didAutoSend, autoSendOn,
+                  WorkerSettings.shared.isConfigured,
                   viewModel.lastSessionURL != nil else { return }
-            didAutoSave = true
-            await runAutoSave()
+            didAutoSend = true
+            await runSend()
         }
     }
 
@@ -128,17 +107,18 @@ struct ResultReviewView: View {
 
             Divider()
 
-            Text("Auto-save to Google Drive")
+            Text("Send to Linux (Tailscale worker)")
                 .font(.caption).foregroundStyle(.secondary)
 
-            autoSaveSection
+            workerSection
 
-            // Manual fallback: AirDrop / any other destination via the share
-            // sheet. Always available even when a folder is set.
+            // Manual fallback: AirDrop, or Save to Google Drive / Files via the
+            // share sheet (Drive's share extension works even though its folder
+            // picker doesn't).
             Button {
                 exportLinuxPackage()
             } label: {
-                Label("Share elsewhere (AirDrop…)", systemImage: "square.and.arrow.up")
+                Label("Share elsewhere (AirDrop / Drive…)", systemImage: "square.and.arrow.up")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
@@ -172,85 +152,83 @@ struct ResultReviewView: View {
         .background(Color(.systemBackground))
     }
 
-    // MARK: Auto-save
+    // MARK: Send to worker
 
     @ViewBuilder
-    private var autoSaveSection: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: autoSaveIcon)
-                .foregroundStyle(autoSaveTint)
-            VStack(alignment: .leading, spacing: 2) {
-                if let name = destinationName {
-                    Text("Saves to \(name)").font(.caption)
-                    Text(autoSaveStatusLine)
-                        .font(.caption2).foregroundStyle(.tertiary)
-                } else {
-                    Text("Choose a folder once — every scan saves there").font(.caption)
-                    Text("Pick a Google Drive folder in Files; it uploads on its own")
-                        .font(.caption2).foregroundStyle(.tertiary)
+    private var workerSection: some View {
+        // Worker address — entered once, persisted.
+        HStack(spacing: 8) {
+            Image(systemName: "network")
+                .foregroundStyle(.secondary)
+            TextField("http://100.x.y.z:8090", text: $workerURL)
+                .textFieldStyle(.roundedBorder)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .keyboardType(.URL)
+                .font(.caption.monospaced())
+                .onChange(of: workerURL) { _, new in
+                    WorkerSettings.shared.url = new
                 }
-            }
+        }
+
+        HStack(spacing: 8) {
+            Image(systemName: sendIcon).foregroundStyle(sendTint)
+            Text(sendStatusLine)
+                .font(.caption2).foregroundStyle(.secondary)
             Spacer()
-            Button(destinationName == nil ? "Choose" : "Change") {
-                showFolderPicker = true
-            }
+        }
+
+        Toggle("Auto-send each scan", isOn: $autoSendOn)
             .font(.caption)
+            .onChange(of: autoSendOn) { _, on in WorkerSettings.shared.autoSend = on }
+
+        Button {
+            Task { await runSend() }
+        } label: {
+            Label(sendState == .sending ? "Sending…" : "Send to Linux now",
+                  systemImage: "arrow.up.circle")
+                .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.borderedProminent)
+        .disabled(sendState == .sending
+                  || viewModel.lastSessionURL == nil
+                  || workerURL.trimmingCharacters(in: .whitespaces).isEmpty)
+    }
 
-        if destinationName != nil {
-            Toggle("Auto-save each scan", isOn: $autoSaveOn)
-                .font(.caption)
-                .onChange(of: autoSaveOn) { _, on in
-                    DestinationStore.shared.autoSaveEnabled = on
-                }
-
-            Button {
-                Task { await runAutoSave() }
-            } label: {
-                Label(autoSaveState == .saving ? "Saving…" : "Save to folder now",
-                      systemImage: "arrow.up.doc")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(autoSaveState == .saving || viewModel.lastSessionURL == nil)
+    private var sendIcon: String {
+        switch sendState {
+        case .sent:    return "checkmark.circle.fill"
+        case .failed:  return "exclamationmark.triangle.fill"
+        case .sending: return "arrow.up.circle"
+        case .idle:    return "wifi"
         }
     }
 
-    private var autoSaveIcon: String {
-        switch autoSaveState {
-        case .saved: return "checkmark.icloud.fill"
-        case .failed: return "exclamationmark.icloud"
-        case .saving: return "icloud.and.arrow.up"
-        case .idle: return destinationName == nil ? "folder.badge.plus" : "icloud"
-        }
-    }
-
-    private var autoSaveTint: Color {
-        switch autoSaveState {
-        case .saved: return .green
+    private var sendTint: Color {
+        switch sendState {
+        case .sent:   return .green
         case .failed: return .orange
-        default: return .secondary
+        default:      return .secondary
         }
     }
 
-    private var autoSaveStatusLine: String {
-        switch autoSaveState {
-        case .idle: return autoSaveOn ? "Auto-save on" : "Auto-save off"
-        case .saving: return "Saving… Drive will upload it"
-        case .saved: return "Saved ✓ — Drive syncs it to Linux"
+    private var sendStatusLine: String {
+        switch sendState {
+        case .idle:    return autoSendOn ? "Auto-send on · fuses on the 4080" : "Auto-send off"
+        case .sending: return "Uploading to the worker…"
+        case .sent(let name): return "Sent ✓ \(name) — the watcher is fusing it"
         case .failed(let why): return why
         }
     }
 
     @MainActor
-    private func runAutoSave() async {
-        autoSaveState = .saving
+    private func runSend() async {
+        sendState = .sending
         do {
-            let name = try await viewModel.exportAndAutoSave()
-            autoSaveState = .saved(name)
-            destinationName = DestinationStore.shared.destinationName
+            let result = try await viewModel.exportAndSendToWorker()
+            sendState = .sent(result.name)
         } catch {
-            autoSaveState = .failed(error.localizedDescription)
+            sendState = .failed(error.localizedDescription)
         }
     }
 

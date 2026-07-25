@@ -461,11 +461,18 @@ final class ScanViewModel: NSObject, ObservableObject {
     }
 
     /// Build the Linux package and copy it into the user's saved destination
-    /// (e.g. a Google Drive folder in Files). Off the main actor — zipping ~440
+    /// (e.g. an iCloud Drive folder in Files). Off the main actor — zipping ~440
     /// frames takes a moment. Returns the destination's display name on success.
     nonisolated func exportAndAutoSave() async throws -> String {
         let zip = try await MainActor.run { try self.exportLinuxPackage() }
         return try DestinationStore.shared.copy(zip)
+    }
+
+    /// Build the Linux package and POST it to the Tailscale worker. Returns the
+    /// worker's name for the scan (used to poll fusion status).
+    nonisolated func exportAndSendToWorker() async throws -> WorkerUploadResult {
+        let zip = try await MainActor.run { try self.exportLinuxPackage() }
+        return try await WorkerUploader.upload(zip, toWorker: WorkerSettings.shared.url)
     }
 
     /// Return from review to continue scanning the same object (mesh persists).

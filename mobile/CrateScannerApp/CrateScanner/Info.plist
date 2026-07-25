@@ -35,5 +35,24 @@
     <true/>
     <key>LSSupportsOpeningDocumentsInPlace</key>
     <true/>
+
+    <!--
+        The app uploads scans to the assetpipe worker over Tailscale, i.e. plain
+        http:// to a 100.x.y.z address. ATS blocks cleartext http by default, so
+        we allow it here. This is an internal capture tool talking to your own
+        worker on your own tailnet, not a public app. If you later serve the
+        worker over https with a trusted cert, you can tighten this.
+    -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+    <!--
+        Connecting to a private-range worker IP can trip iOS's local-network
+        permission prompt; this string is what that prompt shows.
+    -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>CrateScanner uploads finished scans to your assetpipe worker on the local network / Tailscale.</string>
 </dict>
 </plist>

@@ -115,17 +115,34 @@ This is **not** a normal Camera video. It is a **frame sequence with depth + pos
 
 ### Step 3 — iPad → Linux: send input
 
-Every scan is kept on the iPad at **Files → On My iPad → CrateScanner →
-CrateScans/Packages** (persistent, survives restarts), so you can transfer it
-later — not only from the share sheet at capture time.
+**Route A — direct upload over Tailscale (automatic, preferred).** On the review
+screen, enter the 4080's Tailscale address once (`http://100.x.y.z:8090`) and
+turn on **Auto-send**. Each finished scan POSTs straight to the worker's
+`/rgbd/upload`, which drops it in the inbox the watcher fuses — no Drive, no Mac,
+no manual copy. Needs Tailscale on the iPad + 4080 and the worker running:
 
 ```bash
-# Route A — Drive: drag the zip into Google Drive in Files, then on Linux
-rclone copy gdrive:CrateScans ~/3dasset/captures/
-
-# Route B — AirDrop to Mac, then
-scp ~/Downloads/CrateScan-XXXXXXXX.zip USER@LINUX_IP:~/3dasset/captures/
+# on the 4080
+conda activate assetpipe
+PUBLIC_BASE_URL=http://$(tailscale ip -4):8090 python services/capture_worker.py
+python tools/watch_inbox.py            # or the systemd service
 ```
+
+Every scan is also kept on the iPad at **Files → On My iPad → CrateScanner →
+CrateScans/Packages** (persistent), so these still work any time:
+
+```bash
+# Route B — Google Drive: on review tap "Share elsewhere" → Drive → Save,
+#           then on Linux
+rclone copy gdrive:CrateScans ~/3dasset/captures/inbox/
+
+# Route C — AirDrop to Mac, then
+scp ~/Downloads/CrateScan-XXXXXXXX.zip USER@LINUX_IP:~/3dasset/captures/inbox/
+```
+
+> Google Drive can't be picked as an auto-save *folder* (its Files provider
+> doesn't support writable folder selection), which is why Route A is the
+> automatic path and Drive is via the share sheet.
 
 ### Step 4 — Linux: compute (backend)
 
