@@ -24,6 +24,8 @@ struct ResultReviewView: View {
     @ObservedObject private var drive = GoogleDriveSync.shared
     @State private var driveState: SendState = .idle
     @State private var didAutoDrive = false
+    @State private var clientIDField = GoogleDriveConfig.clientID
+    @State private var driveConfigured = GoogleDriveConfig.isConfigured
 
     enum SendState: Equatable {
         case idle, sending
@@ -250,10 +252,24 @@ struct ResultReviewView: View {
 
     @ViewBuilder
     private var driveSection: some View {
-        if !GoogleDriveConfig.isConfigured {
-            Label("Add your Google OAuth client ID to enable Drive sync (see GoogleDriveConfig.swift).",
-                  systemImage: "info.circle")
-                .font(.caption2).foregroundStyle(.secondary)
+        if !driveConfigured {
+            // Paste the OAuth client ID once; stored on the device, no rebuild.
+            VStack(alignment: .leading, spacing: 6) {
+                TextField("iOS OAuth client ID (…apps.googleusercontent.com)",
+                          text: $clientIDField)
+                    .textFieldStyle(.roundedBorder)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.caption2.monospaced())
+                Text("Create it in Google Cloud Console → Credentials → iOS OAuth client (Bundle ID com.jayahn.CrateScanner). Steps in GoogleDriveConfig.swift.")
+                    .font(.caption2).foregroundStyle(.secondary)
+                Button("Save client ID") {
+                    GoogleDriveConfig.clientID = clientIDField
+                    driveConfigured = GoogleDriveConfig.isConfigured
+                }
+                .buttonStyle(.bordered)
+                .disabled(!clientIDField.hasSuffix(".apps.googleusercontent.com"))
+            }
         } else if !drive.isConnected {
             Button {
                 Task {
@@ -265,6 +281,10 @@ struct ResultReviewView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            Button("Change client ID") {
+                driveConfigured = false          // back to the paste field
+            }
+            .font(.caption2)
         } else {
             HStack(spacing: 8) {
                 Image(systemName: driveIcon).foregroundStyle(driveTint)

@@ -13,31 +13,39 @@
 //     while it stays in Testing and uses the drive.file scope).
 //  4. Credentials → Create Credentials → OAuth client ID → Application type:
 //     iOS → Bundle ID:  com.jayahn.CrateScanner  (matches project.yml).
-//  5. Copy the Client ID (looks like 1234567890-abcd.apps.googleusercontent.com)
-//     into `clientID` below.
-//  6. Copy the "iOS URL scheme" it shows (the reversed client ID,
-//     com.googleusercontent.apps.1234567890-abcd) into Info.plist under
-//     CFBundleURLTypes → CFBundleURLSchemes.  (A placeholder is already there.)
+//  5. Copy the Client ID (1234567890-abcd.apps.googleusercontent.com).
 //
-//  Until `clientID` is filled in, the Drive section shows a setup prompt and
-//  everything else (local folder, Tailscale upload, share sheet) still works.
+//  Then just PASTE that client ID into the app: review screen → Sync to Google
+//  Drive → "Set up". It's saved on the device — no rebuild, no Info.plist edit.
+//
+//  (No URL scheme needed: ASWebAuthenticationSession captures the OAuth redirect
+//  itself, so nothing has to be registered in Info.plist.)
 //
 
 import Foundation
 
 enum GoogleDriveConfig {
-    /// Paste your iOS OAuth client ID here.
-    static let clientID = ""   // e.g. "1234567890-abcd.apps.googleusercontent.com"
+    /// The iOS OAuth client ID, entered in-app and stored on the device.
+    static var clientID: String {
+        get { UserDefaults.standard.string(forKey: "drive.clientID") ?? "" }
+        set {
+            UserDefaults.standard.set(
+                newValue.trimmingCharacters(in: .whitespacesAndNewlines),
+                forKey: "drive.clientID")
+        }
+    }
 
-    static var isConfigured: Bool { !clientID.isEmpty }
+    static var isConfigured: Bool {
+        clientID.hasSuffix(".apps.googleusercontent.com")
+    }
 
-    /// The reversed-client-ID URL scheme, also required in Info.plist.
+    /// The reversed-client-ID scheme Google redirects to. Used as the
+    /// ASWebAuthenticationSession callback scheme (not registered in Info.plist).
     static var redirectScheme: String {
         let head = clientID.components(separatedBy: ".apps.googleusercontent.com").first ?? ""
         return "com.googleusercontent.apps.\(head)"
     }
 
-    /// Redirect back into the app after the consent screen.
     static var redirectURI: String { "\(redirectScheme):/oauth2redirect" }
 
     /// drive.file = the app only ever sees files it created. No broad-access
