@@ -44,9 +44,10 @@ enum PackageExporter {
     ) throws -> URL {
         let fm = FileManager.default
         // Staging only — the finished zip is written to the user-visible
-        // Documents/CrateScans/Packages by zipForSharing below.
+        // Documents/CrateScans/Packages by zipForSharing below. `baseName` is the
+        // final file name (e.g. crate_20260725_14_30_52).
         let root = fm.temporaryDirectory
-            .appendingPathComponent("CrateScan-\(baseName)", isDirectory: true)
+            .appendingPathComponent(baseName, isDirectory: true)
         try? fm.removeItem(at: root)
         try fm.createDirectory(at: root, withIntermediateDirectories: true)
 

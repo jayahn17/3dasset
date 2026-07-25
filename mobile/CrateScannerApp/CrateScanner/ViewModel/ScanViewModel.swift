@@ -555,14 +555,23 @@ final class ScanViewModel: NSObject, ObservableObject {
     }
 
     /// One zip for Linux: mesh.obj + measurement.json + session/ (RGB-D).
+    /// Named `crate_<date>_<hr>_<min>_<sec>` so uploads sort by time and read
+    /// plainly in Drive / the worker inbox.
     func exportLinuxPackage() throws -> URL {
-        let base = result.map { String($0.id.uuidString.prefix(8)) } ?? UUID().uuidString.prefix(8).description
         return try PackageExporter.buildZip(
             mesh: capturedMesh,
             measurement: result,
             sessionDirectory: lastSessionURL,
-            baseName: base
+            baseName: Self.timestampName()
         )
+    }
+
+    /// e.g. "crate_20260725_14_30_52".
+    static func timestampName() -> String {
+        let fmt = DateFormatter()
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        fmt.dateFormat = "yyyyMMdd_HH_mm_ss"
+        return "crate_\(fmt.string(from: Date()))"
     }
 
     /// Zip only the RGB-D session folder (smaller than full package).
