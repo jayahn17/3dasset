@@ -89,6 +89,10 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// 12 MP keyframes written this scan (Photo taps, or Hybrid auto-keyframes).
     @Published private(set) var keyframeCount = 0
 
+    /// Live capture readiness — drives the reticle colour and the shutter's
+    /// enabled state so blurry frames aren't saved.
+    @Published private(set) var readiness: CaptureReadiness = .focusing
+
     // MARK: AR plumbing
 
     /// The RealityKit view we drive. Set once by the representable in makeUIView.
@@ -106,8 +110,10 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// from `captureQueue` inside the ARSessionDelegate callbacks.
     private let recorder = RecorderBox()
 
-    /// Fires ~1.5 Hz in Hybrid mode to grab a 12 MP keyframe automatically.
-    private var keyframeTimer: Timer?
+    /// Decides when a frame is sharp + steady enough to keep, and when Detail
+    /// mode should auto-fire a keyframe. Lives off the main actor with the
+    /// delegate, so it's a lock-guarded reference type like `recorder`.
+    private let gate = CaptureGate()
 
     /// Holds the floating AR markers dropped at each keyframe's capture pose, so
     /// the user can see where they've already shot and where coverage is thin.
@@ -139,26 +145,13 @@ final class ScanViewModel: NSObject, ObservableObject {
         runSession(resetting: true, record: false)
     }
 
-    /// Begin recording RGB-D + mesh. Called from the Start button.
+    /// Begin recording RGB-D + mesh. Called from the Start button. Detail mode
+    /// auto-keyframes are driven by the capture gate per frame, not a timer, so
+    /// they only fire when the view is sharp and steady.
     func start() {
         guard phase == .ready else { return }
         phase = .scanning
         recorder.isRecording = true
-        if mode == .hybrid { startKeyframeTimer() }
-    }
-
-    /// Auto 12 MP keyframe capture for Hybrid mode.
-    private func startKeyframeTimer() {
-        keyframeTimer?.invalidate()
-        let interval = mode.keyframeInterval
-        keyframeTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.capturePhoto() }
-        }
-    }
-
-    private func stopKeyframeTimer() {
-        keyframeTimer?.invalidate()
-        keyframeTimer = nil
     }
 
     /// Configure + run the world-tracking session with mesh reconstruction.
@@ -172,6 +165,8 @@ final class ScanViewModel: NSObject, ObservableObject {
         config.sceneReconstruction = .mesh
         config.frameSemantics.insert(.sceneDepth)
         config.environmentTexturing = .none
+        // Keep the lens focused on the object — critical for sharp keyframes.
+        config.isAutoFocusEnabled = true
 
         // Pick the capture video format for the chosen quality/mode.
         applyVideoFormat(to: config)
@@ -314,7 +309,6 @@ final class ScanViewModel: NSObject, ObservableObject {
 
     /// Pause the session (e.g. when leaving the screen or entering review).
     func pause() {
-        stopKeyframeTimer()
         arView?.session.pause()
     }
 
@@ -382,7 +376,6 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// pause live scanning. This is the "Capture" action.
     func capture() {
         recorder.isRecording = false
-        stopKeyframeTimer()
 
         // 1. The RGB-D session is the deliverable — Linux nvblox builds the 3D
         //    asset from it and the crate is designed off that afterwards. So it
@@ -424,7 +417,6 @@ final class ScanViewModel: NSObject, ObservableObject {
         guard capturedMesh != nil || lastSessionURL != nil else {
             feedback = .noGeometry
             recorder.isRecording = true
-            if mode == .hybrid { startKeyframeTimer() }
             return
         }
 
@@ -482,12 +474,12 @@ final class ScanViewModel: NSObject, ObservableObject {
         lastSessionURL = nil
         phase = .scanning
         runSession(resetting: false, record: true)
-        if mode == .hybrid { startKeyframeTimer() }
     }
 
     /// Clear everything for a fresh scan and return to the pre-Start state.
     func reset() {
-        stopKeyframeTimer()
+        gate.reset()
+        readiness = .focusing
         meshes.removeAll()
         capturedVertexCount = 0
         currentBox = nil
@@ -567,11 +559,20 @@ extension ScanViewModel: ARSessionDelegate {
         // drains and frame delivery stops.
         let recorded = recorder.record(frame)
 
+        // Judge focus + steadiness on this live frame. In Detail mode the gate
+        // also tells us when to auto-fire a sharp keyframe. Read the mode from
+        // the thread-safe settings — `self.mode` is main-actor isolated.
+        let autoKeyframes = CaptureSettings.shared.mode == .hybrid
+        let (ready, autoFire) = gate.evaluate(
+            frame, isRecording: recorder.isRecording, autoKeyframes: autoKeyframes)
+
         let state = frame.camera.trackingState
         let intensity = frame.lightEstimate?.ambientIntensity ?? 1000
         Task { @MainActor in
             self.updateFeedback(state: state, ambientIntensity: intensity)
             if let recorded { self.rgbdFrameCount = recorded }
+            self.readiness = ready
+            if autoFire { self.capturePhoto() }
         }
     }
 

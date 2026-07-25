@@ -31,12 +31,15 @@ struct ScanView: View {
             ARViewContainer(viewModel: viewModel)
                 .ignoresSafeArea()
 
-            // Center reticle while aiming (pre-start, and before a box).
-            if viewModel.phase == .ready || !viewModel.isBoxPlaced {
-                Image(systemName: "plus")
-                    .font(.system(size: 28, weight: .thin))
-                    .foregroundStyle(.white.opacity(0.8))
-            }
+            // Focus reticle: a ring that turns green when the frame is sharp and
+            // steady enough to capture without blur.
+            Circle()
+                .strokeBorder(reticleColor, lineWidth: 2.5)
+                .frame(width: 64, height: 64)
+                .overlay(Image(systemName: viewModel.readiness == .ready ? "checkmark" : "camera.metering.center.weighted")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(reticleColor))
+                .opacity(0.9)
 
             VStack {
                 feedbackBanner
@@ -94,6 +97,31 @@ struct ScanView: View {
         }
     }
 
+    private var shutterLabel: String {
+        if viewModel.isCapturingPhoto { return "Capturing…" }
+        switch viewModel.readiness {
+        case .ready:    return "Take Photo"
+        case .moving:   return "Hold steady…"
+        case .focusing: return "Focusing…"
+        }
+    }
+
+    private var hybridHint: String {
+        switch viewModel.readiness {
+        case .ready:    return "Sharp — capturing keyframe"
+        case .moving:   return "Pause a beat to capture · \(viewModel.keyframeCount) so far"
+        case .focusing: return "Focusing… move closer / add light · \(viewModel.keyframeCount) so far"
+        }
+    }
+
+    private var reticleColor: Color {
+        switch viewModel.readiness {
+        case .ready:    return .green
+        case .moving:   return .yellow
+        case .focusing: return .white.opacity(0.7)
+        }
+    }
+
     // MARK: Guidance banner
 
     private var feedbackBanner: some View {
@@ -144,30 +172,31 @@ struct ScanView: View {
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
             }
 
-            // Photo mode: a shutter for each high-res still.
+            // Photo mode: a shutter for each high-res still, tinted by readiness
+            // so the user waits for a sharp, steady frame.
             if viewModel.mode == .photo {
                 Button {
                     viewModel.capturePhoto()
                 } label: {
-                    Label(viewModel.isCapturingPhoto ? "Capturing…" : "Take Photo",
-                          systemImage: "camera.shutter.button")
+                    Label(shutterLabel, systemImage: "camera.shutter.button")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .tint(viewModel.readiness == .ready ? .green : .gray)
                 .disabled(viewModel.isCapturingPhoto)
 
-                Text("\(viewModel.keyframeCount) photos · walk around for full coverage")
+                Text("\(viewModel.keyframeCount) photos · hold steady until the ring turns green")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            // Hybrid mode: keyframes are automatic — just guide the orbit.
+            // Detail mode: keyframes fire automatically when sharp + steady.
             if viewModel.mode == .hybrid {
                 HStack(spacing: 6) {
-                    Image(systemName: "livephoto")
-                        .foregroundStyle(viewModel.isCapturingPhoto ? .yellow : .secondary)
-                    Text("Auto-keyframing · orbit slowly, aim for 80–150 across all sides")
+                    Image(systemName: viewModel.readiness == .ready ? "checkmark.circle.fill" : "camera.metering.center.weighted")
+                        .foregroundStyle(viewModel.readiness == .ready ? .green : .secondary)
+                    Text(hybridHint)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
