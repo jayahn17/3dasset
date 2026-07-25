@@ -20,6 +20,11 @@ struct ResultReviewView: View {
     @State private var sendState: SendState = .idle
     @State private var didAutoSend = false
 
+    // Google Drive
+    @ObservedObject private var drive = GoogleDriveSync.shared
+    @State private var driveState: SendState = .idle
+    @State private var didAutoDrive = false
+
     enum SendState: Equatable {
         case idle, sending
         case sent(String)
@@ -57,12 +62,17 @@ struct ResultReviewView: View {
                actions: { Button("OK") { exportError = nil } },
                message: { Text(exportError ?? "") })
         .task {
-            // Auto-send once when review appears, if a worker URL is set.
-            guard !didAutoSend, autoSendOn,
-                  WorkerSettings.shared.isConfigured,
-                  viewModel.lastSessionURL != nil else { return }
-            didAutoSend = true
-            await runSend()
+            guard viewModel.lastSessionURL != nil else { return }
+            // Auto-send to the worker if configured …
+            if !didAutoSend, autoSendOn, WorkerSettings.shared.isConfigured {
+                didAutoSend = true
+                await runSend()
+            }
+            // … and/or auto-sync to Drive if connected. Both can run.
+            if !didAutoDrive, drive.isConnected, drive.autoSync {
+                didAutoDrive = true
+                await runDrive()
+            }
         }
     }
 
@@ -112,13 +122,17 @@ struct ResultReviewView: View {
 
             workerSection
 
-            // Manual fallback: AirDrop, or Save to Google Drive / Files via the
-            // share sheet (Drive's share extension works even though its folder
-            // picker doesn't).
+            Divider()
+
+            Text("Sync to Google Drive")
+                .font(.caption).foregroundStyle(.secondary)
+            driveSection
+
+            // Manual fallback: AirDrop, or Save to Files via the share sheet.
             Button {
                 exportLinuxPackage()
             } label: {
-                Label("Share elsewhere (AirDrop / Drive…)", systemImage: "square.and.arrow.up")
+                Label("Share elsewhere (AirDrop / Files…)", systemImage: "square.and.arrow.up")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
@@ -229,6 +243,80 @@ struct ResultReviewView: View {
             sendState = .sent(result.name)
         } catch {
             sendState = .failed(error.localizedDescription)
+        }
+    }
+
+    // MARK: Google Drive
+
+    @ViewBuilder
+    private var driveSection: some View {
+        if !GoogleDriveConfig.isConfigured {
+            Label("Add your Google OAuth client ID to enable Drive sync (see GoogleDriveConfig.swift).",
+                  systemImage: "info.circle")
+                .font(.caption2).foregroundStyle(.secondary)
+        } else if !drive.isConnected {
+            Button {
+                Task {
+                    do { try await drive.connect() }
+                    catch { exportError = error.localizedDescription }
+                }
+            } label: {
+                Label("Connect Google Drive", systemImage: "person.crop.circle.badge.plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+        } else {
+            HStack(spacing: 8) {
+                Image(systemName: driveIcon).foregroundStyle(driveTint)
+                Text(driveStatusLine).font(.caption2).foregroundStyle(.secondary)
+                Spacer()
+                Button("Disconnect") { drive.disconnect() }.font(.caption2)
+            }
+            Toggle("Auto-sync each scan", isOn: $drive.autoSync).font(.caption)
+            Button {
+                Task { await runDrive() }
+            } label: {
+                Label(driveState == .sending ? "Uploading…" : "Sync to Drive now",
+                      systemImage: "arrow.up.to.line.circle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(driveState == .sending || viewModel.lastSessionURL == nil)
+        }
+    }
+
+    private var driveIcon: String {
+        switch driveState {
+        case .sent:   return "checkmark.circle.fill"
+        case .failed: return "exclamationmark.triangle.fill"
+        case .sending: return "arrow.up.circle"
+        case .idle:   return "checkmark.icloud"
+        }
+    }
+    private var driveTint: Color {
+        switch driveState {
+        case .sent: return .green
+        case .failed: return .orange
+        default: return .secondary
+        }
+    }
+    private var driveStatusLine: String {
+        switch driveState {
+        case .idle:    return drive.autoSync ? "Connected · auto-sync on" : "Connected"
+        case .sending: return "Uploading to Drive…"
+        case .sent:    return "Synced ✓ to CrateScans on Drive"
+        case .failed(let why): return why
+        }
+    }
+
+    @MainActor
+    private func runDrive() async {
+        driveState = .sending
+        do {
+            try await viewModel.exportAndSyncToDrive()
+            driveState = .sent("")
+        } catch {
+            driveState = .failed(error.localizedDescription)
         }
     }
 

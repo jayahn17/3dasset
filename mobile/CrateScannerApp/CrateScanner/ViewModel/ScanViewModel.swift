@@ -460,6 +460,12 @@ final class ScanViewModel: NSObject, ObservableObject {
         return try DestinationStore.shared.copy(zip)
     }
 
+    /// Build the Linux package and upload it to Google Drive (CrateScans folder).
+    nonisolated func exportAndSyncToDrive() async throws {
+        let zip = try await MainActor.run { try self.exportLinuxPackage() }
+        _ = try await GoogleDriveSync.shared.upload(zip)
+    }
+
     /// Build the Linux package and POST it to the Tailscale worker. Returns the
     /// worker's name for the scan (used to poll fusion status).
     nonisolated func exportAndSendToWorker() async throws -> WorkerUploadResult {

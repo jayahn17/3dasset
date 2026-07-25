@@ -54,5 +54,21 @@
     -->
     <key>NSLocalNetworkUsageDescription</key>
     <string>CrateScanner uploads finished scans to your assetpipe worker on the local network / Tailscale.</string>
+
+    <!--
+        Google Drive OAuth redirect. Replace the placeholder below with the
+        "iOS URL scheme" from your OAuth client (the reversed client ID,
+        com.googleusercontent.apps.XXXXXXXX). Until then in-app Drive sign-in is
+        inert; the Drive section shows a setup prompt. See GoogleDriveConfig.swift.
+    -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.REPLACE-WITH-REVERSED-CLIENT-ID</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
