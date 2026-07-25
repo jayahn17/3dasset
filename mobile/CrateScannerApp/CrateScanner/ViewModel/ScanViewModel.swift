@@ -261,21 +261,55 @@ final class ScanViewModel: NSObject, ObservableObject {
         markersAnchor?.addChild(marker)
     }
 
-    /// A cheap, legible capture marker: a small emissive sphere at the camera
-    /// position plus a thin box along local −Z (ARKit's view direction). Uses
-    /// only sphere/box mesh generators, which exist well before iOS 17.
+    /// A camera-frustum marker: a translucent pyramid whose apex is the camera
+    /// position and whose base opens along the view direction (local −Z), plus a
+    /// solid dot at the apex. This shows not just *where* a keyframe was taken but
+    /// the *angle* it saw — the standard photogrammetry camera view — so overlap
+    /// and gaps in coverage are obvious as the ring of frustums builds up.
     private static func makeMarkerEntity() -> Entity {
         let root = Entity()
-        let dot = ModelEntity(
-            mesh: .generateSphere(radius: 0.02),
+
+        if let mesh = frustumMesh(depth: 0.07, halfW: 0.045, halfH: 0.034) {
+            // Two-sided via reversed-winding geometry (faceCulling is iOS 18+).
+            let mat = UnlitMaterial(color: UIColor.systemGreen.withAlphaComponent(0.25))
+            root.addChild(ModelEntity(mesh: mesh, materials: [mat]))
+        }
+
+        let apex = ModelEntity(
+            mesh: .generateSphere(radius: 0.012),
             materials: [SimpleMaterial(color: .systemGreen, isMetallic: false)])
-        root.addChild(dot)
-        let stick = ModelEntity(
-            mesh: .generateBox(size: [0.005, 0.005, 0.05]),
-            materials: [SimpleMaterial(color: .systemGreen, roughness: 0.4, isMetallic: false)])
-        stick.position = [0, 0, -0.03]     // forward, along the camera's view dir
-        root.addChild(stick)
+        root.addChild(apex)
         return root
+    }
+
+    /// Build a view-frustum pyramid: apex at the origin (camera), rectangular
+    /// base at −Z. Custom mesh because cone/pyramid generators are iOS 18+.
+    private static func frustumMesh(depth d: Float, halfW w: Float, halfH h: Float) -> MeshResource? {
+        let apex = SIMD3<Float>(0, 0, 0)
+        let c1 = SIMD3<Float>(-w, -h, -d)
+        let c2 = SIMD3<Float>( w, -h, -d)
+        let c3 = SIMD3<Float>( w,  h, -d)
+        let c4 = SIMD3<Float>(-w,  h, -d)
+
+        var positions: [SIMD3<Float>] = []
+        var indices: [UInt32] = []
+        // Emit each triangle both ways so the frustum is visible from inside and
+        // out without the iOS 18 faceCulling API.
+        func tri(_ a: SIMD3<Float>, _ b: SIMD3<Float>, _ c: SIMD3<Float>) {
+            let base = UInt32(positions.count)
+            positions.append(contentsOf: [a, b, c])
+            indices.append(contentsOf: [base, base + 1, base + 2,
+                                        base, base + 2, base + 1])
+        }
+        // Four side faces from the apex to each base edge …
+        tri(apex, c1, c2); tri(apex, c2, c3); tri(apex, c3, c4); tri(apex, c4, c1)
+        // … and the base quad (the "image plane").
+        tri(c1, c2, c3); tri(c1, c3, c4)
+
+        var desc = MeshDescriptor(name: "frustum")
+        desc.positions = MeshBuffers.Positions(positions)
+        desc.primitives = .triangles(indices)
+        return try? MeshResource.generate(from: [desc])
     }
 
     /// Pause the session (e.g. when leaving the screen or entering review).
