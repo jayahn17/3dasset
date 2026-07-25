@@ -25,9 +25,18 @@
 import Foundation
 
 enum GoogleDriveConfig {
-    /// The iOS OAuth client ID, entered in-app and stored on the device.
+    /// Baked-in default client ID (iOS OAuth client IDs aren't secret — no
+    /// client secret in PKCE, and it's public in the redirect). The in-app field
+    /// can still override it.
+    private static let defaultClientID =
+        "2691632658-t5k0rb2hcsmp8c169sasst3htusdrsuh.apps.googleusercontent.com"
+
+    /// The iOS OAuth client ID. Uses the in-app override if set, else the default.
     static var clientID: String {
-        get { UserDefaults.standard.string(forKey: "drive.clientID") ?? "" }
+        get {
+            let stored = UserDefaults.standard.string(forKey: "drive.clientID") ?? ""
+            return stored.isEmpty ? defaultClientID : stored
+        }
         set {
             UserDefaults.standard.set(
                 newValue.trimmingCharacters(in: .whitespacesAndNewlines),
