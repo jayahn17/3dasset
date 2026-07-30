@@ -218,17 +218,39 @@ def fuse_nvblox(
     return xyz, rgb, tri
 
 
+def _auto_voxel(session: RgbdSession, samples: int = 8) -> float:
+    """Pick TSDF voxel from working distance: ~4 mm close-up object scans,
+    1 cm room sweeps. The 256x192 sensor resolves ~Z/fx laterally (≈2.6 mm at
+    0.55 m), so 1 cm voxels bin away real geometry on tabletop captures."""
+    from PIL import Image
+
+    meds = []
+    step = max(1, session.n_frames // samples)
+    for fr in session.frames[::step][:samples]:
+        d = np.array(Image.open(fr.depth_path))
+        h, w = d.shape[:2]
+        patch = d[h // 4: 3 * h // 4, w // 4: 3 * w // 4]
+        valid = patch[patch > 50]
+        if len(valid):
+            meds.append(float(np.median(valid)) / 1000.0)
+    med = float(np.median(meds)) if meds else 2.0
+    return 0.004 if med < 1.2 else 0.01
+
+
 def fuse_session(
     session_dir: str,
     out_dir: str,
     backend: str = "auto",
-    voxel_size: float = 0.01,
+    voxel_size: Optional[float] = None,
     clean: bool = True,
     mesh: bool = True,
     viewer: bool = True,
 ) -> dict:
     """End-to-end: validate session → fuse → write scan artifacts."""
     session = load_session(session_dir)
+    if voxel_size is None:
+        voxel_size = _auto_voxel(session)
+        print(f"  voxel auto-selected: {voxel_size * 1000:.0f} mm")
     avail = backend_available()
     if backend == "auto":
         backend = avail["preferred"] or "open3d"
@@ -304,6 +326,37 @@ def fuse_session(
     except Exception as e:  # noqa: BLE001
         result["tsdf_mesh_error"] = str(e)[:200]
 
+    # Object crop: strip floor/clutter for viewing + measurement
+    try:
+        from .object_crop import crop_fused_dir, measure_object_crop
+
+        crop = crop_fused_dir(out_dir, focus=0.85, also_mesh=True)
+        result["object_crop"] = crop
+        if crop.get("ok"):
+            mo = measure_object_crop(out_dir)
+            if mo:
+                result["object_measure"] = mo.get("aabb", {}).get("summary")
+    except Exception as e:  # noqa: BLE001 — crop is best-effort
+        result["object_crop_error"] = str(e)[:200]
+
+    # Light object asset: score frames → keep best 1 → plane/cluster (no TSDF)
+    try:
+        from .rgbd_object_asset import build_object_asset
+
+        asset_dir = os.path.join(out_dir, "object_asset")
+        asset = build_object_asset(
+            session.root, asset_dir, max_frames=4, stride=2
+        )
+        result["object_asset"] = {
+            "dir": asset_dir,
+            "frames_used": asset.get("frames_used"),
+            "points": asset.get("points"),
+            "open_me": asset["artifacts"]["open_me"],
+            "ply": asset["artifacts"]["ply"],
+        }
+    except Exception as e:  # noqa: BLE001 — asset is best-effort
+        result["object_asset_error"] = str(e)[:200]
+
     meta_path = os.path.join(out_dir, "rgbd_meta.json")
     with open(meta_path, "w") as fh:
         json.dump(
@@ -314,7 +367,11 @@ def fuse_session(
                 "session": session.root,
                 "object_hint": session.object_hint,
                 "location": session.location,
-                "artifacts": {k: v for k, v in result.items() if isinstance(v, str)},
+                "artifacts": {
+                    k: v for k, v in result.items()
+                    if isinstance(v, (str, int, float, bool))
+                },
+                "object_crop": result.get("object_crop"),
             },
             fh,
             indent=2,

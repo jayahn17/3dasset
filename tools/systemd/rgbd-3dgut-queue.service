@@ -1,0 +1,15 @@
+[Unit]
+Description=CrateScan serial 3DGUT queue (route → train → splat RESULT)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/3dasset
+ExecStart=%h/miniconda3/envs/assetpipe/bin/python tools/watch_3dgut_queue.py --interval 30 --iterations 30000
+Restart=on-failure
+RestartSec=30
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

@@ -94,6 +94,7 @@ def convert_redwood_style(
         "location": "opensource_demo",
         "depth_unit": depth_unit,
         "source": "open3d_sample",
+        "pose_convention": "opencv",
         "frames": frames,
     }
     (root / "manifest.json").write_text(json.dumps(man, indent=2))

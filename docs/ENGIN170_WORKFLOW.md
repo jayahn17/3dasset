@@ -103,13 +103,16 @@ Package:
 
 ```text
 CrateScan-<id>.zip
-  measurement.json      # inch dims from on-device LiDAR mesh
-  mesh.obj              # quick on-device mesh (optional Path A)
+  measurement.json      # optional inch dims from on-device fit
+  mesh.obj              # on-device LiDAR mesh (inches) — Linux measures L×W×H @ 0.25″
   session/              # ← what Linux nvblox needs
     manifest.json
     images/*.jpg          # color frames (manifest keys them "color")
     depth/*.png
 ```
+
+Linux writes `dims.json` + `measurement.txt` after fuse (nearest **0.25 in**).
+If `measurement.json` is missing, dims still come from `mesh.obj` AABB/OBB.
 
 This is **not** a normal Camera video. It is a **frame sequence with depth + pose**.
 

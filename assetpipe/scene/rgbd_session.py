@@ -17,6 +17,32 @@ class RgbdSessionError(ValueError):
     """Raised when a session cannot be fused (usually missing depth/pose)."""
 
 
+# Camera-axis conventions for the 4x4 camera-to-world poses in manifest.json.
+#   "opencv"   +x right, +y down, +z forward  — what every consumer here expects
+#              (Open3D integrate, COLMAP text, gsplat viewmats, back-projection).
+#   "arkit_gl" +x right, +y up,  -z forward   — raw ARKit frame.camera.transform,
+#              which CrateScanner exports. OpenCV = arkit_gl @ diag(1,-1,-1,1).
+# load_session() normalizes everything to "opencv"; sessions without an explicit
+# "pose_convention" field fall back on "source" ("cratescanner" wrote raw ARKit).
+_GL_TO_CV = (1.0, -1.0, -1.0)  # per-column sign on the rotation part
+
+
+def resolve_pose_convention(manifest: dict) -> str:
+    conv = manifest.get("pose_convention")
+    if conv in ("opencv", "arkit_gl"):
+        return conv
+    return "arkit_gl" if manifest.get("source") == "cratescanner" else "opencv"
+
+
+def pose_gl_to_cv(pose16: list[float]) -> list[float]:
+    """Right-multiply a row-major c2w by diag(1,-1,-1,1): negate columns 1, 2."""
+    p = list(pose16)
+    for r in range(4):
+        p[r * 4 + 1] = -p[r * 4 + 1]
+        p[r * 4 + 2] = -p[r * 4 + 2]
+    return p
+
+
 @dataclass
 class RgbdFrame:
     frame_id: str
@@ -27,6 +53,10 @@ class RgbdFrame:
     pose: list[float] = field(default_factory=list)
     # fx, fy, cx, cy in pixels (depth image space preferred).
     intrinsics: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+    # Optional calibration for the stored RGB image. High-resolution ARKit
+    # captures are not necessarily a simple scale of the depth camera image.
+    color_intrinsics: Optional[tuple[float, float, float, float]] = None
+    color_size: Optional[tuple[int, int]] = None
     # depth PNG units: "mm" (uint16) or "m" (float32 .exr / .tif).
     depth_unit: str = "mm"
 
@@ -38,6 +68,9 @@ class RgbdSession:
     object_hint: Optional[str] = None
     location: Optional[str] = None
     depth_unit: str = "mm"
+    # Convention the manifest poses were WRITTEN in; frames[].pose is always
+    # normalized to OpenCV (+z forward) by load_session regardless.
+    pose_convention_in: str = "opencv"
 
     @property
     def n_frames(self) -> int:
@@ -108,7 +141,7 @@ def _inspect_manifest_session(root: str, manifest_path: str, report: dict) -> di
     report["kind"] = "session"
     with open(manifest_path) as fh:
         man = json.load(fh)
-    frames = man.get("frames") or []
+    frames = man.get("frames") or man.get("keyframes") or []
     report["n_color"] = 0
     report["n_depth"] = 0
     report["n_with_pose"] = 0
@@ -124,7 +157,18 @@ def _inspect_manifest_session(root: str, manifest_path: str, report: dict) -> di
         if isinstance(pose, (list, tuple)) and len(pose) == 16:
             report["n_with_pose"] += 1
         intr = entry.get("intrinsics")
-        if isinstance(intr, (list, tuple)) and len(intr) >= 4:
+        color_intr = entry.get("K_color")
+        color_size = entry.get("color_size")
+        depth_size = entry.get("depth_size")
+        has_scaled_color_k = (
+            isinstance(color_intr, (list, tuple))
+            and len(color_intr) >= 4
+            and isinstance(color_size, (list, tuple))
+            and len(color_size) >= 2
+            and isinstance(depth_size, (list, tuple))
+            and len(depth_size) >= 2
+        )
+        if (isinstance(intr, (list, tuple)) and len(intr) >= 4) or has_scaled_color_k:
             report["n_with_intrinsics"] += 1
 
     if report["n_color"] == 0:
@@ -176,17 +220,55 @@ def load_session(session_dir: str) -> RgbdSession:
     with open(os.path.join(root, "manifest.json")) as fh:
         man = json.load(fh)
     depth_unit = str(man.get("depth_unit", "mm")).lower()
+    convention = resolve_pose_convention(man)
+    entries = man.get("frames") or man.get("keyframes") or []
     frames: list[RgbdFrame] = []
-    for i, entry in enumerate(man["frames"]):
-        intr = entry["intrinsics"]
+    for i, entry in enumerate(entries):
+        intr = entry.get("intrinsics")
+        color_intr = entry.get("K_color")
+        color_size = entry.get("color_size")
+        depth_size = entry.get("depth_size")
+        if intr is None:
+            if not (
+                isinstance(color_intr, (list, tuple))
+                and len(color_intr) >= 4
+                and isinstance(color_size, (list, tuple))
+                and len(color_size) >= 2
+                and isinstance(depth_size, (list, tuple))
+                and len(depth_size) >= 2
+            ):
+                raise RgbdSessionError(
+                    f"Frame {i} has neither depth intrinsics nor scalable K_color."
+                )
+            sx = float(depth_size[0]) / max(float(color_size[0]), 1.0)
+            sy = float(depth_size[1]) / max(float(color_size[1]), 1.0)
+            intr = (
+                float(color_intr[0]) * sx,
+                float(color_intr[1]) * sy,
+                float(color_intr[2]) * sx,
+                float(color_intr[3]) * sy,
+            )
+        pose = [float(x) for x in entry["pose"]]
+        if convention == "arkit_gl":
+            pose = pose_gl_to_cv(pose)
         frames.append(
             RgbdFrame(
                 frame_id=entry.get("id", f"f{i:05d}"),
                 color_path=os.path.join(root, entry["color"]),
                 depth_path=os.path.join(root, entry["depth"]),
                 timestamp=float(entry.get("t", i)),
-                pose=[float(x) for x in entry["pose"]],
+                pose=pose,
                 intrinsics=(float(intr[0]), float(intr[1]), float(intr[2]), float(intr[3])),
+                color_intrinsics=(
+                    tuple(float(x) for x in color_intr[:4])
+                    if isinstance(color_intr, (list, tuple)) and len(color_intr) >= 4
+                    else None
+                ),
+                color_size=(
+                    (int(color_size[0]), int(color_size[1]))
+                    if isinstance(color_size, (list, tuple)) and len(color_size) >= 2
+                    else None
+                ),
                 depth_unit=str(entry.get("depth_unit", depth_unit)).lower(),
             )
         )
@@ -196,6 +278,7 @@ def load_session(session_dir: str) -> RgbdSession:
         object_hint=man.get("object_hint"),
         location=man.get("location"),
         depth_unit=depth_unit,
+        pose_convention_in=convention,
     )
 
 

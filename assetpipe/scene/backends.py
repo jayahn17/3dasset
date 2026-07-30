@@ -619,14 +619,14 @@ class ThreeDGutSceneBackend(SceneBackend):  # pragma: no cover — needs 3dgrut
             "num_workers=4",
             "val_frequency=999999",
             "export_ply.enabled=true",
-            "export_ingp.enabled=false",
             "test_last=false",
-            f"export_usdz.enabled={'true' if self.export_usdz else 'false'}",
-            "export_usdz.apply_normalizing_transform=true",
+            f"export_usd.enabled={'true' if self.export_usdz else 'false'}",
         ]
         # Ensure the 3dgrut env's bin (ninja, nvcc wrappers) is on PATH —
         # calling ``…/envs/3dgrut/bin/python`` alone does not activate conda.
         env = os.environ.copy()
+        for k in ("LD_LIBRARY_PATH", "PYTHONPATH", "PYTHONHOME"):
+            env.pop(k, None)
         py_bin = os.path.dirname(py)
         env["PATH"] = py_bin + os.pathsep + env.get("PATH", "")
         subprocess.run(cmd, cwd=root, check=True, env=env)

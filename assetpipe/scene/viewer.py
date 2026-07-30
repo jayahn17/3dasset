@@ -59,7 +59,7 @@ function makeCloudViewer(canvas){
   const gl=canvas.getContext("webgl",{antialias:true});
   const vs=`attribute vec3 p;attribute vec3 c;uniform mat4 mvp;uniform float ps;
   varying vec3 vc;void main(){gl_Position=mvp*vec4(p,1.);
-  gl_PointSize=clamp(ps/gl_Position.w,1.0,10.0);vc=c;}`;
+  gl_PointSize=clamp(ps/gl_Position.w,1.5,28.0);vc=c;}`;
   const fs=`precision mediump float;varying vec3 vc;
   void main(){gl_FragColor=vec4(vc,1.);}`;
   function sh(t,src){const s=gl.createShader(t);gl.shaderSource(s,src);
@@ -125,7 +125,7 @@ function makeCloudViewer(canvas){
         ctr[1]+dist*Math.sin(pitch),ctr[2]+dist*cp*Math.cos(yaw)];
       const mvp=mul(persp(0.9,w/h,rad*0.01,rad*40),lookAt(eye,ctr,[0,1,0]));
       gl.uniformMatrix4fv(uMVP,false,new Float32Array(mvp));
-      gl.uniform1f(uPS,(h*dpr)*rad*0.012);
+      gl.uniform1f(uPS,(h*dpr)*rad*0.028);
       gl.drawArrays(gl.POINTS,0,N);
     }
     requestAnimationFrame(draw);

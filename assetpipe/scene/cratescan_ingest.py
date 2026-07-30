@@ -163,6 +163,26 @@ def ingest_cratescan(
             "height": rh + 2 * p,
             "padding": p,
         }
+    elif stats.get("extent_m"):
+        # No measurement.json — derive from mesh AABB (meters → inches @ 0.25")
+        from .measure import format_lwh, quantize_inches
+
+        ex, ey, ez = stats["extent_m"]
+        # mesh_meters: x,y,z extents → width,height,length in ARKit convention
+        rw = float(ex) * INCHES_PER_METER
+        rh = float(ey) * INCHES_PER_METER
+        rl = float(ez) * INCHES_PER_METER
+        dims["raw_inches"] = {
+            "length": round(rl, 4),
+            "width": round(rw, 4),
+            "height": round(rh, 4),
+        }
+        dims["inches_0_25"] = {
+            "length": quantize_inches(rl),
+            "width": quantize_inches(rw),
+            "height": quantize_inches(rh),
+            "summary": format_lwh(rl, rw, rh),
+        }
 
     dims_path = os.path.join(out_dir, "dims.json")
     with open(dims_path, "w") as fh:

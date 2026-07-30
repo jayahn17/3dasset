@@ -7,10 +7,18 @@ twin_out/
 scan_out/
 demo_out/
 captures/
+bench_out/
+sim_out/
+logs/
+images/
+mouse_photos/
 *.db
 *.ply
 *.glb
 *.splat
+*.stl
+WhatsApp Image*.jpeg
+WhatsApp Image*.jpg
 
 # conda (temp requirements file written during `conda env create`)
 env/condaenv.*.requirements.txt

@@ -1,12 +1,14 @@
 # Hands-off ingestion on the Linux box
 
-Two user services. Together they mean: a scan that lands in Google Drive (or is
-posted straight to the worker) is fused without anyone typing a command.
+Two user services (+ optional 3DGUT queue). Together they mean: a scan that lands
+in Google Drive is fused (and, when routed as furniture/scene, 3DGUT-trained)
+without anyone typing a command.
 
 ```
 Drive ──rgbd-drive-sync.timer (every 2 min)──┐
                                              ├─▶ captures/inbox ─▶ rgbd-watcher ─▶ demo_out/
-iPad ──POST /rgbd/upload────────────────────-┘
+iPad ──POST /rgbd/upload────────────────────-┘         │
+                                                       └─▶ rgbd-3dgut-queue ─▶ *_3dgut + RESULT
 ```
 
 ## Install
@@ -20,6 +22,7 @@ cp ~/3dasset/tools/systemd/*.service ~/3dasset/tools/systemd/*.timer \
 systemctl --user daemon-reload
 systemctl --user enable --now rgbd-watcher.service
 systemctl --user enable --now rgbd-drive-sync.timer
+systemctl --user enable --now rgbd-3dgut-queue.service   # optional GPU train
 
 # survive logout (otherwise user services stop when you disconnect)
 sudo loginctl enable-linger $USER
@@ -28,11 +31,12 @@ sudo loginctl enable-linger $USER
 ## Watch it work
 
 ```bash
-systemctl --user status rgbd-watcher
-journalctl --user -u rgbd-watcher -f          # live fuse log
-systemctl --user list-timers rgbd-drive-sync  # next Drive poll
+systemctl --user status rgbd-watcher rgbd-3dgut-queue
+journalctl --user -u rgbd-watcher -u rgbd-3dgut-queue -f
+systemctl --user list-timers rgbd-drive-sync
 ls ~/3dasset/captures/{inbox,done,failed}
 cat ~/3dasset/captures/status/CrateScan-*.json
+cat ~/3dasset/captures/status/.3dgut_done.json
 ```
 
 ## One-time rclone setup

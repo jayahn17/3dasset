@@ -1,5 +1,9 @@
 """Client for the generative image-to-3D step — the last mile to a real asset.
 
+Prefer for clean single-object (product-scale) captures. Run
+``assetpipe route`` first; multi-object / furniture / room → 3DGRUT.
+Measure size from RGB-D ``dims.json``, never from the generated mesh scale.
+
     scan/video ─▶ isolated object ─▶ orbit views ─▶ [gen3d service] ─▶ asset.glb
                                      (this module picks the views and posts them)
 
@@ -185,17 +189,40 @@ def asset_from_scan(
     render_views: int = 8,
     seed: int = 1,
 ) -> dict:
-    """The whole bridge in one call: scanner PLY -> isolated object -> orbit
-    views -> generated GLB."""
-    from .splat import isolate_object, load_ply, render_orbit_views
+    """The whole bridge in one call: scanner PLY -> isolated object -> EWA
+    gaussian views (photo-like) -> generated GLB.
 
-    xyz, rgb = load_ply(scan_ply)
-    xyz, rgb = isolate_object(xyz, rgb, focus=focus)
-    if len(xyz) < 50:
+    The generator conditions on DINOv2 *photo* features; point-dot sprites
+    produce featureless domes, real EWA splats produce real assets — so we
+    always render through render_gaussian_views. Splat PLYs carry their true
+    scale/rot/opacity; plain point clouds get soft synthetic footprints from
+    load_gaussians, which still beats dots.
+    """
+    import numpy as np
+
+    from .splat import (isolate_object, load_gaussians, render_gaussian_views,
+                        render_orbit_views)
+
+    g = load_gaussians(scan_ply)
+    xyz_o, _rgb_o = isolate_object(g["xyz"], g["rgb"], focus=focus)
+    if len(xyz_o) < 50:
         raise RuntimeError("isolation left almost nothing — try a larger --focus")
+    # isolate_object filters copies; recover the row mask to filter the dict.
+    void = np.ascontiguousarray(g["xyz"]).view(
+        np.dtype((np.void, g["xyz"].dtype.itemsize * 3)))
+    void_o = np.ascontiguousarray(xyz_o).view(
+        np.dtype((np.void, xyz_o.dtype.itemsize * 3)))
+    keep = np.isin(void.ravel(), void_o.ravel())
+    g = {k: v[keep] for k, v in g.items()}
+
     view_dir = os.path.join(out_dir, "views")
-    paths = render_orbit_views(xyz, rgb, view_dir, n_views=render_views)
+    try:
+        paths = render_gaussian_views(g, view_dir, n_views=render_views,
+                                      elevations=(35.0, 55.0))
+    except Exception:  # noqa: BLE001 — dots are the last resort, not the default
+        paths = render_orbit_views(g["xyz"], g["rgb"], view_dir,
+                                   n_views=render_views)
     res = generate_asset(paths, os.path.join(out_dir, f"asset_{backend}.glb"),
                          backend=backend, endpoint=endpoint, views=views, seed=seed)
-    res.update(points=len(xyz), views_rendered=len(paths), view_dir=view_dir)
+    res.update(points=len(g["xyz"]), views_rendered=len(paths), view_dir=view_dir)
     return res

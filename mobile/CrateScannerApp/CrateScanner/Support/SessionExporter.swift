@@ -225,6 +225,9 @@ final class SessionExporter {
         var man: [String: Any] = [
             "depth_unit": "mm",
             "source": "cratescanner",
+            // Poses are raw ARKit frame.camera.transform: +y up, -z forward.
+            // assetpipe's load_session flips them to OpenCV using this field.
+            "pose_convention": "arkit_gl",
             "frames": frames,
         ]
         // The keyframe track (12 MP + pose) is optional; only present in Hybrid.

@@ -62,7 +62,10 @@ class TrellisReconstructor(Reconstructor):
             method="trellis",
             world_pose=frame.pose,
             thumbnail_path=crop,
-            extra={"track_id": det.track_id, "endpoint": self.endpoint},
+            # TRELLIS output is normalized — dims are RELATIVE until a metric
+            # registration (ICP to the fused cloud / measure.py AABB) rescales.
+            extra={"track_id": det.track_id, "endpoint": self.endpoint,
+                   "scale": "relative"},
         )
 
     def _dims(self, mesh_path: str) -> tuple[float, float, float]:
