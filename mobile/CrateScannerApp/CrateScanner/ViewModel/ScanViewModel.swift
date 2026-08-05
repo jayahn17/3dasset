@@ -596,6 +596,24 @@ final class ScanViewModel: NSObject, ObservableObject {
         _ = try await GoogleDriveSync.shared.upload(zip)
     }
 
+    /// Save this scan's high-res photos into a Photos album for KIRI Engine.
+    /// Prefers the 12 MP keyframes (Detail/Photo mode); falls back to the RGB-D
+    /// stream images. The album is nil when the user granted only add-only
+    /// access — the photos are in the camera roll instead.
+    nonisolated func exportPhotosForKiri() async throws -> PhotoExportResult {
+        guard let session = await MainActor.run(body: { self.lastSessionURL }) else {
+            throw PhotoExportError.noImages
+        }
+        let fm = FileManager.default
+        let keyframes = session.appendingPathComponent("keyframes")
+        let images = session.appendingPathComponent("images")
+        let hasKeyframes = ((try? fm.contentsOfDirectory(at: keyframes,
+            includingPropertiesForKeys: nil)) ?? []).contains { $0.pathExtension.lowercased() == "jpg" }
+        let folder = hasKeyframes ? keyframes : images
+        let album = "CrateScanner \(session.lastPathComponent)"
+        return try await PhotoLibraryExporter.export(imagesIn: folder, albumName: album)
+    }
+
     /// Build the Linux package and POST it to the Tailscale worker. Returns the
     /// worker's name for the scan (used to poll fusion status).
     nonisolated func exportAndSendToWorker() async throws -> WorkerUploadResult {

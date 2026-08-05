@@ -27,6 +27,9 @@ struct ResultReviewView: View {
     @State private var clientIDField = GoogleDriveConfig.clientID
     @State private var driveConfigured = GoogleDriveConfig.isConfigured
 
+    // KIRI Engine (photos → Photos album)
+    @State private var kiriState: SendState = .idle
+
     enum SendState: Equatable {
         case idle, sending
         case sent(String)
@@ -123,6 +126,12 @@ struct ResultReviewView: View {
                 .font(.caption).foregroundStyle(.secondary)
 
             workerSection
+
+            Divider()
+
+            Text("Send to KIRI Engine (photogrammetry)")
+                .font(.caption).foregroundStyle(.secondary)
+            kiriSection
 
             Divider()
 
@@ -245,6 +254,68 @@ struct ResultReviewView: View {
             sendState = .sent(result.name)
         } catch {
             sendState = .failed(error.localizedDescription)
+        }
+    }
+
+    // MARK: KIRI Engine
+
+    @ViewBuilder
+    private var kiriSection: some View {
+        HStack(spacing: 8) {
+            Image(systemName: kiriIcon).foregroundStyle(kiriTint)
+            Text(kiriStatusLine).font(.caption2).foregroundStyle(.secondary)
+            Spacer()
+        }
+        Button {
+            Task { await runKiri() }
+        } label: {
+            Label(kiriState == .sending ? "Saving photos…" : "Save photos for KIRI",
+                  systemImage: "photo.on.rectangle.angled")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .disabled(kiriState == .sending || viewModel.lastSessionURL == nil)
+        Text("Then open KIRI Engine → Photo mode → import the “CrateScanner …” album.")
+            .font(.caption2).foregroundStyle(.tertiary)
+    }
+
+    private var kiriIcon: String {
+        switch kiriState {
+        case .sent:   return "checkmark.circle.fill"
+        case .failed: return "exclamationmark.triangle.fill"
+        case .sending: return "photo.badge.arrow.down"
+        case .idle:   return "cube.transparent"
+        }
+    }
+    private var kiriTint: Color {
+        switch kiriState {
+        case .sent: return .green
+        case .failed: return .orange
+        default: return .secondary
+        }
+    }
+    private var kiriStatusLine: String {
+        switch kiriState {
+        case .idle:    return "Saves this scan's high-res photos to a Photos album"
+        case .sending: return "Saving to Photos…"
+        case .sent(let s): return s
+        case .failed(let why): return why
+        }
+    }
+
+    @MainActor
+    private func runKiri() async {
+        kiriState = .sending
+        do {
+            let r = try await viewModel.exportPhotosForKiri()
+            if let album = r.albumName {
+                kiriState = .sent("\(r.count) photos → “\(album)” ✓")
+            } else {
+                // Add-only access: the photos are saved, just not grouped.
+                kiriState = .sent("\(r.count) photos → Recents (allow full Photos access for an album)")
+            }
+        } catch {
+            kiriState = .failed(error.localizedDescription)
         }
     }
 

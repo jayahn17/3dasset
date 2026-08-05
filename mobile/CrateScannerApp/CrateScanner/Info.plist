@@ -19,6 +19,18 @@
     <key>NSCameraUsageDescription</key>
     <string>CrateScanner uses the camera and LiDAR scanner to measure machines for custom crating.</string>
 
+    <!-- Saving a scan's photos into a *named album* for KIRI Engine is a write
+         to the library's structure, which Photos only allows under full
+         (read-write) access — hence NSPhotoLibraryUsageDescription. Requesting
+         .readWrite without this key terminates the app immediately.
+         The Add key stays as the fallback: if full access is declined, the
+         photos still land in the camera roll, just without an album. -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>CrateScanner puts your scan's photos into a named album so you can import that album into KIRI Engine.</string>
+
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>CrateScanner saves your scan's photos to a Photos album so you can import them into KIRI Engine.</string>
+
     <key>UIRequiredDeviceCapabilities</key>
     <array>
         <string>arkit</string>
