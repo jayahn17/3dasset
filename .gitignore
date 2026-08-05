@@ -27,6 +27,11 @@ env/condaenv.*.requirements.txt
 worker_data/
 *.pem
 
+# roomscape scene bundles + blob store (~80 MB per room compressed)
+roomscape/scenes/*
+!roomscape/scenes/README.md
+roomscape/blobs/
+
 # python
 __pycache__/
 *.pyc
@@ -39,6 +44,7 @@ venv/
 
 # scanner exports + generated assets (large binaries)
 *.spz
+*.sog
 mouse_asset/
 asset_out/
 views/
