@@ -208,6 +208,7 @@ assetpipe/
   pipeline.py   wires the stages together
   cli.py        demo | scan | rgbd | clean | run | list | viewer | export-son
 docs/           ARCHITECTURE · QUEST3_CAPTURE · GPU_SETUP · ROADMAP · SON_INTEGRATION
+                BIAS_DATA_HARM — bias / data-consent / harm review + fixes
 tests/          box-test + gpu-glue + son-bridge (zero deps to run)
 ```
 
