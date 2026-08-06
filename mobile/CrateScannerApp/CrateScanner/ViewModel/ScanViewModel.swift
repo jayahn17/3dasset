@@ -73,11 +73,11 @@ final class ScanViewModel: NSObject, ObservableObject {
         }
     }
 
-    /// Auto (stream) vs Photo (manual high-res stills).
+    /// Video (stream) vs Photo (manual high-res stills).
     @Published var mode: CaptureMode = CaptureSettings.shared.mode {
         didSet {
             CaptureSettings.shared.mode = mode
-            recorder.autoRecord = (mode == .auto)
+            recorder.autoRecord = (mode == .video)
             if phase == .ready { runSession(resetting: true, record: false) }
         }
     }
@@ -92,6 +92,10 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// Live capture readiness — drives the reticle colour and the shutter's
     /// enabled state so blurry frames aren't saved.
     @Published private(set) var readiness: CaptureReadiness = .focusing
+
+    /// Set while the user has stopped walking, telling them which way to go.
+    /// Drives both the on-screen banner and the floating arrow in the AR scene.
+    @Published private(set) var moveHint: MoveHint?
 
     /// Guided capture: show a dome of target viewpoints and walk the user to each.
     @Published var guidedEnabled = false {
@@ -124,6 +128,15 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// mode should auto-fire a keyframe. Lives off the main actor with the
     /// delegate, so it's a lock-guarded reference type like `recorder`.
     private let gate = CaptureGate()
+
+    /// Watches for the user standing still and works out which way they should
+    /// walk to keep orbiting. Main-actor only, like the rest of the UI state.
+    private let nudge = MoveNudge()
+
+    /// The floating "go this way" arrow, parked in front of the camera while a
+    /// nudge is active. Kept alive across frames and just re-posed each time.
+    private var arrowEntity: Entity?
+    private var arrowAnchor: AnchorEntity?
 
     /// Holds the floating AR markers dropped at each keyframe's capture pose, so
     /// the user can see where they've already shot and where coverage is thin.
@@ -167,6 +180,7 @@ final class ScanViewModel: NSObject, ObservableObject {
     func start() {
         guard phase == .ready else { return }
         phase = .scanning
+        nudge.reset()
         recorder.isRecording = true
     }
 
@@ -196,7 +210,7 @@ final class ScanViewModel: NSObject, ObservableObject {
             : []
         arView.session.run(config, options: options)
 
-        recorder.autoRecord = (mode == .auto)
+        recorder.autoRecord = (mode == .video)
 
         // Fresh RGB-D recorder on reset; keep accumulating if resuming.
         if resetting || recorder.exporter == nil {
@@ -428,6 +442,93 @@ final class ScanViewModel: NSObject, ObservableObject {
         return Transform(scale: .one, rotation: q, translation: position)
     }
 
+    // MARK: Move nudge — "you've stopped, go this way"
+
+    /// Per-frame: has the user gone anywhere lately, and if not, which way should
+    /// they walk? Guided capture is already walking them to a specific marker, so
+    /// we stay quiet in that mode rather than issue two sets of directions.
+    private func updateMoveNudge(time: TimeInterval, cameraTransform m: simd_float4x4) {
+        guard phase == .scanning, !guidedEnabled else {
+            if moveHint != nil { moveHint = nil }
+            hideArrow()
+            return
+        }
+
+        let hint = nudge.evaluate(time: time,
+                                  cameraTransform: m,
+                                  pivot: currentBox?.center,
+                                  isRecording: recorder.isRecording)
+        if hint != moveHint { moveHint = hint }
+
+        if let hint {
+            showArrow(direction: hint.worldDirection, cameraTransform: m)
+        } else {
+            hideArrow()
+        }
+    }
+
+    /// Park the arrow in the lower third of the view, aimed along `direction`.
+    /// It rides with the camera rather than being pinned to a world point, so it
+    /// stays visible however the user turns.
+    private func showArrow(direction: SIMD3<Float>, cameraTransform m: simd_float4x4) {
+        guard let arView else { return }
+        if arrowAnchor == nil {
+            let anchor = AnchorEntity(world: .zero)
+            let arrow = Self.makeArrowEntity()
+            anchor.addChild(arrow)
+            arView.scene.addAnchor(anchor)
+            arrowAnchor = anchor
+            arrowEntity = arrow
+        }
+        let camPos = m.translation
+        let camFwd = simd_normalize(-m.forward)
+        let camUp = simd_normalize(SIMD3<Float>(m.columns.1.x, m.columns.1.y, m.columns.1.z))
+        // 75 cm ahead and a little low: readable, but clear of the object itself.
+        let place = camPos + camFwd * 0.75 - camUp * 0.22
+        arrowEntity?.transform = Transform(scale: .one,
+                                           rotation: Self.yaw(towards: direction),
+                                           translation: place)
+        arrowEntity?.isEnabled = true
+    }
+
+    /// Rotation about Y that aims the arrow's local −Z along a horizontal
+    /// direction. Deliberately not `simd_quatf(from:to:)` like the capture
+    /// frustums use: the nudge direction is world-horizontal, so it lands exactly
+    /// opposite the −Z base whenever the user should walk toward world +Z, and
+    /// that antiparallel case has no well-defined rotation axis.
+    private static func yaw(towards direction: SIMD3<Float>) -> simd_quatf {
+        let angle = atan2(-direction.x, -direction.z)
+        return simd_quatf(angle: angle, axis: SIMD3<Float>(0, 1, 0))
+    }
+
+    private func hideArrow() {
+        arrowEntity?.isEnabled = false
+    }
+
+    /// A chunky arrow pointing along local −Z — a shaft plus a pyramid head — so
+    /// `lookAtTransform` can aim it the same way it aims the capture frustums.
+    /// Unlit yellow to match the "attention" colour used by the guidance banner.
+    private static func makeArrowEntity() -> Entity {
+        let root = Entity()
+        let color = UIColor.systemYellow
+
+        let shaft = ModelEntity(
+            mesh: .generateBox(size: SIMD3<Float>(0.028, 0.028, 0.11)),
+            materials: [UnlitMaterial(color: color.withAlphaComponent(0.85))])
+        shaft.position = SIMD3<Float>(0, 0, -0.055)
+        root.addChild(shaft)
+
+        // frustumMesh opens toward −Z with its apex at the origin; turning it
+        // half a revolution puts the point out front, leading the shaft.
+        if let head = frustumMesh(depth: 0.09, halfW: 0.055, halfH: 0.055) {
+            let tip = ModelEntity(mesh: head, materials: [UnlitMaterial(color: color)])
+            tip.orientation = simd_quatf(angle: .pi, axis: SIMD3<Float>(0, 1, 0))
+            tip.position = SIMD3<Float>(0, 0, -0.20)
+            root.addChild(tip)
+        }
+        return root
+    }
+
     /// Pause the session (e.g. when leaving the screen or entering review).
     func pause() {
         arView?.session.pause()
@@ -463,12 +564,23 @@ final class ScanViewModel: NSObject, ObservableObject {
         isBoxPlaced = true
     }
 
-    /// Nudge the placed box across the ground plane (x/z) from a drag gesture.
-    /// `translation` is in meters of world movement.
-    func moveBox(byWorldXZ translation: SIMD2<Float>) {
-        guard let box = currentBox else { return }
-        setBox(AABB(center: box.center + SIMD3(translation.x, 0, translation.y),
-                    extents: box.extents))
+    /// Move the placed box to wherever the user tapped.
+    ///
+    /// This replaced a drag gesture: dragging asked the user to keep a finger on
+    /// the glass while holding an iPad steady and walking, and it mapped screen
+    /// pixels to metres through a fudge factor. A tap raycasts to the real
+    /// surface under the finger, so one touch puts the box where they meant.
+    /// Ignored when the ray hits nothing — better to do nothing than to fling the
+    /// box to a guessed depth.
+    func moveBox(toScreenPoint point: CGPoint) {
+        guard let arView, let box = currentBox else { return }
+        guard let hit = arView.raycast(from: point,
+                                       allowing: .estimatedPlane,
+                                       alignment: .any).first else { return }
+        var origin = hit.worldTransform.translation
+        // Sit the box on the surface rather than half-buried in it.
+        origin.y += box.extents.y / 2
+        setBox(AABB(center: origin, extents: box.extents))
     }
 
     /// Resize the placed box to explicit full extents (meters), e.g. from sliders.
@@ -542,6 +654,9 @@ final class ScanViewModel: NSObject, ObservableObject {
         }
 
         phase = .reviewing
+        moveHint = nil
+        hideArrow()
+        nudge.reset()
         pause()
     }
 
@@ -590,7 +705,8 @@ final class ScanViewModel: NSObject, ObservableObject {
         return try DestinationStore.shared.copy(zip)
     }
 
-    /// Build the Linux package and upload it to Google Drive (CrateScans folder).
+    /// Build the Linux package and upload it to Google Drive
+    /// (`GoogleDriveConfig.folderName`, currently engin170_sync).
     nonisolated func exportAndSyncToDrive() async throws {
         let zip = try await MainActor.run { try self.exportLinuxPackage() }
         _ = try await GoogleDriveSync.shared.upload(zip)
@@ -633,6 +749,8 @@ final class ScanViewModel: NSObject, ObservableObject {
     /// Clear everything for a fresh scan and return to the pre-Start state.
     func reset() {
         gate.reset()
+        nudge.reset()
+        moveHint = nil
         readiness = .focusing
         guidedEnabled = false          // didSet clears the target markers
         meshes.removeAll()
@@ -650,6 +768,9 @@ final class ScanViewModel: NSObject, ObservableObject {
         ghostAnchor = nil
         markersAnchor?.removeFromParent()
         markersAnchor = nil
+        arrowAnchor?.removeFromParent()
+        arrowAnchor = nil
+        arrowEntity = nil
         runSession(resetting: true, record: false)
     }
 
@@ -727,6 +848,7 @@ extension ScanViewModel: ARSessionDelegate {
         let state = frame.camera.trackingState
         let intensity = frame.lightEstimate?.ambientIntensity ?? 1000
         let camTransform = frame.camera.transform
+        let timestamp = frame.timestamp
         Task { @MainActor in
             self.updateFeedback(state: state, ambientIntensity: intensity)
             if let recorded { self.rgbdFrameCount = recorded }
@@ -737,6 +859,8 @@ extension ScanViewModel: ARSessionDelegate {
             } else if autoFire {
                 self.capturePhoto()
             }
+            // Nag only when they've actually stopped covering new angles.
+            self.updateMoveNudge(time: timestamp, cameraTransform: camTransform)
         }
     }
 
@@ -853,14 +977,14 @@ final class RecorderBox: @unchecked Sendable {
         set { lock.lock(); _isRecording = newValue; lock.unlock() }
     }
 
-    /// True in Auto mode (stream frames). False in Photo mode, where frames are
+    /// True in Video mode (stream frames). False in Photo mode, where frames are
     /// only written on an explicit shutter tap via `recordPhoto`.
     var autoRecord: Bool {
         get { lock.lock(); defer { lock.unlock() }; return _autoRecord }
         set { lock.lock(); _autoRecord = newValue; lock.unlock() }
     }
 
-    /// Auto-mode streaming path. Returns the new frame count, or nil when nothing
+    /// Video-mode streaming path. Returns the new frame count, or nil when nothing
     /// was written (throttled, paused, photo mode, or no depth this tick) so the
     /// caller can skip a pointless hop to the main actor.
     func record(_ frame: ARFrame) -> Int? {

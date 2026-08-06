@@ -67,14 +67,23 @@ struct ResultReviewView: View {
                actions: { Button("OK") { exportError = nil } },
                message: { Text(exportError ?? "") })
         .task {
+            // Learn which Drive we're connected to BEFORE anything auto-uploads,
+            // so a scan can't land in the wrong account while the screen still
+            // says "Connected".
+            if drive.isConnected, drive.connectedEmail == nil {
+                await drive.refreshAccountEmail()
+            }
             guard viewModel.lastSessionURL != nil else { return }
             // Auto-send to the worker if configured …
             if !didAutoSend, autoSendOn, WorkerSettings.shared.isConfigured {
                 didAutoSend = true
                 await runSend()
             }
-            // … and/or auto-sync to Drive if connected. Both can run.
-            if !didAutoDrive, drive.isConnected, drive.autoSync {
+            // … and/or auto-sync to Drive if connected. Both can run. Auto-sync
+            // holds off when we're signed in as the wrong account — the manual
+            // button is still there if that's actually intended.
+            if !didAutoDrive, drive.isConnected, drive.autoSync,
+               drive.isExpectedAccount, !drive.needsReconnect {
                 didAutoDrive = true
                 await runDrive()
             }
@@ -105,7 +114,7 @@ struct ResultReviewView: View {
                         .font(.title3.monospacedDigit().weight(.semibold))
                         .foregroundStyle(.tint)
 
-                    Slider(value: $viewModel.paddingInches, in: 0...6, step: 0.5)
+                    paddingChips
                 }
             }
 
@@ -135,7 +144,7 @@ struct ResultReviewView: View {
 
             Divider()
 
-            Text("Sync to Google Drive")
+            Text("Sync to Google Drive → \(drive.folderDisplayName ?? GoogleDriveConfig.folderName)")
                 .font(.caption).foregroundStyle(.secondary)
             driveSection
 
@@ -175,6 +184,20 @@ struct ResultReviewView: View {
         }
         .padding()
         .background(Color(.systemBackground))
+    }
+
+    /// Crating buffer as tap targets instead of a slider. Half-inch precision on
+    /// a slider was never real — these are the sizes anyone actually orders, and
+    /// on a jobsite a tap beats a drag.
+    private var paddingChips: some View {
+        HStack(spacing: 8) {
+            ForEach([0.0, 1.0, 2.0, 3.0, 4.0, 6.0], id: \.self) { inches in
+                ChipButton(title: "\(Int(inches))\"",
+                           isSelected: abs(viewModel.paddingInches - inches) < 0.01) {
+                    viewModel.paddingInches = inches
+                }
+            }
+        }
     }
 
     // MARK: Send to worker
@@ -352,6 +375,8 @@ struct ResultReviewView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            Text("Sign in as \(GoogleDriveConfig.accountHint) — scans upload into the shared “\(GoogleDriveConfig.folderName)” folder.")
+                .font(.caption2).foregroundStyle(.secondary)
             Button("Change client ID") {
                 driveConfigured = false          // back to the paste field
             }
@@ -363,6 +388,18 @@ struct ResultReviewView: View {
                 Spacer()
                 Button("Disconnect") { drive.disconnect() }.font(.caption2)
             }
+
+            // Which Drive this is actually going to. Uploads are invisible from
+            // inside the app, so a wrong account is otherwise silent.
+            if !drive.isExpectedAccount, let email = drive.connectedEmail {
+                driveWarning("Signed in as \(email) — scans belong in \(GoogleDriveConfig.accountHint). Auto-sync is paused.",
+                             button: "Switch account")
+            } else if drive.needsReconnect {
+                // A connection made before the shared-folder change carries the
+                // old, narrower permission and cannot write there.
+                driveWarning("Drive permission changed — sign in again so scans can go into the shared folder.",
+                             button: "Reconnect")
+            }
             Toggle("Auto-sync each scan", isOn: $drive.autoSync).font(.caption)
             Button {
                 Task { await runDrive() }
@@ -373,6 +410,21 @@ struct ResultReviewView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(driveState == .sending || viewModel.lastSessionURL == nil)
+        }
+    }
+
+    /// An amber "this won't land where you think" row. Both cases it covers are
+    /// fixed the same way — disconnect, then sign in again — so the button does
+    /// that and the text says why.
+    private func driveWarning(_ message: String, button: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(message).font(.caption2)
+                Button(button) { drive.disconnect() }.font(.caption2)
+            }
+            Spacer()
         }
     }
 
@@ -392,10 +444,12 @@ struct ResultReviewView: View {
         }
     }
     private var driveStatusLine: String {
+        let account = drive.connectedEmail ?? "Google Drive"
         switch driveState {
-        case .idle:    return drive.autoSync ? "Connected · auto-sync on" : "Connected"
+        case .idle:
+            return drive.autoSync ? "\(account) · auto-sync on" : account
         case .sending: return "Uploading to Drive…"
-        case .sent:    return "Synced ✓ to CrateScans on Drive"
+        case .sent:    return "Synced ✓ to \(GoogleDriveConfig.folderName) on Drive"
         case .failed(let why): return why
         }
     }

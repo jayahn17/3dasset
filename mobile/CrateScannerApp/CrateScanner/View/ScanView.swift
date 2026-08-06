@@ -2,9 +2,15 @@
 //  ScanView.swift
 //  CrateScanner
 //
-//  The main scanning screen. Hosts the live AR view, the guidance banner, and
-//  the stage-appropriate controls (place box → fit → capture). When the user
-//  captures, we hand off to ResultReviewView.
+//  The main scanning screen. Hosts the live AR view, the guidance banners, and
+//  the stage-appropriate controls (start → scan → finish). When the user
+//  finishes, we hand off to ResultReviewView.
+//
+//  Interaction rule for the whole app: everything is a tap. This gets used
+//  one-handed while walking around a machine, often in gloves, so there are no
+//  sliders, no segmented controls to drag, and no gestures on the camera view
+//  beyond a single tap. Options are cards you press; the choice you made carries
+//  a checkmark.
 //
 //  This view owns the single ScanViewModel for the whole flow.
 //
@@ -13,6 +19,7 @@ import SwiftUI
 
 struct ScanView: View {
     @StateObject private var viewModel = ScanViewModel()
+    @State private var showingIntro = false
 
     var body: some View {
         Group {
@@ -21,6 +28,9 @@ struct ScanView: View {
             } else {
                 scanningContent
             }
+        }
+        .sheet(isPresented: $showingIntro) {
+            IntroView(onStart: { showingIntro = false }, isReturning: true)
         }
     }
 
@@ -41,8 +51,14 @@ struct ScanView: View {
                     .foregroundStyle(reticleColor))
                 .opacity(0.9)
 
-            VStack {
-                feedbackBanner
+            VStack(spacing: 10) {
+                HStack(alignment: .top, spacing: 10) {
+                    feedbackBanner
+                    helpButton
+                }
+                if let hint = viewModel.moveHint {
+                    moveBanner(hint)
+                }
                 if viewModel.phase == .scanning && viewModel.guidedEnabled {
                     guidedBanner
                 }
@@ -57,56 +73,96 @@ struct ScanView: View {
         }
     }
 
+    private var helpButton: some View {
+        Button {
+            showingIntro = true
+        } label: {
+            Image(systemName: "questionmark")
+                .font(.system(size: 15, weight: .semibold))
+                .frame(width: 40, height: 40)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+        .accessibilityLabel("How to scan")
+    }
+
     // MARK: Pre-start
 
     private var startControls: some View {
-        VStack(spacing: 12) {
-            // Capture options — must be chosen before Start (they configure the
-            // AR session's video format).
+        VStack(spacing: 14) {
+            // Capture options — chosen before Start, because they configure the
+            // AR session's video format.
             VStack(spacing: 8) {
-                Picker("Mode", selection: $viewModel.mode) {
-                    ForEach(CaptureMode.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-
-                Picker("Quality", selection: $viewModel.quality) {
-                    ForEach(CaptureQuality.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-
-                Text(viewModel.quality.caption)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Divider()
-                Toggle(isOn: $viewModel.guidedEnabled) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Guided capture").font(.caption)
-                        Text("Show target viewpoints and walk you to each")
-                            .font(.caption2).foregroundStyle(.secondary)
+                ForEach(CaptureMode.allCases) { mode in
+                    ModeCard(mode: mode, isSelected: viewModel.mode == mode) {
+                        viewModel.mode = mode
                     }
                 }
             }
-            .padding(12)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
 
-            Text(viewModel.mode == .photo
-                 ? "Start, then tap the shutter for each high-res photo — walk around the object."
-                 : "Aim at the object, then start. Orbit it slowly so every side is seen.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            qualityRow
+            guidedRow
 
             Button {
                 viewModel.start()
             } label: {
                 Label("Start Scan", systemImage: "record.circle")
+                    .font(.headline)
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .tint(.red)
         }
+    }
+
+    /// Colour resolution, as four tap targets. Was a segmented picker, which on
+    /// a held-up iPad is a drag more often than a tap.
+    private var qualityRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Detail level")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                ForEach(CaptureQuality.allCases) { quality in
+                    ChipButton(title: quality.label,
+                               isSelected: viewModel.quality == quality) {
+                        viewModel.quality = quality
+                    }
+                }
+            }
+            Text(viewModel.quality.caption)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    /// Guided capture as a whole-row tap target rather than a switch you have to
+    /// hit exactly.
+    private var guidedRow: some View {
+        Button {
+            viewModel.guidedEnabled.toggle()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: viewModel.guidedEnabled ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(viewModel.guidedEnabled ? Color.accentColor : .secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Guided capture")
+                        .font(.subheadline.weight(.medium))
+                    Text("Shows target viewpoints and walks you to each")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
     }
 
     private var guidedBanner: some View {
@@ -123,6 +179,25 @@ struct ScanView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    /// "You've stopped — go this way." The matching arrow is drawn in the AR
+    /// scene itself; this is the same instruction in words, for the moment the
+    /// user is looking at the controls rather than through the camera.
+    private func moveBanner(_ hint: MoveHint) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: hint.symbol)
+                .font(.system(size: 20, weight: .bold))
+            Text(hint.text)
+                .font(.subheadline.weight(.semibold))
+            Spacer()
+        }
+        .foregroundStyle(.black)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color.yellow, in: RoundedRectangle(cornerRadius: 12))
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .animation(.easeOut(duration: 0.2), value: hint)
     }
 
     private var shutterLabel: String {
@@ -160,18 +235,13 @@ struct ScanView: View {
             Text(viewModel.feedback.message)
                 .font(.subheadline.weight(.medium))
             Spacer()
-            if viewModel.capturedVertexCount > 0 {
-                Text("\(viewModel.capturedVertexCount) pts")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
             if viewModel.rgbdFrameCount > 0 {
-                Text("· \(viewModel.rgbdFrameCount) RGB-D")
+                Text("\(viewModel.rgbdFrameCount)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
             if viewModel.keyframeCount > 0 {
-                Text("· \(viewModel.keyframeCount) key")
+                Text("· \(viewModel.keyframeCount) photos")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
@@ -207,16 +277,14 @@ struct ScanView: View {
                     viewModel.capturePhoto()
                 } label: {
                     Label(shutterLabel, systemImage: "camera.shutter.button")
+                        .font(.headline)
                         .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .tint(viewModel.readiness == .ready ? .green : .gray)
                 .disabled(viewModel.isCapturingPhoto)
-
-                Text("\(viewModel.keyframeCount) photos · hold steady until the ring turns green")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             // Detail mode: keyframes fire automatically when sharp + steady.
@@ -230,43 +298,85 @@ struct ScanView: View {
                 }
             }
 
-            // Finish is always available: the RGB-D session is the deliverable
-            // and Linux builds the asset (and the crate) from it. The ghost box
-            // is an optional on-device measuring aid, not a step in the flow.
-            if viewModel.mode == .auto && !viewModel.isBoxPlaced {
-                Text("Orbit the object slowly until coverage looks complete")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            // Finish is the one primary action: the RGB-D session is the
+            // deliverable and Linux builds the asset (and the crate) from it. The
+            // ghost box is an optional on-device measuring aid, not a step.
+            Button {
+                viewModel.capture()
+            } label: {
+                Label("Finish Scan", systemImage: "checkmark.circle.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
             }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            // Photo mode has no RGB-D stream, only keyframes — accept either.
+            .disabled(viewModel.rgbdFrameCount == 0 && viewModel.keyframeCount == 0)
 
+            // Everything optional lives on one quiet secondary row.
             HStack(spacing: 12) {
                 Button {
                     viewModel.isBoxPlaced ? viewModel.fitToObject() : viewModel.placeBox()
                 } label: {
-                    Label(viewModel.isBoxPlaced ? "Fit to Object" : "Measure (optional)",
+                    Label(viewModel.isBoxPlaced ? "Fit" : "Measure",
                           systemImage: viewModel.isBoxPlaced ? "scope" : "cube")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
-                .controlSize(.large)
 
-                Button {
-                    viewModel.capture()
+                Button(role: .destructive) {
+                    viewModel.reset()
                 } label: {
-                    Label("Finish Scan", systemImage: "checkmark.circle")
+                    Label("Start Over", systemImage: "arrow.counterclockwise")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                // Photo mode has no RGB-D stream, only keyframes — accept either.
-                .disabled(viewModel.rgbdFrameCount == 0 && viewModel.keyframeCount == 0)
+                .buttonStyle(.bordered)
             }
+            .controlSize(.regular)
 
-            Button("Reset", role: .destructive) {
-                viewModel.reset()
+            if viewModel.isBoxPlaced {
+                Text("Tap the floor to move the box")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
-            .font(.footnote)
         }
+    }
+}
+
+/// One capture mode as a full-width tap target: symbol, name, and the one line
+/// that tells you when to pick it.
+private struct ModeCard: View {
+    let mode: CaptureMode
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: mode.symbol)
+                    .font(.system(size: 20))
+                    .frame(width: 28)
+                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(mode.label)
+                        .font(.subheadline.weight(.semibold))
+                    Text(mode.caption)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary.opacity(0.5))
+            }
+            .padding(12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14)
+            .stroke(Color.accentColor.opacity(isSelected ? 0.8 : 0), lineWidth: 2))
     }
 }
 

@@ -34,7 +34,7 @@ enum ScanFeedback: Equatable {
         case .needsMoreLightOrDetail:  return "Needs more light"
         case .trackingUnavailable:     return "Tracking unavailable — hold still"
         case .noGeometry:              return "No surface found in the box — cover the object, then fit"
-        case .fitReady:                return "Looks good — tap Fit, then Capture"
+        case .fitReady:                return "Looks good — tap Fit, then Finish"
         }
     }
 

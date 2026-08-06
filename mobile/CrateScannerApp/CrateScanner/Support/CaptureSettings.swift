@@ -5,7 +5,7 @@
 //  User-facing capture options, chosen on the pre-Start screen:
 //
 //    • Quality  — how much colour resolution to keep (Fast … 4K)
-//    • Mode     — Auto (continuous ~video-rate stream) or Photo (manual stills)
+//    • Mode     — Video (continuous frame stream) or Photo (manual stills)
 //
 //  A note on what resolution buys you, since it's easy to over-invest:
 //  nvblox fusion resizes colour down to the DEPTH resolution (256×192 on LiDAR
@@ -47,7 +47,7 @@ enum CaptureQuality: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Seconds between saved frames in Auto mode. 4K frames are large, so we
+    /// Seconds between saved frames in Video mode. 4K frames are large, so we
     /// sample them a little slower; coverage matters more than raw rate.
     var autoInterval: TimeInterval {
         self == .max4K ? 0.2 : 0.1        // 5 Hz vs 10 Hz
@@ -67,8 +67,12 @@ enum CaptureQuality: String, CaseIterable, Identifiable {
 }
 
 /// How frames are captured.
+///
+/// `video` was called "Auto" until the rename — the raw value stays `"video"`,
+/// so a device that stored the old `"auto"` string simply fails to parse and
+/// falls back to `.video`, which is the same mode under its new name.
 enum CaptureMode: String, CaseIterable, Identifiable {
-    case auto       // continuous stream while scanning
+    case video      // continuous frame stream while scanning
     case photo      // one high-resolution still per shutter tap
     case hybrid     // 10 Hz RGB-D stream + automatic ~1.5 Hz 12 MP keyframes
 
@@ -76,17 +80,25 @@ enum CaptureMode: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .auto:   return "Auto"
+        case .video:  return "Video"
         case .photo:  return "Photo"
         case .hybrid: return "Detail"
         }
     }
 
+    var symbol: String {
+        switch self {
+        case .video:  return "video.fill"
+        case .photo:  return "camera.fill"
+        case .hybrid: return "sparkles"
+        }
+    }
+
     var caption: String {
         switch self {
-        case .auto:   return "Streams frames as you orbit"
+        case .video:  return "Just walk around — frames record themselves"
         case .photo:  return "Tap the shutter for each high-res photo"
-        case .hybrid: return "10 Hz depth + auto 12 MP keyframes (best quality)"
+        case .hybrid: return "Video + automatic 12 MP stills · best quality"
         }
     }
 
@@ -107,7 +119,16 @@ final class CaptureSettings {
     }
 
     var mode: CaptureMode {
-        get { CaptureMode(rawValue: defaults.string(forKey: "capture.mode") ?? "") ?? .auto }
+        get { CaptureMode(rawValue: defaults.string(forKey: "capture.mode") ?? "") ?? .video }
         set { defaults.set(newValue.rawValue, forKey: "capture.mode") }
     }
+
+    /// Which revision of the intro this device has seen. Stored as an int rather
+    /// than a bool so that materially rewriting the walkthrough can show it once
+    /// more to people who already have the app. Read through `@AppStorage` in
+    /// `RootView`, hence the key living here as a constant.
+    static let introSeenKey = "intro.seenVersion"
+
+    /// The intro's current revision. Raise it when the steps change materially.
+    static let introVersion = 1
 }

@@ -62,12 +62,76 @@ files works over a plain `git pull`, but new paths are absent from that repo's
 
 ## iPad — capture & share
 
-1. Slow orbit around the object (watch **RGB-D** count climb in the banner)
-2. Place Box → Fit to Object → **Capture**
-3. Review screen:
-   - **Share full package (mesh + RGB-D)** ← use this
-   - or Share RGB-D session only / STL/OBJ/USDZ
-4. AirDrop zip to Mac → `scp` to Linux
+The app opens on a three-step **intro** the first time it runs (reopen it any
+time with the **?** button on the scan screen). Then:
+
+1. Pick a **capture mode** — one tap on a card:
+   | Mode | What it does |
+   |------|--------------|
+   | **Video** | continuous frame stream while you walk (was called "Auto") |
+   | **Photo** | one 12 MP still per shutter tap |
+   | **Detail** | Video + automatic 12 MP stills — best quality |
+2. **Start Scan**, then walk a slow lap around the object. Watch the frame count
+   climb in the banner.
+   - **Stand still and a yellow arrow appears in AR**, pointing the way to keep
+     orbiting, with the same instruction in a banner. Following it is what gives
+     fusion the parallax it needs — a stationary scan yields no new geometry.
+3. **Finish Scan**. (Measure → Fit is optional, only for crate dimensions; with
+   a box placed, tap the floor to move it.)
+4. Review screen: auto-uploads to the worker / Drive if configured, or
+   **Share full package (mesh + RGB-D)** → AirDrop to Mac → `scp` to Linux.
+
+Everything is a tap — there are no sliders or segmented controls to drag, and
+the only gesture on the camera view is a single tap.
+
+### App icon
+
+The icon lives in `CrateScanner/Assets.xcassets/AppIcon.appiconset` and is
+generated from source, so tweaking the artwork is a code edit:
+
+```bash
+cd mobile/CrateScannerApp
+swift tools/make_app_icon.swift \
+    CrateScanner/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+```
+
+`View/CubeMark.swift` draws the same cube as vectors for the intro screen; keep
+the two in step if you change one.
+
+### Google Drive destination
+
+Finished scans upload into the shared **`engin170_sync`** folder
+(`drive.google.com/drive/folders/1_HjCyP9-Th3UTjK6Kk89vTuud6ltL4AI`), signed in
+as **xkdaus0417@gmail.com**. All three values live in
+`Support/GoogleDriveConfig.swift`: `folderID`, `accountHint`, `folderName`.
+
+**You have to sign in again** — the app prompts for it. Two reasons:
+
+1. It's a different Google account than before.
+2. The scope widened from `drive.file` to `drive`. `drive.file` only grants
+   access to files the app itself created, so it *cannot* write into a folder
+   that already existed — uploads fail with "File not found" no matter how right
+   the folder id is. An existing connection carries the old grant, so the review
+   screen shows **"Drive permission changed — sign in again"** and pauses
+   auto-sync until you do.
+
+The OAuth client ID does **not** change; no new Cloud project or client is
+needed. In the Cloud Console, one thing does:
+
+- **APIs & Services → OAuth consent screen → Test users → add
+  xkdaus0417@gmail.com**, or sign-in returns `access_denied`. `drive` is a
+  restricted scope, so the consent screen must stay in **Testing** (publishing
+  it would require Google's security review).
+
+Also check that the folder is actually shared with that account — if it isn't,
+the app says so by name rather than failing mid-upload.
+
+Prefer the narrow scope? Set `folderID = ""` and put `scope` back to
+`…/auth/drive.file`; the app then creates and owns its own `engin170_sync`
+folder in that account instead of using the shared one.
+
+On Linux the puller becomes `rclone copy gdrive:engin170_sync …`, with that
+`gdrive:` remote authorised for the same account.
 
 Package layout:
 

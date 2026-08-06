@@ -3,8 +3,13 @@
 //  CrateScanner
 //
 //  Bridges RealityKit's ARView into SwiftUI and owns the touch gesture for
-//  nudging the placed ghost box. All AR/session logic lives in the view model;
+//  positioning the ghost box. All AR/session logic lives in the view model;
 //  this type only creates the view, wires the delegate, and forwards gestures.
+//
+//  Tap, not drag: this app is used one-handed while walking around a machine, so
+//  every interaction is a single tap. A tap also raycasts to the actual surface
+//  under the finger, which is more accurate than the pixels-to-metres guess a
+//  pan gesture had to make.
 //
 
 import SwiftUI
@@ -21,10 +26,10 @@ struct ARViewContainer: UIViewRepresentable {
         // Hand the view to the view model, which configures + runs the session.
         viewModel.attach(to: arView)
 
-        // One-finger drag repositions the placed box on the ground plane.
-        let pan = UIPanGestureRecognizer(target: context.coordinator,
-                                         action: #selector(Coordinator.handlePan(_:)))
-        arView.addGestureRecognizer(pan)
+        // One tap moves the placed box to whatever surface was tapped.
+        let tap = UITapGestureRecognizer(target: context.coordinator,
+                                         action: #selector(Coordinator.handleTap(_:)))
+        arView.addGestureRecognizer(tap)
 
         context.coordinator.arView = arView
         return arView
@@ -46,26 +51,14 @@ struct ARViewContainer: UIViewRepresentable {
             self.viewModel = viewModel
         }
 
-        /// Translate an incremental screen-space pan into a world-space nudge on
-        /// the ground plane. This is a deliberately simple mapping — screen X →
-        /// world X, screen Y → world Z — scaled to a comfortable sensitivity.
-        /// Precise placement isn't needed because "Fit" snaps the box to the
-        /// object afterward; this is just for rough positioning.
-        @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
+        /// Move the ghost box under the tapped point. The view model ignores this
+        /// when no box has been placed yet, so stray taps during a plain scan do
+        /// nothing — Measure is what puts a box on screen in the first place.
+        @objc func handleTap(_ gesture: UITapGestureRecognizer) {
             guard let view = arView else { return }
-
-            // Work incrementally: read the delta since the last callback, then
-            // zero the recognizer's translation so movements accumulate smoothly.
-            let t = gesture.translation(in: view)
-            gesture.setTranslation(.zero, in: view)
-
-            // Meters of world movement per screen point. Tuned for a phone.
-            let metersPerPoint: Float = 0.004
-            let worldDelta = SIMD2<Float>(Float(t.x) * metersPerPoint,
-                                          Float(t.y) * metersPerPoint)
-
+            let point = gesture.location(in: view)
             Task { @MainActor in
-                self.viewModel.moveBox(byWorldXZ: worldDelta)
+                self.viewModel.moveBox(toScreenPoint: point)
             }
         }
     }

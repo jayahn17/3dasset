@@ -29,6 +29,35 @@ final class GoogleDriveSync: NSObject, ObservableObject {
         didSet { UserDefaults.standard.set(autoSync, forKey: "drive.autoSync") }
     }
 
+    /// Which Google account the stored refresh token belongs to. Scans are
+    /// invisible from inside the app once uploaded, so the only way to notice
+    /// they went to the wrong Drive is to show the account they went to.
+    @Published private(set) var connectedEmail: String?
+        = UserDefaults.standard.string(forKey: "drive.accountEmail")
+
+    /// False when connected as somebody other than `GoogleDriveConfig.accountHint`
+    /// — the review screen turns that into a visible warning. Unknown counts as
+    /// fine, so a stale install doesn't cry wolf before the first upload.
+    var isExpectedAccount: Bool {
+        guard let email = connectedEmail else { return true }
+        return email.caseInsensitiveCompare(GoogleDriveConfig.accountHint) == .orderedSame
+    }
+
+    /// True when a stored connection was granted under a different scope than the
+    /// app now needs — an existing `drive.file` token cannot write into the
+    /// shared folder, and would fail with a bare "File not found" that looks like
+    /// a wrong folder id. Sign-in has to run again to widen the grant; this makes
+    /// the app say so up front instead.
+    var needsReconnect: Bool {
+        guard isConnected else { return false }
+        let granted = UserDefaults.standard.string(forKey: "drive.grantedScope") ?? ""
+        return granted != GoogleDriveConfig.scope
+    }
+
+    /// The destination folder's real name in Drive, once we've looked it up.
+    /// Confirms the pinned id points where you think it does.
+    @Published private(set) var folderDisplayName: String?
+
     private var accessToken: String?
     private var accessExpiry = Date.distantPast
     private var cachedFolderID: String?
@@ -36,6 +65,7 @@ final class GoogleDriveSync: NSObject, ObservableObject {
     override init() {
         super.init()
         isConnected = Keychain.get("drive.refreshToken") != nil
+        if !isConnected { connectedEmail = nil }
     }
 
     // MARK: Sign-in / out
@@ -55,7 +85,12 @@ final class GoogleDriveSync: NSObject, ObservableObject {
             .init(name: "code_challenge", value: challenge),
             .init(name: "code_challenge_method", value: "S256"),
             .init(name: "access_type", value: "offline"),
-            .init(name: "prompt", value: "consent"),
+            // `select_account` always shows the chooser, so switching away from
+            // an account signed in elsewhere on the device is possible at all;
+            // `consent` is what makes Google return a refresh token.
+            .init(name: "prompt", value: "select_account consent"),
+            // Preselects the upload account on the sign-in page.
+            .init(name: "login_hint", value: GoogleDriveConfig.accountHint),
         ]
 
         let callback = try await authenticate(url: comps.url!,
@@ -66,22 +101,47 @@ final class GoogleDriveSync: NSObject, ObservableObject {
         }
         try await exchangeCode(code, verifier: verifier)
         isConnected = true
+        await refreshAccountEmail()
     }
 
     func disconnect() {
         Keychain.delete("drive.refreshToken")
+        UserDefaults.standard.removeObject(forKey: "drive.accountEmail")
+        UserDefaults.standard.removeObject(forKey: "drive.grantedScope")
         accessToken = nil
         accessExpiry = .distantPast
         cachedFolderID = nil
+        connectedEmail = nil
         isConnected = false
+    }
+
+    /// Ask Drive who we are. `about.get` is allowed under the drive.file scope,
+    /// so this costs no extra consent. Best effort — a failure here should never
+    /// block an upload, it just leaves the account unlabelled.
+    func refreshAccountEmail() async {
+        guard let token = try? await validAccessToken() else { return }
+        var comps = URLComponents(string: "https://www.googleapis.com/drive/v3/about")!
+        comps.queryItems = [.init(name: "fields", value: "user(emailAddress)")]
+        var req = URLRequest(url: comps.url!)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let user = json["user"] as? [String: Any],
+              let email = user["emailAddress"] as? String else { return }
+        connectedEmail = email
+        UserDefaults.standard.set(email, forKey: "drive.accountEmail")
     }
 
     // MARK: Upload
 
-    /// Upload a file into the CrateScans folder. Returns the Drive file id.
+    /// Upload a file into the destination folder (`GoogleDriveConfig.folderName`).
+    /// Returns the Drive file id.
     @discardableResult
     func upload(_ fileURL: URL, mimeType: String = "application/zip") async throws -> String {
         let token = try await validAccessToken()
+        // Label the account on the first upload after an app update, so the
+        // review screen can flag a scan heading for the wrong Drive.
+        if connectedEmail == nil { await refreshAccountEmail() }
         let folderID = try await ensureFolder(token: token)
 
         // 1) Open a resumable session.
@@ -128,6 +188,9 @@ final class GoogleDriveSync: NSObject, ObservableObject {
         if let refresh = json["refresh_token"] as? String {
             Keychain.set("drive.refreshToken", refresh)
         }
+        // Remember what this grant covers, so a later scope change is detected
+        // rather than discovered as a permission error mid-upload.
+        UserDefaults.standard.set(GoogleDriveConfig.scope, forKey: "drive.grantedScope")
         applyAccess(json)
     }
 
@@ -166,9 +229,22 @@ final class GoogleDriveSync: NSObject, ObservableObject {
         return json
     }
 
-    /// Find (or create) the CrateScans folder, caching its id.
+    /// Find (or create) the destination folder in the connected Drive, caching
+    /// its id. Note that `drive.file` only ever sees folders this app made, so a
+    /// same-named folder created by hand in the web UI is invisible here and a
+    /// second one gets created alongside it.
     private func ensureFolder(token: String) async throws -> String {
         if let id = cachedFolderID { return id }
+
+        // Pinned destination: upload straight into the folder from the Drive
+        // URL. Checked once per session so a wrong id, a revoked share, or a
+        // too-narrow scope reports itself here instead of as a failed upload.
+        if !GoogleDriveConfig.folderID.isEmpty {
+            try await verifyFolder(GoogleDriveConfig.folderID, token: token)
+            cachedFolderID = GoogleDriveConfig.folderID
+            return GoogleDriveConfig.folderID
+        }
+
         let q = "mimeType='application/vnd.google-apps.folder' and name='\(GoogleDriveConfig.folderName)' and trashed=false"
         var comps = URLComponents(string: "https://www.googleapis.com/drive/v3/files")!
         comps.queryItems = [.init(name: "q", value: q), .init(name: "fields", value: "files(id)")]
@@ -206,6 +282,43 @@ final class GoogleDriveSync: NSObject, ObservableObject {
             throw DriveError.upload(driveErrorText(err, status: cResp))
         }
         throw DriveError.upload("Could not create the Drive folder (HTTP \((cResp as? HTTPURLResponse)?.statusCode ?? 0)).")
+    }
+
+    /// Confirm the pinned folder is reachable by the connected account, and
+    /// remember its real name for the UI. The failure modes here are the ones
+    /// that would otherwise be mystifying, so each gets its own sentence.
+    private func verifyFolder(_ id: String, token: String) async throws {
+        var comps = URLComponents(string: "https://www.googleapis.com/drive/v3/files/\(id)")!
+        comps.queryItems = [
+            .init(name: "fields", value: "id,name,mimeType,trashed"),
+            .init(name: "supportsAllDrives", value: "true"),
+        ]
+        var req = URLRequest(url: comps.url!)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        let status = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+
+        if status == 404 || status == 403 {
+            let who = connectedEmail ?? "this account"
+            throw DriveError.upload("""
+                Can't open the destination folder as \(who). Check that the \
+                folder is shared with \(GoogleDriveConfig.accountHint), and that \
+                you signed in again after the app's Drive permission changed \
+                (Disconnect, then Connect Google Drive).
+                """)
+        }
+        guard status == 200, let json else {
+            throw DriveError.upload("Could not check the destination folder (HTTP \(status)).")
+        }
+        if (json["trashed"] as? Bool) == true {
+            throw DriveError.upload("The destination folder is in the Drive trash.")
+        }
+        guard (json["mimeType"] as? String) == "application/vnd.google-apps.folder" else {
+            throw DriveError.upload("The destination id isn't a folder.")
+        }
+        if let name = json["name"] as? String { folderDisplayName = name }
     }
 
     /// Human-readable text from a Drive API error object.
