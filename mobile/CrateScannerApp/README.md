@@ -100,38 +100,37 @@ the two in step if you change one.
 
 ### Google Drive destination
 
-Finished scans upload into the shared **`engin170_sync`** folder
-(`drive.google.com/drive/folders/1_HjCyP9-Th3UTjK6Kk89vTuud6ltL4AI`), signed in
-as **xkdaus0417@gmail.com**. All three values live in
-`Support/GoogleDriveConfig.swift`: `folderID`, `accountHint`, `folderName`.
+Finished scans upload into a **`CrateScans`** folder that the app creates and
+owns, signed in as **jayahn@berkeley.edu**. The values live in
+`Support/GoogleDriveConfig.swift` (`folderName`, `accountHint`, `folderID`).
 
-**You have to sign in again** — the app prompts for it. Two reasons:
+Nothing to set up if you were already connected — the scope is unchanged, so the
+existing sign-in keeps working. The review screen labels the connected account
+and warns (pausing auto-sync) if it's ever someone else.
 
-1. It's a different Google account than before.
-2. The scope widened from `drive.file` to `drive`. `drive.file` only grants
-   access to files the app itself created, so it *cannot* write into a folder
-   that already existed — uploads fail with "File not found" no matter how right
-   the folder id is. An existing connection carries the old grant, so the review
-   screen shows **"Drive permission changed — sign in again"** and pauses
-   auto-sync until you do.
+**Pointing this at a different account** means adding that address under **APIs &
+Services → OAuth consent screen → Test users** in the Cloud project that owns
+the client ID. Miss that and sign-in returns `Error 403: access_denied`, which
+looks like a broken client but is only the tester list. Also check the consent
+screen's User type: **Internal** rejects accounts outside the org outright.
 
-The OAuth client ID does **not** change; no new Cloud project or client is
-needed. In the Cloud Console, one thing does:
+**Pointing this at an existing shared folder** takes two changes together, and
+they only work as a pair:
 
-- **APIs & Services → OAuth consent screen → Test users → add
-  xkdaus0417@gmail.com**, or sign-in returns `access_denied`. `drive` is a
-  restricted scope, so the consent screen must stay in **Testing** (publishing
-  it would require Google's security review).
+```swift
+static let folderID = "…"                                  // from the folder URL
+static let scope = "https://www.googleapis.com/auth/drive"  // must widen too
+```
 
-Also check that the folder is actually shared with that account — if it isn't,
-the app says so by name rather than failing mid-upload.
+`drive.file` — the current, narrow scope — only grants access to files the app
+itself created, so it cannot write into a folder made by someone else; uploads
+fail with "File not found" however correct the id is. The wide scope fixes that
+but is *restricted*, so the consent screen must stay in Testing. When the scope
+changes, the app notices the stored grant no longer matches and shows **"Drive
+permission changed — sign in again"** rather than failing mid-upload.
 
-Prefer the narrow scope? Set `folderID = ""` and put `scope` back to
-`…/auth/drive.file`; the app then creates and owns its own `engin170_sync`
-folder in that account instead of using the shared one.
-
-On Linux the puller becomes `rclone copy gdrive:engin170_sync …`, with that
-`gdrive:` remote authorised for the same account.
+On Linux the puller is `rclone copy gdrive:CrateScans …`, with that `gdrive:`
+remote authorised for the same account.
 
 Package layout:
 

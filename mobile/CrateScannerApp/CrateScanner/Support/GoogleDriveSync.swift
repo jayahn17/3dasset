@@ -44,13 +44,17 @@ final class GoogleDriveSync: NSObject, ObservableObject {
     }
 
     /// True when a stored connection was granted under a different scope than the
-    /// app now needs — an existing `drive.file` token cannot write into the
-    /// shared folder, and would fail with a bare "File not found" that looks like
-    /// a wrong folder id. Sign-in has to run again to widen the grant; this makes
-    /// the app say so up front instead.
+    /// app now asks for. A token issued for a narrower scope fails with a bare
+    /// "File not found" that reads like a wrong folder id, so the app says
+    /// "sign in again" up front instead.
+    ///
+    /// A connection with no recorded scope predates this tracking and is left
+    /// alone — it was granted under whatever the app asked for at the time, and
+    /// nagging every existing install on upgrade would be crying wolf.
     var needsReconnect: Bool {
-        guard isConnected else { return false }
-        let granted = UserDefaults.standard.string(forKey: "drive.grantedScope") ?? ""
+        guard isConnected,
+              let granted = UserDefaults.standard.string(forKey: "drive.grantedScope")
+        else { return false }
         return granted != GoogleDriveConfig.scope
     }
 

@@ -10,8 +10,9 @@
 //  2. APIs & Services → Enable APIs → enable "Google Drive API".
 //  3. APIs & Services → OAuth consent screen → External → fill the app name +
 //     your email → add EVERY account that will sign in from the app under
-//     "Test users" — including the upload account in `accountHint` below, which
-//     is not the project owner. (No Google review needed while it stays in
+//     "Test users", not just the project owner. An account that is missing here
+//     gets `Error 403: access_denied` at sign-in, which reads like a broken
+//     client but is only this list. (No Google review needed while it stays in
 //     Testing and uses the drive.file scope.)
 //  4. Credentials → Create Credentials → OAuth client ID → Application type:
 //     iOS → Bundle ID:  com.jayahn.CrateScanner  (matches project.yml).
@@ -59,47 +60,43 @@ enum GoogleDriveConfig {
 
     static var redirectURI: String { "\(redirectScheme):/oauth2redirect" }
 
-    /// Full Drive scope, and the one thing here that deserves a second look.
+    /// drive.file = the app only ever sees files it created. No broad-access
+    /// review, and it can't touch the rest of the user's Drive.
     ///
-    /// The narrow `drive.file` scope grants per-file access to files the app
-    /// *created*, which is enough to make its own folder and fill it — but not
-    /// to write into a folder that already exists and was made by someone else.
-    /// Uploading into `folderID` below therefore fails with "File not found"
-    /// under `drive.file`, however correct the id is. Targeting a shared class
-    /// folder is the whole point, so the scope has to widen.
-    ///
-    /// Consequences worth knowing: the app can now read and modify anything in
-    /// the connected account's Drive, and this is a "restricted" scope, so the
-    /// consent screen must stay in **Testing** with the upload account listed as
-    /// a Test user (publishing it would need Google's security review). That is
-    /// also why the upload account should be the dedicated sync account and not
-    /// a personal one.
-    ///
-    /// Want the narrow scope back? Set `folderID` to "" — the app then creates
-    /// and owns a `folderName` folder — and change this back to
-    /// `…/auth/drive.file`.
-    static let scope = "https://www.googleapis.com/auth/drive"
+    /// This and `folderID` are a matched pair, and getting them out of step is
+    /// the subtle failure here. `drive.file` grants per-file access to files the
+    /// app *created* — enough to make its own folder and fill it, but not to
+    /// write into a folder that already exists and was made by someone else. So
+    /// pointing `folderID` at a pre-existing shared folder means widening this
+    /// to `https://www.googleapis.com/auth/drive`; leaving it narrow makes every
+    /// upload fail with "File not found" however correct the id is. That wide
+    /// scope is "restricted", which also forces the consent screen to stay in
+    /// Testing with every signing-in account listed as a Test user. Staying
+    /// narrow is what avoids all of that.
+    static let scope = "https://www.googleapis.com/auth/drive.file"
 
-    /// The exact destination folder, taken from its Drive URL:
-    /// https://drive.google.com/drive/folders/1_HjCyP9-Th3UTjK6Kk89vTuud6ltL4AI
+    /// A specific pre-existing folder to upload into, taken from its Drive URL
+    /// (`drive.google.com/drive/folders/<id>`). Empty means "find or create
+    /// `folderName` instead", which is what the narrow scope above supports.
     ///
-    /// Empty means "find or create `folderName` instead".
-    static let folderID = "1_HjCyP9-Th3UTjK6Kk89vTuud6ltL4AI"
+    /// Setting this requires widening `scope` — see the note there.
+    static let folderID = ""
 
-    /// Drive folder finished scans are uploaded into. Used as the label in the
-    /// UI, and as the folder to create when `folderID` is empty.
-    static let folderName = "engin170_sync"
+    /// Drive folder finished scans are uploaded into. The app creates it on the
+    /// first upload and owns it from then on.
+    static let folderName = "CrateScans"
 
-    /// The Google account that folder belongs to.
+    /// The Google account those scans belong to.
     ///
     /// Only a hint and a check: it preselects the account on the sign-in page,
     /// and the review screen warns when the app is actually connected as someone
-    /// else — otherwise scans would quietly land in an `engin170_sync` folder in
-    /// the wrong Drive, which looks identical from inside the app.
+    /// else — otherwise scans would quietly land in a `CrateScans` folder in the
+    /// wrong Drive, which looks identical from inside the app.
     ///
-    /// IMPORTANT: the OAuth consent screen is in Testing mode, so this address
-    /// must be listed under APIs & Services → OAuth consent screen → Test users
-    /// in the same Cloud project as `defaultClientID`. Without that, sign-in
-    /// comes back `access_denied` no matter how correct everything else is.
-    static let accountHint = "xkdaus0417@gmail.com"
+    /// Whatever address goes here must be listed under APIs & Services → OAuth
+    /// consent screen → Test users in the same Cloud project as
+    /// `defaultClientID`, or sign-in comes back `access_denied` no matter how
+    /// correct everything else is. This one owns the project, so it already is;
+    /// any other account has to be added there first.
+    static let accountHint = "jayahn@berkeley.edu"
 }

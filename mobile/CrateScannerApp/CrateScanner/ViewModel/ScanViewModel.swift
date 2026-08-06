@@ -706,7 +706,7 @@ final class ScanViewModel: NSObject, ObservableObject {
     }
 
     /// Build the Linux package and upload it to Google Drive
-    /// (`GoogleDriveConfig.folderName`, currently engin170_sync).
+    /// (`GoogleDriveConfig.folderName`, currently CrateScans).
     nonisolated func exportAndSyncToDrive() async throws {
         let zip = try await MainActor.run { try self.exportLinuxPackage() }
         _ = try await GoogleDriveSync.shared.upload(zip)
