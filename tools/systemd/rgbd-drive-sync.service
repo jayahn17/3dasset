@@ -4,9 +4,10 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-# --min-age lets an in-progress Drive upload finish before we copy it.
-ExecStart=/usr/bin/rclone copy gdrive:CrateScans/Packages %h/3dasset/captures/inbox \
-    --include "*.zip" \
-    --min-age 30s \
-    --drive-shared-with-me \
-    --log-level INFO
+# The logic lives in a script rather than here because it is more than a copy:
+# the app writes one subfolder per uploader, the watcher only reads the top
+# level of the inbox, and processed zips must not be pulled a second time.
+# See tools/drive_pull_to_inbox.sh.
+ExecStart=%h/3dasset/tools/drive_pull_to_inbox.sh
+Environment=DRIVE_REMOTE=gdrive:CrateScans
+Environment=CAPTURES_DIR=%h/3dasset/captures

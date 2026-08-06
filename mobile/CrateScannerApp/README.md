@@ -2,11 +2,18 @@
 
 LiDAR scan app for **iPad Pro / iPhone Pro** → zip for Linux `assetpipe`.
 
+> **New here? Read [WORKFLOW.md](WORKFLOW.md).** It explains what the app is
+> for, what a scan actually contains, and how it feeds the Linux 4080 pipeline —
+> with diagrams. This file is the build and configuration reference.
+
 This folder is the full app sources, already wired for:
 
 1. Live ARKit LiDAR mesh + dimensions (original MVP)
 2. **RGB-D session recording** (`SessionExporter`) while you scan
-3. **Share full package** → `mesh.obj` + `measurement.json` + `session/` for Linux
+3. **Guided capture** — an AR arrow when you stop moving, because a stationary
+   scan adds no geometry
+4. **Delivery** → Google Drive (shared folder, one subfolder per person),
+   Tailscale worker, or share sheet
 
 Upstream origin: [NathanJim17/E170_Client_Project](https://github.com/NathanJim17/E170_Client_Project)
 

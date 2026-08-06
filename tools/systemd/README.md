@@ -46,9 +46,23 @@ rclone config          # create a remote named "gdrive" (Google Drive)
 rclone lsd gdrive:     # verify
 ```
 
-The sync pulls **from** `gdrive:CrateScans/Packages` — the folder the iPad app
-writes into. `--drive-shared-with-me` is there so a folder someone shared with
-you also works; drop it if you own the folder.
+The sync pulls **from** `gdrive:CrateScans` — the shared core folder the app
+uploads into. Inside it is one subfolder per uploader
+(`CrateScans/<email>/crate_<timestamp>.zip`), so the pull runs through
+[`tools/drive_pull_to_inbox.sh`](../drive_pull_to_inbox.sh) rather than a bare
+`rclone copy`: it flattens those subfolders into the inbox, which
+`watch_inbox.py` reads one level deep, and it skips any zip already sitting in
+`inbox/`, `work/`, `done/` or `failed/` — without which every processed package
+gets re-delivered on the next tick, forever.
+
+The remote must be authorised as the account that **owns** the folder. A
+collaborator's remote needs `--drive-shared-with-me` added to the `rclone copy`
+inside that script.
+
+```bash
+chmod +x ~/3dasset/tools/drive_pull_to_inbox.sh
+~/3dasset/tools/drive_pull_to_inbox.sh          # try it by hand first
+```
 
 ## Not using Drive?
 
