@@ -98,39 +98,48 @@ swift tools/make_app_icon.swift \
 `View/CubeMark.swift` draws the same cube as vectors for the intro screen; keep
 the two in step if you change one.
 
-### Google Drive destination
+### Google Drive destination — one shared core folder
 
-Finished scans upload into a **`CrateScans`** folder that the app creates and
-owns, signed in as **jayahn@berkeley.edu**. The values live in
-`Support/GoogleDriveConfig.swift` (`folderName`, `accountHint`, `folderID`).
+Everyone signs in as **themselves** and their scans pool in one Drive:
+**`CrateScans` owned by jayahn@berkeley.edu**, with a subfolder per account.
 
-Nothing to set up if you were already connected — the scope is unchanged, so the
-existing sign-in keeps working. The review screen labels the connected account
-and warns (pausing auto-sync) if it's ever someone else.
-
-**Pointing this at a different account** means adding that address under **APIs &
-Services → OAuth consent screen → Test users** in the Cloud project that owns
-the client ID. Miss that and sign-in returns `Error 403: access_denied`, which
-looks like a broken client but is only the tester list. Also check the consent
-screen's User type: **Internal** rejects accounts outside the org outright.
-
-**Pointing this at an existing shared folder** takes two changes together, and
-they only work as a pair:
-
-```swift
-static let folderID = "…"                                  // from the folder URL
-static let scope = "https://www.googleapis.com/auth/drive"  // must widen too
+```
+CrateScans/                    ← owned by jayahn@berkeley.edu, shared Editor
+  jayahn@berkeley.edu/         ← created by the app on that account's first upload
+  xkdaus0417@gmail.com/
 ```
 
-`drive.file` — the current, narrow scope — only grants access to files the app
-itself created, so it cannot write into a folder made by someone else; uploads
-fail with "File not found" however correct the id is. The wide scope fixes that
-but is *restricted*, so the consent screen must stay in Testing. When the scope
-changes, the app notices the stored grant no longer matches and shows **"Drive
-permission changed — sign in again"** rather than failing mid-upload.
+Config lives in `Support/GoogleDriveConfig.swift`: `coreFolderOwner`,
+`folderName`, `perAccountSubfolders`, `allowedAccounts`, and optional `folderID`
+to pin the folder by id instead of by owner+name.
 
-On Linux the puller is `rclone copy gdrive:CrateScans …`, with that `gdrive:`
-remote authorised for the same account.
+The owner scoping is the load-bearing part. The app looks for the folder
+**owned by `coreFolderOwner`**, so a teammate resolves the folder shared *with*
+them rather than making a private `CrateScans` of their own — which would look
+exactly like success while pooling nothing. If a teammate's account can't see
+that folder, the app refuses to invent one and says who to ask.
+
+**Three things must be true for each person:**
+
+| Requirement | Where | Symptom if missing |
+|---|---|---|
+| Listed as a **Test user** | Cloud Console → OAuth consent screen | `Error 403: access_denied` at sign-in |
+| **Editor** on the core folder | Drive → Share | "Can't see a CrateScans folder owned by …" |
+| Listed in `allowedAccounts` | `GoogleDriveConfig.swift` | Amber warning, auto-sync paused |
+
+**Everyone must sign in again**, including the owner: the scope widened from
+`drive.file` to `drive`. `drive.file` only reaches files the app itself created,
+so it *cannot* write into a folder someone else made — that's the whole reason a
+shared core folder needs the wider grant. The app compares the stored grant to
+what it now needs and shows **"Drive permission changed — sign in again"**
+instead of failing mid-upload. Note `drive` is a *restricted* scope, so the
+consent screen has to stay in **Testing** (publishing needs Google's review).
+
+Back to one-person-one-folder: set `coreFolderOwner = ""` and `scope` back to
+`…/auth/drive.file`.
+
+On Linux, `rclone copy gdrive:CrateScans …` pulls every uploader's subfolder in
+one command, with that `gdrive:` remote authorised as the folder's **owner**.
 
 Package layout:
 

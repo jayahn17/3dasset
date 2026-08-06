@@ -60,43 +60,57 @@ enum GoogleDriveConfig {
 
     static var redirectURI: String { "\(redirectScheme):/oauth2redirect" }
 
-    /// drive.file = the app only ever sees files it created. No broad-access
-    /// review, and it can't touch the rest of the user's Drive.
+    /// Full Drive access, and the line here that deserves the most scrutiny.
     ///
-    /// This and `folderID` are a matched pair, and getting them out of step is
-    /// the subtle failure here. `drive.file` grants per-file access to files the
-    /// app *created* — enough to make its own folder and fill it, but not to
-    /// write into a folder that already exists and was made by someone else. So
-    /// pointing `folderID` at a pre-existing shared folder means widening this
-    /// to `https://www.googleapis.com/auth/drive`; leaving it narrow makes every
-    /// upload fail with "File not found" however correct the id is. That wide
-    /// scope is "restricted", which also forces the consent screen to stay in
-    /// Testing with every signing-in account listed as a Test user. Staying
-    /// narrow is what avoids all of that.
-    static let scope = "https://www.googleapis.com/auth/drive.file"
+    /// The narrow `drive.file` scope grants per-file access to files the app
+    /// itself *created*. That is enough for one person filling their own folder,
+    /// but not for the shared-core setup: a teammate's app did not create the
+    /// core folder, so under `drive.file` every upload into it fails with "File
+    /// not found" however correct the id is. Pooling scans in one Drive
+    /// therefore requires this wider scope.
+    ///
+    /// The costs, so they aren't a surprise: the app can read and modify
+    /// anything in the connected account's Drive, and `drive` is a *restricted*
+    /// scope, so the consent screen must stay in **Testing** with every user
+    /// listed under Test users. Publishing it would need Google's security
+    /// review. Going back to one-person-one-folder means setting `scope` back to
+    /// `…/auth/drive.file` and clearing `coreFolderOwner`.
+    static let scope = "https://www.googleapis.com/auth/drive"
 
-    /// A specific pre-existing folder to upload into, taken from its Drive URL
-    /// (`drive.google.com/drive/folders/<id>`). Empty means "find or create
-    /// `folderName` instead", which is what the narrow scope above supports.
+    /// Who owns the core folder everyone uploads into.
     ///
-    /// Setting this requires widening `scope` — see the note there.
+    /// Set, the app looks for `folderName` **owned by this account** — so a
+    /// teammate signing in finds the folder shared with them rather than making
+    /// a private one of their own, which is the failure that looks like success.
+    /// Empty means every account just uses its own `folderName` folder.
+    static let coreFolderOwner = "jayahn@berkeley.edu"
+
+    /// Optional exact folder, from its Drive URL
+    /// (`drive.google.com/drive/folders/<id>`). Takes precedence over the
+    /// owner + name lookup; use it if two folders share a name.
     static let folderID = ""
 
-    /// Drive folder finished scans are uploaded into. The app creates it on the
-    /// first upload and owns it from then on.
+    /// The core Drive folder finished scans are uploaded into.
     static let folderName = "CrateScans"
 
-    /// The Google account those scans belong to.
+    /// Give each account its own subfolder inside the core folder, named after
+    /// its email, instead of pooling every scan loose in one directory. Uploads
+    /// stay attributable and `rclone copy` still pulls the lot in one command.
+    static let perAccountSubfolders = true
+
+    /// Accounts expected to upload. The review screen names the connected
+    /// account and warns — pausing auto-sync — when it isn't one of these,
+    /// because a scan in the wrong Drive looks identical from inside the app.
+    /// Empty disables the check.
     ///
-    /// Only a hint and a check: it preselects the account on the sign-in page,
-    /// and the review screen warns when the app is actually connected as someone
-    /// else — otherwise scans would quietly land in a `CrateScans` folder in the
-    /// wrong Drive, which looks identical from inside the app.
-    ///
-    /// Whatever address goes here must be listed under APIs & Services → OAuth
-    /// consent screen → Test users in the same Cloud project as
-    /// `defaultClientID`, or sign-in comes back `access_denied` no matter how
-    /// correct everything else is. This one owns the project, so it already is;
-    /// any other account has to be added there first.
-    static let accountHint = "jayahn@berkeley.edu"
+    /// Every address here must ALSO be listed under APIs & Services → OAuth
+    /// consent screen → Test users in the Cloud project that owns
+    /// `defaultClientID`, and must have Editor access to the core folder.
+    /// Missing from the tester list gives `Error 403: access_denied` at sign-in;
+    /// missing from the folder share gives "can't open the destination folder"
+    /// at upload.
+    static let allowedAccounts = [
+        "jayahn@berkeley.edu",
+        "xkdaus0417@gmail.com",
+    ]
 }

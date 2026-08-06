@@ -89,10 +89,11 @@ enum PackageExporter {
           Files → On My iPad → CrateScanner → CrateScans → Packages
 
         Getting it to Linux — any one of:
-          a) In-app "Sync to Google Drive": uploads to the CrateScans folder of
-             the account in GoogleDriveConfig.accountHint. On Linux:
+          a) In-app "Sync to Google Drive": uploads to <your email>/ inside the
+             shared CrateScans folder (GoogleDriveConfig). On Linux:
                rclone copy gdrive:CrateScans ~/3dasset/captures/
-             (that rclone remote must be authorised for the SAME account)
+             (that rclone remote must be authorised for the account that OWNS
+              the folder — it pulls every uploader's subfolder in one go)
           b) Files app: drag the zip into any Google Drive folder, then rclone
              copy that folder on Linux
           c) AirDrop to the Mac, then:

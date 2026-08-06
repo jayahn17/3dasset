@@ -375,7 +375,7 @@ struct ResultReviewView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            Text("Sign in as \(GoogleDriveConfig.accountHint) — scans upload into the shared “\(GoogleDriveConfig.folderName)” folder.")
+            Text("Sign in with your own Google account — scans go to your own subfolder inside the shared “\(GoogleDriveConfig.folderName)” folder.")
                 .font(.caption2).foregroundStyle(.secondary)
             Button("Change client ID") {
                 driveConfigured = false          // back to the paste field
@@ -392,7 +392,7 @@ struct ResultReviewView: View {
             // Which Drive this is actually going to. Uploads are invisible from
             // inside the app, so a wrong account is otherwise silent.
             if !drive.isExpectedAccount, let email = drive.connectedEmail {
-                driveWarning("Signed in as \(email) — scans belong in \(GoogleDriveConfig.accountHint). Auto-sync is paused.",
+                driveWarning("Signed in as \(email), which isn't one of the project accounts. Auto-sync is paused.",
                              button: "Switch account")
             } else if drive.needsReconnect {
                 // A connection made before the shared-folder change carries the
