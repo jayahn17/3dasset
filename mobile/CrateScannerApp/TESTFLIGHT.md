@@ -37,8 +37,12 @@ If you ever want a real but private *store* listing, that's a different feature
 
 1. **Apple Developer Program — $99/year.** A free Apple ID can build to your own
    device but *cannot* use TestFlight. This is the one hard gate.
-2. **Register the bundle ID** `com.jayahn.CrateScanner` at
+2. **Register the bundle ID** `com.jayahn.cratescanner170` at
    developer.apple.com → Certificates, Identifiers & Profiles → Identifiers.
+   (It's set by `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`. Bundle ids are
+   globally unique across all of Apple — if Xcode says one "cannot be
+   registered to your development team because it is not available", some team
+   already holds it, quite possibly an older Apple ID of your own.)
 3. **Create the app record** in App Store Connect → Apps → **+** → New App:
    platform iOS, that bundle ID, a name, primary language, and any SKU.
 4. **Set your team** so the archive can sign. Either pick it in Xcode under
@@ -145,7 +149,7 @@ Four things App Store Connect rejects or nags about, done in the repo:
 
 Verified by a Release build: the bundle carries `PrivacyInfo.xcprivacy`, both
 icon sizes, `CFBundleShortVersionString 1.0`, `CFBundleVersion 1`, and
-`com.jayahn.CrateScanner`.
+`com.jayahn.cratescanner170`.
 
 **Not verified here:** anything requiring an Apple Developer account — signing,
 archiving, and the upload itself. Those need credentials this machine doesn't

@@ -34,6 +34,15 @@ targets:
 
     settings:
       base:
+        # Set explicitly rather than composed from bundleIdPrefix + target name.
+        # The composed id (com.jayahn.CrateScanner) is already registered to an
+        # older Apple ID, and bundle ids are globally unique across all of Apple
+        # — Xcode fails with "cannot be registered to your development team
+        # because it is not available", which reads like a signing bug and isn't.
+        # Changing this makes iOS treat the build as a NEW app: the old app's
+        # scans, Keychain token and preferences stay with the old id.
+        PRODUCT_BUNDLE_IDENTIFIER: com.jayahn.cratescanner170
+
         INFOPLIST_FILE: CrateScanner/Info.plist
         # REQUIRED alongside INFOPLIST_FILE. The INFOPLIST_KEY_* settings below
         # are only merged into the plist when this is YES; with it off they are

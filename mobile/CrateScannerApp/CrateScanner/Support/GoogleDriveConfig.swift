@@ -15,7 +15,8 @@
 //     client but is only this list. (No Google review needed while it stays in
 //     Testing and uses the drive.file scope.)
 //  4. Credentials → Create Credentials → OAuth client ID → Application type:
-//     iOS → Bundle ID:  com.jayahn.CrateScanner  (matches project.yml).
+//     iOS → Bundle ID:  com.jayahn.cratescanner170  (must match
+//     PRODUCT_BUNDLE_IDENTIFIER in project.yml).
 //  5. Copy the Client ID (1234567890-abcd.apps.googleusercontent.com).
 //
 //  Then just PASTE that client ID into the app: review screen → Sync to Google

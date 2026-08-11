@@ -355,7 +355,7 @@ struct ResultReviewView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .font(.caption2.monospaced())
-                Text("Create it in Google Cloud Console → Credentials → iOS OAuth client (Bundle ID com.jayahn.CrateScanner). Steps in GoogleDriveConfig.swift.")
+                Text("Create it in Google Cloud Console → Credentials → iOS OAuth client (Bundle ID com.jayahn.cratescanner170). Steps in GoogleDriveConfig.swift.")
                     .font(.caption2).foregroundStyle(.secondary)
                 Button("Save client ID") {
                     GoogleDriveConfig.clientID = clientIDField
