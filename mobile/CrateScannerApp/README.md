@@ -32,7 +32,11 @@ build with `Cannot find 'SessionExporter' in scope`.
 ```bash
 brew install xcodegen          # once
 
-cd ~/3dasset/mobile/CrateScannerApp
+# This folder — which repo you cloned decides the path:
+#   engin_170 (app only)   →  cd ~/engin_170
+#   3dasset   (+ pipeline) →  cd ~/3dasset/mobile/CrateScannerApp
+cd ~/engin_170
+
 git pull
 xcodegen generate             # after EVERY pull that touches CrateScanner/
 open CrateScanner.xcodeproj
