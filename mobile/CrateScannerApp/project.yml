@@ -50,6 +50,18 @@ targets:
         # artwork with tools/make_app_icon.swift.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
+        # Version + build, required by App Store Connect. Without them the
+        # generated Info.plist has no CFBundleShortVersionString and the upload
+        # is rejected.
+        #
+        # MARKETING_VERSION is what testers see. CURRENT_PROJECT_VERSION must
+        # INCREASE for every upload — App Store Connect refuses a build number
+        # it has already seen, even after you delete that build. Bump it here
+        # before each archive, or pass it on the command line:
+        #     xcodebuild … CURRENT_PROJECT_VERSION=7
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+
         # Without the launch-screen key an iPad app runs letterboxed in
         # compatibility mode.
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

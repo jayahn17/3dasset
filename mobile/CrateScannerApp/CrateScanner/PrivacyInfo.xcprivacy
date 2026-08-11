@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    PrivacyInfo.xcprivacy — Apple's privacy manifest.
+
+    Required since May 2024. Without it, an upload that touches a "required
+    reason API" gets ITMS-91053 ("Missing API declaration") by email and is
+    eventually rejected — a slow, confusing failure, because the build uploads
+    and processes fine first.
+
+    What this app actually touches, and why:
+
+      • UserDefaults (CA92.1) — capture preferences, the intro-seen flag, the
+        Drive account label, the worker URL. All read back by this app only;
+        nothing leaves the device from here.
+      • File timestamps (DDA9.1) — ScanStorage sorts saved sessions by
+        modification date so the newest scan is findable. Files live inside the
+        app container.
+
+    Deliberately empty:
+
+      • NSPrivacyTracking — the app does no tracking and contacts no ad network.
+      • NSPrivacyCollectedDataTypes — scans go to the user's OWN Google Drive or
+        their own worker on their own tailnet. The developer collects nothing,
+        which is not the same as "no data moves" and is why this stays empty
+        rather than listing the uploads.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSPrivacyTracking</key>
+    <false/>
+
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array/>
+
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>CA92.1</string>
+            </array>
+        </dict>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>DDA9.1</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>

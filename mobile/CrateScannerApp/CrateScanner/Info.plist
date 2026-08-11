@@ -37,6 +37,15 @@
     </array>
 
     <!--
+        Export compliance. The app's only cryptography is HTTPS to Google and
+        Apple's own Keychain, which is exempt. Declaring it here answers the
+        question once; leave it out and App Store Connect asks about encryption
+        on EVERY build before testers can install it.
+    -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
+    <!--
         These two expose Documents/ in Files → On My iPad → CrateScanner, which
         is how a finished scan gets from the iPad to Google Drive (the Drive app
         registers as a Files provider) and on to Linux. Without them the folder

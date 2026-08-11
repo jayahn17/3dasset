@@ -5,6 +5,8 @@ LiDAR scan app for **iPad Pro / iPhone Pro** → zip for Linux `assetpipe`.
 > **New here? Read [WORKFLOW.md](WORKFLOW.md).** It explains what the app is
 > for, what a scan actually contains, and how it feeds the Linux 4080 pipeline —
 > with diagrams. This file is the build and configuration reference.
+>
+> **Getting it onto teammates' devices?** [TESTFLIGHT.md](TESTFLIGHT.md).
 
 This folder is the full app sources, already wired for:
 
