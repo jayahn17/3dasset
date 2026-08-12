@@ -80,7 +80,11 @@ function shownSplat(asset: Asset, anchor: AssetFile): AssetFile {
 
 export default function SplatEmbed({ asset }: { asset: Asset }) {
   const splat = anchorSplat(asset);
-  const src = splat ? viewerUrlFor(splat) : null;
+  // Prefer the URL the publisher SAYS it wrote; derive only for manifests
+  // published before that field existed. Once every live manifest carries it,
+  // viewerUrlFor and the anchor-ordering rule it depends on can both go, and
+  // with them the mirrored-picker trap they exist to work around.
+  const src = asset.splat_view_url ?? (splat ? viewerUrlFor(splat) : null);
   const shown = splat ? shownSplat(asset, splat) : null;
   // Click to load. A scene splat is tens of megabytes and every byte crosses a
   // serverless function, so it is never pulled just because someone opened the

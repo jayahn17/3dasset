@@ -112,6 +112,32 @@ export interface Asset {
    * no file whose numbers mean anything.
    */
   metric?: boolean;
+  /**
+   * Absolute blob URL of the standalone splat viewer published for this asset,
+   * and the intended way to reach it.
+   *
+   * WHY THIS FIELD EXISTS, AND WHY IT IS OPTIONAL
+   * ---------------------------------------------
+   * SplatEmbed used to DERIVE this URL in the browser: take the asset's splat
+   * URL, swap the last path segment for "splat_view.html". Nothing in the
+   * publisher knew that name, so the file was never uploaded and every asset's
+   * splat panel answered `blob 404` — six for six, for weeks. It hid because a
+   * URL built at runtime appears in no manifest and on no page, so crawling
+   * either one reports a healthy site.
+   *
+   * The repair was tools/publish_splat_view.mjs, which re-implements the same
+   * preference order to work out where to PUT the file. That leaves two copies
+   * of one rule in two languages, and a "mirrors SplatEmbed.pickSplat" comment
+   * is not a mechanism — improving either side alone silently breaks the other.
+   * (Nearly did: preferring the cropped panel here would move the derived
+   * directory if a panel ever lands somewhere other than beside its scene.)
+   *
+   * With this field the publisher states the URL it actually wrote, so there is
+   * one source of truth and no derived URL for a crawl to miss. Optional
+   * because every manifest published so far predates it; SplatEmbed falls back
+   * to deriving, so an older manifest keeps working exactly as it does today.
+   */
+  splat_view_url?: string;
 }
 
 export interface Manifest {
