@@ -225,6 +225,57 @@ def save_ledger(d: dict) -> None:
     LEDGER.write_text(json.dumps(d, indent=1))
 
 
+EXTRAS_FOLDER = "kiri_engine"
+EXTRAS_SEEN = REPO / "captures/status/.extras_done.json"
+
+
+def merge_extras() -> None:
+    """Pull anything new from CrateScans/<EXTRAS_FOLDER> and fold it into its block.
+
+    Matching is tools/asset_merge.py's job: exact block id, then the capture
+    ledger (which is the only thing that can turn `crate_20260811_20_14_43` into
+    `chair_20260811`), then an alias table, then word overlap. It REFUSES on a
+    tie rather than guessing — merging into the wrong block is invisible once
+    done.
+    """
+    try:
+        _, folders = list_folder(FOLDERS[0][1])
+    except Exception:
+        return
+    fid = folders.get(EXTRAS_FOLDER)
+    if not fid:
+        return
+    files, _ = list_folder(fid)
+    try:
+        seen = set(json.loads(EXTRAS_SEEN.read_text()))
+    except Exception:
+        seen = set()
+    fresh = {n: i for n, i in files.items() if n not in seen}
+    if not fresh:
+        return
+    spec = importlib.util.spec_from_file_location("d", REPO / "tools/drive_rgbd_autopilot.py")
+    d = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(d)
+    dest = REPO / "captures/kiri_engine"
+    dest.mkdir(parents=True, exist_ok=True)
+    apy = Path.home() / "miniconda3/envs/assetpipe/bin/python"
+    for n, i in sorted(fresh.items()):
+        log(f"EXTRA upload: {EXTRAS_FOLDER}/{n}")
+        p = dest / n
+        if not (p.exists() and p.stat().st_size > 1000):
+            if not d._download_drive_file(i, p):
+                log(f"  download failed: {n}")
+                continue
+        env = dict(os.environ)
+        env["BLOB_READ_WRITE_TOKEN"] = blob_token()
+        rc = subprocess.run([str(apy), str(REPO / "tools/asset_merge.py"), str(p)],
+                            cwd=REPO, env=env).returncode
+        if rc == 0:
+            seen.add(n)
+    EXTRAS_SEEN.parent.mkdir(parents=True, exist_ok=True)
+    EXTRAS_SEEN.write_text(json.dumps(sorted(seen), indent=1))
+
+
 def process(key: str, file_id: str, downloader) -> dict:
     # `key` may be "<account>/<zip>"; everything on disk uses the bare filename.
     zip_name = key.rsplit("/", 1)[-1]
@@ -290,6 +341,15 @@ def main() -> None:
                         "RECON3_ACCOUNTS to process it")
                 continue
             new.append((n, f))
+        # Extra reconstructions (KIRI Engine and friends) land in their own
+        # Drive folder and are NOT captures — they are more views of an object
+        # that already has a block. Fold them in rather than minting a card per
+        # tool, so one object stays one block.
+        try:
+            merge_extras()
+        except Exception as e:                 # never let this kill the loop
+            log(f"extras merge failed: {type(e).__name__}: {e}")
+
         for zip_name, fid in new:
             log(f"NEW upload: {zip_name}  [{ZIP_SOURCE.get(zip_name, '?')}]")
             try:

@@ -31,7 +31,8 @@ SH_C0 = 0.28209479177387814
 
 def convert(path: str, out_path: str, *, flip_y: bool = True,
             center: bool = True, max_gaussians: int = 0,
-            min_opacity: float = 0.02, crop_radius: float = 0.0) -> dict:
+            min_opacity: float = 0.02, crop_radius: float = 0.0,
+            drop_floor: bool = False) -> dict:
     v = PlyData.read(path)["vertex"]
     n0 = len(v)
 
@@ -81,6 +82,32 @@ def convert(path: str, out_path: str, *, flip_y: bool = True,
             mid = np.median(xyz, axis=0)
             xyz = xyz - mid
             offset = [float(x) for x in mid]
+        if drop_floor and len(xyz) > 2000:
+            # The subject sits ON something, and that something is a DENSE flat
+            # sheet of gaussians. Cropped to the object it becomes the largest
+            # surface in the panel, and the baked camera looks along it edge-on
+            # — the object disappears behind a wall of white fog. Verified on
+            # the chair: floor plane held more gaussians than the chair itself.
+            # Only fires when the plane is thin AND heavy, so a genuinely flat
+            # subject (a book lying down) is never gutted.
+            yv = xyz[:, 1]
+            lo_y, hi_y = np.percentile(yv, [1, 99])
+            if hi_y - lo_y > 1e-3:
+                hh, ee = np.histogram(yv, bins=120, range=(lo_y, hi_y))
+                k = int(hh.argmax())
+                plane = 0.5 * (ee[k] + ee[k + 1])
+                half = max((hi_y - lo_y) / 40.0, 0.01)
+                slab = np.abs(yv - plane) <= half
+                frac = slab.mean()
+                # a floor is near an extreme of the vertical range, not mid-object
+                at_edge = (plane - lo_y) < (hi_y - lo_y) * 0.3 or \
+                          (hi_y - plane) < (hi_y - lo_y) * 0.3
+                if 0.10 < frac < 0.60 and at_edge:
+                    keep = ~slab
+                    n_outlier += int(slab.sum())
+                    xyz, op, scales, quats, rgb = (
+                        a[keep] for a in (xyz, op, scales, quats, rgb)
+                    )
         if crop_radius and crop_radius > 0:
             # Hard spatial crop about the (centered) subject. The 1–99% box
             # above removes statistical outliers, but a room-scale tail —
@@ -139,6 +166,8 @@ def main() -> None:
     ap.add_argument("--max", type=int, default=0,
                     help="cap gaussian count, keeping the most visible")
     ap.add_argument("--min-opacity", type=float, default=0.02)
+    ap.add_argument("--drop-floor", action="store_true",
+                    help="remove the dense flat plane the subject rests on")
     ap.add_argument("--crop-radius", type=float, default=0.0,
                     help="drop splats farther than this many metres from the "
                          "centred subject (0 = keep everything)")
@@ -149,7 +178,8 @@ def main() -> None:
                              center=not args.no_center,
                              max_gaussians=args.max,
                              min_opacity=args.min_opacity,
-                             crop_radius=args.crop_radius), indent=2))
+                             crop_radius=args.crop_radius,
+                             drop_floor=args.drop_floor), indent=2))
 
 
 if __name__ == "__main__":

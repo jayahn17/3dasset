@@ -118,6 +118,43 @@ def blob_token() -> str:
     return ""
 
 
+def build_panel(out: Path, args, apy: Path) -> Path | None:
+    """Crop the trained splat down to the subject: the viewing copy.
+
+    Crop radius comes from the object's MEASURED size. The old rule was
+    3.0 * the full SCENE's radius_m — the radius of the room — so multiplying
+    it made the panel wider still (the chair got 7.58 m for a 0.91 m object).
+    The panel then held metres of floor, the camera framed all of it, and the
+    subject rendered as a speck in fog.
+    """
+    panel = out / "scene_panel.splat"
+    ply = REPO / "recon_work" / f"{args.name}_3dgut" / "scene_gaussians.ply"
+    if not ply.is_file():
+        ply = out / "scene_gaussians.ply"
+    if not ply.is_file() or (panel.is_file() and not args.force):
+        return panel if panel.is_file() else None
+    crop = 0.9
+    dims_p = out / "object_asset" / "dims.json"
+    meta_p = out / "scene_gaussians.splat.meta.json"
+    if dims_p.is_file():
+        try:
+            box = json.loads(dims_p.read_text())["object"]["aabb"]["raw_inches"]
+            diag_m = (sum((float(v) * 0.0254) ** 2 for v in box.values())) ** 0.5
+            crop = max(0.20, diag_m / 2.0 * 1.15)
+        except Exception:
+            pass
+    elif meta_p.is_file():
+        try:
+            crop = max(0.75, float(json.loads(meta_p.read_text())["radius_m"]))
+        except Exception:
+            pass
+    gpy = Path.home() / "miniconda3/envs/3dgrut/bin/python"
+    run([gpy if gpy.is_file() else apy, REPO / "tools/ply_to_splat.py", ply,
+         "--out", panel, "--max", "400000", "--min-opacity", "0.06",
+         "--crop-radius", f"{crop:.2f}", "--drop-floor"])
+    return panel if panel.is_file() else None
+
+
 def log(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
@@ -544,6 +581,11 @@ def main() -> int:
 
     # ---- publish ----------------------------------------------------------
     if "publish" in stages:
+        # Build the panel BEFORE publishing. It used to be made in the `page`
+        # stage, which runs after `publish`, so scene_panel.splat existed in
+        # blob but was never a MANIFEST file — and anything reading the manifest
+        # (the dashboard's own splat picker) fell back to the 30 MB room splat.
+        build_panel(out, args, apy)
         made = [f.name for f in sorted(out.glob("*.glb")) ] + \
                [f.name for f in sorted(out.glob("*.splat"))]
         if not made:
@@ -578,16 +620,33 @@ def main() -> int:
             ply = REPO / "recon_work" / f"{args.name}_3dgut" / "scene_gaussians.ply"
             meta_p = out / "scene_gaussians.splat.meta.json"
             if ply.is_file() and (not panel.is_file() or args.force):
+                # Crop to the OBJECT, from its measured size. The old rule was
+                # 3.0 * the FULL SCENE's radius_m — the radius of the room, so
+                # multiplying it made the panel wider still: the chair got a
+                # 7.58 m crop for a 0.91 m object (8.3x), koala 5.1x. The panel
+                # then held metres of floor, the baked camera framed all of it,
+                # and the subject rendered as a speck in a cloud. That is why
+                # no splat appeared to "show" on the dashboard.
                 crop = 0.9
-                if meta_p.is_file():
+                dims_p = out / "object_asset" / "dims.json"
+                if dims_p.is_file():
                     try:
-                        crop = max(0.75, 3.0 * float(json.loads(meta_p.read_text())["radius_m"]))
+                        box = json.loads(dims_p.read_text())["object"]["aabb"]["raw_inches"]
+                        diag_m = (sum((float(v) * 0.0254) ** 2 for v in box.values())) ** 0.5
+                        crop = max(0.20, diag_m / 2.0 * 1.15)   # half-diagonal + margin
+                    except Exception:
+                        pass
+                elif meta_p.is_file():
+                    # no metric dims (depth-less capture): fall back to the
+                    # scene radius, but do NOT inflate it
+                    try:
+                        crop = max(0.75, float(json.loads(meta_p.read_text())["radius_m"]))
                     except Exception:
                         pass
                 gpy = Path.home() / "miniconda3/envs/3dgrut/bin/python"
                 run([gpy if gpy.is_file() else apy, REPO / "tools/ply_to_splat.py", ply,
                      "--out", panel, "--max", "400000", "--min-opacity", "0.06",
-                     "--crop-radius", f"{crop:.2f}"])
+                     "--crop-radius", f"{crop:.2f}", "--drop-floor"])
             # spec: one card per artifact that exists
             cards = []
             if (out / "meshroom_visual.glb").is_file():
@@ -672,6 +731,17 @@ def main() -> int:
                     tmp.write_text(json.dumps(idx, indent=1))
                     up.upload(str(tmp), "benchmark/index.json")
                     log(f"page: published + indexed ({len(idx['pages'])} pages)")
+                    # SplatEmbed on the ASSET page builds its viewer URL at
+                    # runtime: <the splat's dir>/splat_view.html. Nothing else
+                    # publishes that name, so without this every asset's in-page
+                    # splat panel answers `blob 404`. It stayed invisible for
+                    # weeks because that URL is in no manifest and on no
+                    # benchmark page — crawling either reports a healthy site.
+                    rc_sv = run(["node", REPO / "tools/publish_splat_view.mjs",
+                                 args.name], cwd=REPO).returncode
+                    if rc_sv != 0:
+                        log("page: splat_view.html NOT published — the asset "
+                            "page's splat panel will 404")
 
     log(f"DONE — demo_out/{args.name}/: " +
         ", ".join(sorted(p.name for p in out.iterdir() if p.is_file())))
