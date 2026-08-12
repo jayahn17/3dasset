@@ -915,6 +915,8 @@ export default function Viewer({ asset }: { asset: Asset }) {
       gizmo.renderOrder = 999;
       scene.add(gizmo);
 
+      // Picking tolerance for point clouds, in world units. Unrelated to how big
+      // the handles LOOK — that is decided per frame in sizeGizmo() below.
       const markerR = Math.max(radius * 0.014, 0.0012);
       const ray = new THREE.Raycaster();
       ray.params.Points.threshold = markerR * 2;
@@ -923,6 +925,23 @@ export default function Viewer({ asset }: { asset: Asset }) {
       const proj = new THREE.Vector3();
       const YUP = new THREE.Vector3(0, 1, 0);
 
+      /* Handles are sized in SCREEN PIXELS, re-scaled every frame.
+       *
+       * They were a world-space sphere at 1.4% of the model radius, which is the
+       * wrong primitive for a grab handle: it SWELLS as you zoom in — exactly
+       * when you are trying to see the surface underneath it — and vanishes when
+       * you zoom out. Shrinking the radius only moves the problem to a different
+       * zoom level. Constant apparent size fixes it at every distance.
+       *
+       * 3.5 px radius, matching the splat viewer's handles: the two tapes are one
+       * gesture on two renderers and must not look like two different tools. */
+      const DOT_PX = 3.5;
+      const BAR_PX = 1.1;
+
+      /** World size that subtends one screen pixel at distance `d`. */
+      const pxToWorld = (d: number) =>
+        (2 * Math.tan((camera.fov * Math.PI) / 180 / 2) * d) / Math.max(vh, 1);
+
       /** A live measurement: two draggable ends, the bar between them, and the
        *  floating label. `n` ties it to its React row. */
       interface Live {
@@ -930,6 +949,10 @@ export default function Viewer({ asset }: { asset: Asset }) {
         a: T.Mesh;
         b: T.Mesh;
         bar: T.Mesh;
+        /** Distance between the ends, in world units — the bar's LENGTH scale.
+         *  Held here because the per-frame resize owns the whole scale vector
+         *  and must not clobber the length it is not responsible for. */
+        len: number;
         label: HTMLDivElement;
       }
       const live: Live[] = [];
@@ -939,11 +962,33 @@ export default function Viewer({ asset }: { asset: Asset }) {
 
       const mkDot = (p: T.Vector3) => {
         const s = new THREE.Mesh(markerGeom, markerMat);
-        s.scale.setScalar(markerR);
         s.position.copy(p);
         s.renderOrder = 999;
         gizmo.add(s);
+        // Sized on the next frame; set something sane now so it cannot flash at
+        // the model's full radius for one frame.
+        s.scale.setScalar(DOT_PX * pxToWorld(camera.position.distanceTo(p)));
         return s;
+      };
+
+      /** Give every handle and bar its constant apparent size for THIS frame.
+       *  Cheap: a distance and a multiply per object, no allocation. */
+      const sizeGizmo = () => {
+        for (const m of live) {
+          const ra = DOT_PX * pxToWorld(camera.position.distanceTo(m.a.position));
+          const rb = DOT_PX * pxToWorld(camera.position.distanceTo(m.b.position));
+          m.a.scale.setScalar(ra);
+          m.b.scale.setScalar(rb);
+          const rbar = BAR_PX * pxToWorld(camera.position.distanceTo(m.bar.position));
+          m.bar.scale.set(rbar, m.len, rbar);
+        }
+        // The in-progress first dot is not in `live` yet, and leaving it out is
+        // how you get one fat dot sitting among correctly-sized ones.
+        if (firstDot) {
+          firstDot.scale.setScalar(
+            DOT_PX * pxToWorld(camera.position.distanceTo(firstDot.position)),
+          );
+        }
       };
 
       /** Re-fit the bar and re-word the label. Called on create and on every
@@ -951,7 +996,7 @@ export default function Viewer({ asset }: { asset: Asset }) {
       const refresh = (m: Live) => {
         const d = m.a.position.distanceTo(m.b.position);
         mid.copy(m.b.position).sub(m.a.position);
-        m.bar.scale.set(markerR * 0.34, d, markerR * 0.34);
+        m.len = d;
         m.bar.position.copy(m.a.position).add(m.b.position).multiplyScalar(0.5);
         if (d > 1e-9) m.bar.quaternion.setFromUnitVectors(YUP, mid.normalize());
         m.label.textContent = inchStr(d);
@@ -988,6 +1033,7 @@ export default function Viewer({ asset }: { asset: Asset }) {
           a: mkDot(pa),
           b: mkDot(pb),
           bar: new THREE.Mesh(barGeom, barMat),
+          len: pa.distanceTo(pb),
           label,
         };
         m.bar.renderOrder = 999;
@@ -996,6 +1042,9 @@ export default function Viewer({ asset }: { asset: Asset }) {
         // Seed the row before refresh(), which updates an existing row by n.
         setMeasures((prev) => [...prev, { n, dist: pa.distanceTo(pb) }]);
         refresh(m);
+        // The bar has no scale until a frame runs, so size it now — otherwise it
+        // renders once at scale (1, len, 1): a metre-wide cylinder.
+        sizeGizmo();
       }
 
       /** Screen-space distance from an event to a point, in CSS pixels. */
@@ -1140,6 +1189,9 @@ export default function Viewer({ asset }: { asset: Asset }) {
       const tick = () => {
         raf = requestAnimationFrame(tick);
         controls.update();
+        // BEFORE the draw: handles are sized from the camera distance, so doing
+        // it after would show every frame's dots at the previous frame's zoom.
+        sizeGizmo();
         renderer.render(scene, camera);
         // Each label tracks its own midpoint. Hidden when the midpoint falls
         // behind the camera (z > 1), which otherwise pins the label to an edge
