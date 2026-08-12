@@ -149,8 +149,35 @@ function score(f: AssetFile): number {
  * .ply and no dims, and was told it was "trimmed harder than the .ply the dims
  * came from": two references to nothing, in one clause.
  */
+/**
+ * Short name for the reconstruction a file belongs to — for the switcher.
+ *
+ * The switcher listed bare filenames, so choosing between reconstructions meant
+ * knowing that `kiri_visual.glb` is KIRI Engine and `asset_trellis.glb` is the
+ * generative one. A customer told us the KIRI meshes were missing when in fact
+ * every one of them was in this menu, spelled as a filename.
+ */
+function reconLabel(f: AssetFile): string {
+  const n = f.name.toLowerCase();
+  // 3DModel.obj is KIRI Engine's own export name, so it is matched by name and
+  // not by a "kiri" substring that isn't there.
+  if (/kiri/.test(n) || /kiri/.test(f.rel.toLowerCase()) || n === "3dmodel.obj")
+    return "KIRI Engine";
+  if (/meshroom/.test(n)) return "Photo mesh";
+  if (/trellis/.test(n)) return "AI mesh";
+  if (/_m\.(ply|obj)$|_mm\.(stl|obj|ply)$/.test(n)) return "CAD mesh";
+  if (/^object_mesh\./.test(n)) return "Scan";
+  return "Other";
+}
+
 function describe(f: AssetFile, asset: Asset): string {
   const n = f.name.toLowerCase();
+  // KIRI and Meshroom fell through to "published geometry", which named neither
+  // what produced them nor why their numbers differ from the printed size.
+  if (/kiri/.test(n) || /kiri/.test(f.rel.toLowerCase()) || n === "3dmodel.obj")
+    return "KIRI Engine photogrammetry, a second reconstruction of this capture";
+  if (/meshroom/.test(n))
+    return "AliceVision photogrammetry, a second reconstruction of this capture";
   if (/trellis/.test(n)) return "TRELLIS generative reconstruction, not the measured fuse";
   if (/_m\.ply$|_m\.obj$|_mm\.(stl|obj|ply)$/.test(n))
     return "CAD mesh rebuilt from the Gaussian splat";
@@ -1518,6 +1545,29 @@ export default function Viewer({ asset }: { asset: Asset }) {
         >
           {!metric ? "Nothing to measure" : measuring ? "📏 Measuring" : "📏 Measure"}
         </button>
+        {/* View and measure ANY reconstruction the asset ships — KIRI Engine,
+            AliceVision, TRELLIS, the RGB-D fuse. Promoted out of the utility
+            cluster and labelled by RECONSTRUCTION rather than by filename: a
+            customer reported the KIRI meshes were missing when every one of them
+            was already in this menu, spelled `kiri_visual.glb` in 12px grey
+            among four other files. The ranked default still opens first, because
+            it is the file the printed size was measured on. */}
+        {viewables.length > 1 && (
+          <label className="vpick">
+            <span>Showing</span>
+            <select
+              value={chosenRel ?? pick?.file.rel ?? ""}
+              onChange={(e) => setChosenRel(e.target.value)}
+              title="Choose which reconstruction to view and measure"
+            >
+              {viewables.map((f) => (
+                <option key={`${f.group}/${f.rel}`} value={f.rel}>
+                  {reconLabel(f)} — {f.name} ({f.size})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {/* Utilities, visually quieter and pushed right, so the bar reads as one
             action plus some controls rather than five equal choices. */}
         <span className="util">
@@ -1532,24 +1582,6 @@ export default function Viewer({ asset }: { asset: Asset }) {
         <button type="button" className="vbtn" onClick={reset} disabled={phase !== "ready"}>
           Reset view
         </button>
-        {/* View ANY reconstruction the asset ships — AliceVision, TRELLIS,
-            KIRI-OSS, the fuse mesh — and measure in whichever is loaded. The
-            ranked default still opens first because it is the file the printed
-            dims were measured on. */}
-        {viewables.length > 1 && (
-          <select
-            className="vbtn"
-            value={chosenRel ?? pick?.file.rel ?? ""}
-            onChange={(e) => setChosenRel(e.target.value)}
-            title="Choose which 3D file to view and measure"
-          >
-            {viewables.map((f) => (
-              <option key={`${f.group}/${f.rel}`} value={f.rel}>
-                {f.name} ({f.size})
-              </option>
-            ))}
-          </select>
-        )}
         {/* Camera only. The label says "Camera up" and not "Up axis" because the
             button changes where the camera stands, not what the file is: the
             names below (length, width, height) and the comparison against the

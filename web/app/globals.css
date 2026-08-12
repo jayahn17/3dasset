@@ -239,6 +239,17 @@ code { background: #161b22; padding: 2px 7px; border-radius: 5px; font-size: 13p
 .vbtn.primary[aria-pressed="false"] { background: #10233d; color: #cfe3ff; }
 .vbtn.primary[aria-pressed="false"]:hover:not(:disabled) {
   background: #16325a; border-color: #388bfd; color: #cfe3ff; }
+/* The reconstruction switcher, beside Measure rather than demoted into the grey
+   utilities. It is the second most important control in the panel — it decides
+   WHAT you are measuring — and as a bare 12px filename dropdown among four
+   utility buttons it read as one. */
+.vpick { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; }
+.vpick > span { color: var(--dim); }
+.vpick select { font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 7px;
+  border: 1px solid var(--line2); background: #12171e; color: var(--fg);
+  cursor: pointer; max-width: min(46vw, 340px); }
+.vpick select:hover { border-color: var(--accent); }
+
 .vbar .util { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .vbar .util .vbtn, .vbar .util select { font-size: 12px; padding: 5px 10px; color: var(--dim); }
 .vbar .util .vbtn:hover:not(:disabled) { color: var(--fg); }
