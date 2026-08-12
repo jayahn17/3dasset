@@ -1,0 +1,51 @@
+{
+ "title": "Koala 2026-08-05 \u2014 interactive reconstructions",
+ "dest": "benchmark/koala_20260805",
+ "lede": "A plush koala captured as 25 RGB-D keyframes \u2014 the pipeline's reference-quality result: the fuse AABB (6.00 x 5.75 x 5.00 in) and TRELLIS's independently scaled mesh agree exactly, and the AliceVision scale residual is 6.4 mm. Every panel orbits; Measure On, click two points for real inches.",
+ "cards": [
+  {
+   "id": "av_koala",
+   "title": "AliceVision",
+   "method": "photogrammetry, metric via ARKit track",
+   "glb": "/home/jaeahn-jammy/3dasset/demo_out/koala_20260805/meshroom_visual.glb",
+   "input": "25 keyframes @ 4032x3024",
+   "views": "25 / 25 calibrated",
+   "time": "~8 min",
+   "scale": "METRIC (6.4 mm residual)",
+   "note": "The measurable reference for this capture."
+  },
+  {
+   "id": "trellis_koala",
+   "title": "TRELLIS",
+   "method": "generative diffusion",
+   "glb": "/home/jaeahn-jammy/3dasset/demo_out/koala_20260805/asset_trellis.glb",
+   "input": "4 views picked from 25",
+   "views": "4",
+   "time": "22 s",
+   "scale": "metric 152.4 x 146.1 x 127.0 mm (agrees with the fuse)",
+   "note": "Generated back side is invented but plausible; scale is trustworthy on this capture."
+  },
+  {
+   "id": "gut_koala",
+   "title": "3DGUT \u2014 Gaussian splat",
+   "method": "splat training",
+   "splat": "/home/jaeahn-jammy/3dasset/demo_out/koala_20260805/scene_panel.splat",
+   "input": "25 keyframes, ARKit poses",
+   "views": "25 / 25",
+   "time": "~85 min",
+   "scale": "METRIC (ARKit poses)",
+   "note": "Photoreal fur. Orbit inside the panel; tape measure not available in splat panels. Panel build: cropped to the subject, 380k splats, opacity floor 0.06 \u2014 orbits smoothly."
+  },
+  {
+   "id": "sf_koala",
+   "title": "Splatfacto (nerfstudio)",
+   "method": "3DGS \u2014 same input as the 3DGUT card",
+   "splat": "/home/jaeahn-jammy/3dasset/demo_out/koala_20260805/splatfacto_panel.splat",
+   "input": "same 25 ARKit-posed images as 3DGUT",
+   "views": "25 / 25",
+   "time": "~25 min (30k it)",
+   "scale": "METRIC (pose auto-rescale disabled)",
+   "note": "The A/B: identical COLMAP input, splatfacto instead of 3DGUT. Note splatfacto spent ~half its gaussians on the carpet where 3DGUT spent 90% on the koala \u2014 the crop hides it here, but it is a real trainer difference."
+  }
+ ]
+}

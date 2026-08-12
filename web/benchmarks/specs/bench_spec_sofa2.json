@@ -1,0 +1,63 @@
+{
+ "title": "Sofa 2026-08-05 \u2014 reconstruction benchmark",
+ "dest": "benchmark/sofa_20260805",
+ "lede": "One subject, one day, five reconstructions. The same tan leather sofa, captured as 31 photos and a 356-frame video, through generative (TRELLIS), photogrammetry (Meshroom/AliceVision) and an open-source reproduction of the KIRI Engine pipeline. All metric, gravity-aligned, measurable in-viewer. The RGB-D fuse rows were retired: they measured the room, not the sofa.",
+ "cards": [
+  {
+   "id": "trellis_photo",
+   "title": "TRELLIS \u2014 PHOTO",
+   "method": "generative diffusion",
+   "glb": "/tmp/claude-1000/-home-jaeahn-jammy-3dasset/e4ef1659-0b93-42bd-b9a5-a09d91009ab4/scratchpad/trellis_0805.glb",
+   "input": "4 views picked from 31",
+   "views": "4",
+   "time": "18 s",
+   "scale": "metric via RGB-D dims (1917 x 2184 x 1651 mm)",
+   "note": "Fastest, cleanest, most complete-looking. Geometry is invented where unseen \u2014 complete, not measured."
+  },
+  {
+   "id": "trellis_video",
+   "title": "TRELLIS \u2014 VIDEO",
+   "method": "generative diffusion",
+   "glb": "/tmp/claude-1000/-home-jaeahn-jammy-3dasset/e4ef1659-0b93-42bd-b9a5-a09d91009ab4/scratchpad/trellis_video_0805.glb",
+   "input": "4 views picked from 356",
+   "views": "4",
+   "time": "38 s",
+   "scale": "metric via RGB-D dims (1206 x 1606 x 2127 mm)",
+   "note": "Same model, views drawn from video. Its dims differ from the photo run because the RGB-D fuse it borrows from differs."
+  },
+  {
+   "id": "meshroom_photo",
+   "title": "Meshroom \u2014 PHOTO",
+   "method": "photogrammetry (AliceVision)",
+   "glb": "/tmp/claude-1000/-home-jaeahn-jammy-3dasset/e4ef1659-0b93-42bd-b9a5-a09d91009ab4/scratchpad/meshroom_0805.glb",
+   "input": "31 photos @ 4032x3024",
+   "views": "31 / 31 calibrated",
+   "time": "~8 min",
+   "scale": "METRIC via ARKit camera track (residual 23 mm)",
+   "note": "1.30M faces, 32.6k landmarks. Scaled+uprighted by aligning its 31 SfM camera centres to the session's metric ARKit poses."
+  },
+  {
+   "id": "meshroom_video",
+   "title": "Meshroom \u2014 VIDEO",
+   "method": "photogrammetry (AliceVision)",
+   "glb": "/tmp/claude-1000/-home-jaeahn-jammy-3dasset/e4ef1659-0b93-42bd-b9a5-a09d91009ab4/scratchpad/meshroom_video_0805.glb",
+   "input": "150 frames culled from 356",
+   "views": "150 / 150 calibrated",
+   "time": "~35 min",
+   "scale": "METRIC via ARKit camera track (residual 20 mm)",
+   "note": "2.22M faces, 125k landmarks, single component. Same ARKit alignment over 150 cameras."
+  },
+  {
+   "id": "kiri_oss",
+   "title": "KIRI-OSS \u2014 PHOTO",
+   "method": "open-source reproduction of KIRI's documented pipeline",
+   "glb": "/home/jaeahn-jammy/3dasset/bench_out/sofa_20260805/kiri_oss_0805.glb",
+   "input": "31 photos (28 kept by a fixed 90% quota)",
+   "views": "28 / 28 solved",
+   "time": "~7 min solve / ~9 min end-to-end",
+   "scale": "METRIC, isolated \u2014 81 x 34 x 35 in \u00b1 1\u20132 in",
+   "note": "BiRefNet masking + AliceVision, scaled by fitting the RGB-only camera track onto the ARKit track (RMS 30 mm, per-camera median 24 mm, worst 70 mm). The only row whose scale is solved on geometry isolated to the sofa \u2014 the RGB-D fuse measures a room, TRELLIS borrows one axis of those numbers, Meshroom stays in SfM units. Two caveats: H is a STANDING height, mesh top to the LiDAR floor plane, so ~10 in of it is the gap under a sofa whose legs the isolation removed (the mesh you can load is 25 in tall); and 76% of its surface lies within 20 mm of the LiDAR depth while only 34% of the LiDAR surface lies within 20 mm of it \u2014 locally accurate, substantially incomplete.",
+   "caveat": "H is measured to the LiDAR floor \u2014 the mesh you can load here is 25 in tall."
+  }
+ ]
+}

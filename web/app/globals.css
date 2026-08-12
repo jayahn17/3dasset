@@ -1,0 +1,209 @@
+:root {
+  --bg: #0b0d10; --panel: #0e1218; --line: #21262d; --line2: #30363d;
+  --fg: #e6edf3; --dim: #8b949e; --accent: #58a6ff;
+  --good: #4ade80; --warn: #fbbf24; --bad: #f87171;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px 72px; }
+
+header.site { border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #141920, var(--bg)); }
+header.site .wrap { padding-top: 30px; padding-bottom: 22px; }
+h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: -.02em; }
+h2 { font-size: 18px; margin: 34px 0 12px; letter-spacing: -.01em; }
+.sub { color: var(--dim); max-width: 76ch; margin: 0; }
+
+.grid { display: grid; gap: 16px; margin-top: 22px;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+.card { border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  background: var(--panel); display: flex; flex-direction: column;
+  transition: border-color .15s, transform .15s; }
+.card:hover { border-color: var(--line2); transform: translateY(-2px); }
+.thumb { aspect-ratio: 16/10; background: #05070a; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .none { color: var(--dim); font-size: 13px; }
+.card .body { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.card h3 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+.muted { color: var(--dim); font-size: 13px; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 6px; }
+.chip { font-size: 11px; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--line2); color: var(--dim); white-space: nowrap; }
+.chip.on { border-color: #1f6feb; color: #cfe3ff; background: #10233d; }
+/* Reserved for "this number does not exist" states — a missing metric scale, not
+   a wide tolerance. Amber, so it never reads as just another grey caption. */
+.chip.warn, .tol.warn { border-color: #4a3a12; color: var(--warn); background: #1c1608; }
+
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.dl { display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px;
+  border: 1px solid #1f6feb; border-radius: 7px; background: #10233d;
+  color: #cfe3ff; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.dl:hover { background: #16325a; text-decoration: none; }
+
+.panel { border: 1px solid var(--line); border-radius: 12px;
+  background: var(--panel); margin: 18px 0; overflow: hidden; }
+.panel > h3 { margin: 0; padding: 14px 18px; font-size: 15px;
+  border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+.panel .note { padding: 10px 18px 0; color: var(--dim); font-size: 13px; }
+.panel .inner { padding: 4px 18px 14px; }
+/* The format reference is a .panel rendered inside a details.panel, so strip the
+   inner frame rather than nesting two cards with two radii. */
+details.panel > .panel { border: 0; border-radius: 0; margin: 0; background: transparent; }
+.kv { display: flex; flex-wrap: wrap; gap: 8px 26px; color: var(--dim);
+  font-size: 13px; margin: 10px 0 0; }
+.kv b { color: var(--fg); font-weight: 600; }
+/* Not scoped to .kv: the index card prints the same tolerance beside the same
+   figure, and an unstyled "± 1–2 in" there would read as part of the number. */
+.tol { color: var(--dim); font-size: 11px; border: 1px solid var(--line2);
+  border-radius: 999px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; }
+/* Red, matching .vwarn.bad in the viewer below it: "±1–2 in" and "this figure is
+   not this object" are different claims and must not share a colour with each
+   other or with the amber no-scale chip. */
+.tol.bad, .chip.bad { border-color: #5c2422; color: #ffb4b0; background: #1d0f0f; }
+/* The header's own dispute notice. Boxed and above the fold because it has to
+   reach a reader who never gets to the viewer's banner. */
+.hdrwarn { margin: 14px 0 0; max-width: 76ch; padding: 10px 12px; border-radius: 8px;
+  font-size: 13px; color: var(--bad); border: 1px solid #5c2422; background: #1d0f0f; }
+.hdrwarn b { color: #ffb4b0; }
+/* Quiet by design: how a figure was rounded is a footnote to the figure, never
+   a warning about it. */
+.hdrnote { margin: 8px 0 0; max-width: 76ch; }
+.back { display: inline-block; margin: 22px 0 0; color: var(--dim); font-size: 13px; }
+
+/* The measurement is the product, so it is the biggest thing on the asset page.
+   It used to be 13px grey, styled identically to "route trellis" beside it,
+   while the largest text was the asset id. Only ever rendered for
+   claim.state === "measured"; the disputed and no-scale states keep their
+   existing coloured treatments and are deliberately NOT enlarged. */
+.hero { margin: 16px 0 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+.hero .fig { font-size: clamp(22px, 4.4vw, 31px); font-weight: 650; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; line-height: 1.1; }
+.hero .tol { font-size: 12px; }
+
+/* Per-row verdict in the download tables. Amber TEXT (no chip) for the
+   alt-reconstruction and capture-scale cases, so the amber .chip stays reserved
+   for the one "this has no real-world scale" claim it is reserved for above. */
+td .rowwarn { color: var(--warn); }
+td .rowsrc { color: #cfe3ff; }
+tr.isrc > td { background: #0c1725; }
+.panelwarn { margin: 0; padding: 8px 18px 0; font-size: 13px; color: var(--warn); }
+
+/* Homepage orientation strip: what this is and what to do, in place of the
+   store telemetry (files / MB / bytes) that used to occupy the first screen. */
+.steps { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 12px 0 0; padding: 0;
+  list-style: none; color: var(--dim); font-size: 13px; }
+.steps li { display: flex; align-items: baseline; gap: 7px; }
+.steps b { color: var(--fg); font-weight: 600; }
+.strip { margin: 18px 0 0; }
+.strip h2 { font-size: 13px; margin: 0 0 8px; color: var(--dim); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em; }
+.strip .row { display: flex; flex-wrap: wrap; gap: 8px; }
+.empty { border: 1px dashed var(--line2); border-radius: 12px; padding: 40px;
+  text-align: center; color: var(--dim); margin-top: 24px; }
+code { background: #161b22; padding: 2px 7px; border-radius: 5px; font-size: 13px; }
+
+/* ---- 3D viewer ---------------------------------------------------------- */
+/* The canvas box matches .thumb (16/10 on #05070a) so the panel keeps the same
+   silhouette as the still previews while the mesh is still downloading. */
+.viewer { position: relative; aspect-ratio: 16/10; min-height: 300px; max-height: 70vh;
+  background: #05070a; overflow: hidden; outline: none;
+  /* Without this the browser eats pointer events as scroll/zoom gestures and
+     OrbitControls never sees a two-finger drag. */
+  touch-action: none; }
+.viewer.measuring { cursor: crosshair; }
+.viewer:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+/* The canvas is appended imperatively, so it is a static-position sibling of
+   these overlays; the explicit z-index keeps that from ever mattering. */
+.viewer canvas { position: relative; z-index: 1; }
+.viewer .center { z-index: 2; position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px; padding: 24px;
+  text-align: center; color: var(--dim); font-size: 13px; }
+.viewer .center b { color: var(--fg); font-size: 14px; }
+.viewer .center span { max-width: 44ch; }
+.vlabel { position: absolute; z-index: 2; transform: translate(-50%, -50%); pointer-events: none;
+  background: rgba(8, 12, 18, .92); border: 1px solid var(--line2); border-radius: 7px;
+  padding: 4px 9px; font-size: 12px; font-weight: 600; white-space: nowrap;
+  color: var(--fg); font-variant-numeric: tabular-nums; }
+.meter { width: min(240px, 60%); height: 4px; border-radius: 2px; background: #161b22;
+  overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--accent); transition: width .15s linear; }
+
+.vbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 12px 18px; border-top: 1px solid var(--line); }
+.vbtn { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 7px;
+  border: 1px solid var(--line2); background: #12171e; color: var(--fg); cursor: pointer; }
+.vbtn:hover:not(:disabled) { border-color: var(--line2); background: #182029; }
+.vbtn:disabled { opacity: .45; cursor: default; }
+.vlegend { color: var(--dim); font-size: 12px;
+  font-variant-numeric: tabular-nums; }
+/* Shown only while the camera-up override is on. It has to read as a state of
+   the VIEW, not a warning about the data — nothing about the file changed — so
+   it is a quiet outline rather than the amber "this number is wrong" chip. */
+.vflag { font-size: 12px; padding: 3px 9px; border-radius: 999px;
+  border: 1px dashed var(--line2); color: var(--dim); white-space: nowrap; }
+
+.vread { display: grid; gap: 10px 22px; padding: 12px 0 4px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.vread.top { border-top: 1px solid var(--line); }
+.vread .k { display: block; color: var(--dim); font-size: 11px; text-transform: uppercase;
+  letter-spacing: .05em; }
+.vread .k em { font-style: normal; text-transform: none; letter-spacing: 0; }
+.vread b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.vread b.off { font-size: 13px; font-weight: 400; color: var(--dim); }
+.vread b em { font-style: normal; font-weight: 400; font-size: 12px; color: var(--dim); }
+
+.vwarn { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 13px;
+  color: var(--warn); border: 1px solid #4a3a12; background: #1c1608; }
+/* Amber says "wider than you would like"; red says "one of these two numbers is
+   not this object". A 9x gap between the printed size and the model on screen is
+   the second thing, and it must not look like the first. */
+.vwarn.bad { color: var(--bad); border-color: #5c2422; background: #1d0f0f; }
+.vwarn.bad b { color: #ffb4b0; }
+.vsrc { margin-top: 10px; }
+/* Verdict pill INSIDE the canvas box. The warning about what is on screen used
+   to live in a paragraph below a toolbar that wraps to 3-4 rows on a phone —
+   two screens away from the number the customer is reading. Re-prints a verdict
+   the panel already derived; it computes nothing. Reuses the .vwarn token pairs
+   so there is no fourth colour. */
+.vstatus { position: absolute; z-index: 2; top: 10px; left: 10px; pointer-events: none;
+  max-width: min(46ch, calc(100% - 20px)); font-size: 12px; font-weight: 600;
+  padding: 5px 10px; border-radius: 999px;
+  color: var(--warn); border: 1px solid #4a3a12; background: rgba(28, 22, 8, .94); }
+.vstatus.bad { color: #ffb4b0; border-color: #5c2422; background: rgba(29, 15, 15, .94); }
+
+/* The control bar used to be five buttons of identical weight — measure, clear,
+   reset, file switcher, camera up — so nothing said which one you came for.
+   Measure is the product; everything else is a utility. */
+.vbtn.primary { border-color: #1f6feb; background: #1f6feb; color: #fff; font-weight: 600; }
+.vbtn.primary:hover:not(:disabled) { background: #388bfd; border-color: #388bfd; }
+.vbtn.primary[aria-pressed="false"] { background: #10233d; color: #cfe3ff; }
+.vbtn.primary[aria-pressed="false"]:hover:not(:disabled) {
+  background: #16325a; border-color: #388bfd; color: #cfe3ff; }
+.vbar .util { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.vbar .util .vbtn, .vbar .util select { font-size: 12px; padding: 5px 10px; color: var(--dim); }
+.vbar .util .vbtn:hover:not(:disabled) { color: var(--fg); }
+/* Nobody discovers click-to-measure on their own, so say it in the canvas, once,
+   and only while it is true: measuring on, nothing placed yet, model ready. */
+.vhint { position: absolute; z-index: 2; left: 50%; bottom: 12px; transform: translateX(-50%);
+  pointer-events: none; font-size: 12px; padding: 6px 12px; border-radius: 999px;
+  color: var(--fg); background: rgba(8, 12, 18, .92); border: 1px solid var(--line2);
+  text-align: center; max-width: min(34ch, calc(100% - 24px)); }
+/* The tolerance note is the one thing a customer must read before trusting a
+   number, so it is boxed rather than left as another grey caption. */
+.vprecision { margin: 12px 0 0; padding: 12px 14px; border-radius: 8px; font-size: 13px;
+  line-height: 1.55; color: var(--dim); border: 1px solid var(--line2); background: #0a0e14; }
+.vprecision b { color: var(--fg); }
+/* Same box, amber, for a mesh with no metric scale. "±1–2 in" and "no size at
+   all" are different claims and must not share a colour. */
+.vprecision.nometric { border-color: #4a3a12; background: #1c1608; color: #cbb98a; }
+.vprecision.nometric b { color: var(--warn); }

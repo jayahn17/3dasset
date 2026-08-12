@@ -1,0 +1,84 @@
+[
+ {
+  "id": "rgbd_photo",
+  "title": "RGB-D fuse — PHOTO",
+  "method": "LiDAR depth + ARKit pose",
+  "glb": "bench_out/sofa_20260805/rgbd_photo.glb",
+  "input": "31 photos @ 4032x3024",
+  "views": "7 merged",
+  "time": "~20 s",
+  "scale": "METRIC but NOT isolated — 75.5 x 86.0 x 65.0 in (room + couch)",
+  "note": "Scale is measured from LiDAR depth, but the fuse never separates the sofa from the room, so this box describes a volume containing the couch rather than the couch. Partial coverage: 1 anchor + 6 ICP merges.",
+  "caveat": "Box includes the room, not just the sofa."
+ },
+ {
+  "id": "rgbd_video",
+  "title": "RGB-D fuse — VIDEO",
+  "method": "LiDAR depth + ARKit pose",
+  "glb": "bench_out/sofa_20260805/rgbd_video.glb",
+  "input": "356 frames @ 3840x2160",
+  "views": "6 merged",
+  "time": "~40 s",
+  "scale": "METRIC but NOT isolated — 47.5 x 63.25 x 83.75 in (room + couch)",
+  "note": "Same fuse, video capture. Its box disagrees with the photo run by 19–28 in per axis — that spread is the measure of how much room each one swept in, and why neither is a quotable sofa size.",
+  "caveat": "Box includes the room; disagrees with the photo run by 19–28 in."
+ },
+ {
+  "id": "trellis_photo",
+  "title": "TRELLIS — PHOTO",
+  "method": "generative diffusion",
+  "glb": "bench_out/sofa_20260805/trellis_0805.glb",
+  "input": "4 views picked from 31",
+  "views": "4",
+  "time": "18 s",
+  "scale": "single-axis fit — mesh is 2184 x 1215 x 1117 mm",
+  "note": "Fastest, cleanest, most complete-looking, and the least measured. It was scaled so its LONGEST axis matches the RGB-D fuse's longest dimension (2184 mm); the other two axes are whatever the model invented. Geometry is invented wherever the 4 views did not see.",
+  "caveat": "Only the 2184 mm long axis was fitted; the other two are invented."
+ },
+ {
+  "id": "trellis_video",
+  "title": "TRELLIS — VIDEO",
+  "method": "generative diffusion",
+  "glb": "bench_out/sofa_20260805/trellis_video_0805.glb",
+  "input": "4 views picked from 356",
+  "views": "4",
+  "time": "38 s",
+  "scale": "single-axis fit — mesh is 2127 x 2070 x 1108 mm",
+  "note": "Same model, views drawn from video, same single-axis scaling — here against the video fuse's 2127 mm long axis. Its shape differs from the photo run because both the views and the fuse it borrows from differ.",
+  "caveat": "Only the 2127 mm long axis was fitted; the other two are invented."
+ },
+ {
+  "id": "meshroom_photo",
+  "title": "Meshroom — PHOTO",
+  "method": "photogrammetry (AliceVision)",
+  "glb": "bench_out/sofa_20260805/meshroom_0805.glb",
+  "input": "31 photos @ 4032x3024",
+  "views": "31 / 31 calibrated",
+  "time": "~8 min",
+  "scale": "NOT metric (SfM units)",
+  "note": "1.30M faces, 32.6k landmarks, median landmark seen by 2 cameras. The cleaner of the two unmasked photogrammetry runs — but it reconstructs the room around the sofa as well, and flat leather still drops out."
+ },
+ {
+  "id": "meshroom_video",
+  "title": "Meshroom — VIDEO",
+  "method": "photogrammetry (AliceVision)",
+  "glb": "bench_out/sofa_20260805/meshroom_video_0805.glb",
+  "input": "150 frames culled from 356",
+  "views": "150 / 150 calibrated",
+  "time": "~35 min",
+  "scale": "NOT metric (SfM units)",
+  "note": "2.22M faces, 125k landmarks, median 3 cameras per landmark. Best statistics, but it reconstructs the whole ROOM — the sofa is a smaller share and noisier."
+ },
+ {
+  "id": "kiri_oss",
+  "title": "KIRI-OSS — PHOTO",
+  "method": "open-source reproduction of KIRI's documented pipeline",
+  "glb": "bench_out/sofa_20260805/kiri_oss_0805.glb",
+  "input": "31 photos (28 kept by a fixed 90% quota)",
+  "views": "28 / 28 solved",
+  "time": "~7 min solve / ~9 min end-to-end",
+  "scale": "METRIC, isolated — 81 x 34 x 35 in ± 1–2 in",
+  "note": "BiRefNet masking + AliceVision, scaled by fitting the RGB-only camera track onto the ARKit track (RMS 30 mm, per-camera median 24 mm, worst 70 mm). The only row whose scale is solved on geometry isolated to the sofa — the RGB-D fuse measures a room, TRELLIS borrows one axis of those numbers, Meshroom stays in SfM units. Two caveats: H is a STANDING height, mesh top to the LiDAR floor plane, so ~10 in of it is the gap under a sofa whose legs the isolation removed (the mesh you can load is 25 in tall); and 76% of its surface lies within 20 mm of the LiDAR depth while only 34% of the LiDAR surface lies within 20 mm of it — locally accurate, substantially incomplete.",
+  "caveat": "H is measured to the LiDAR floor — the mesh you can load here is 25 in tall."
+ }
+]

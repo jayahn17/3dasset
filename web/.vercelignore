@@ -1,0 +1,11 @@
+node_modules
+.next
+.env*
+.vercel
+# Published assets live in blob storage, never in the deployment bundle —
+# 395 MB of meshes would blow past the deployment size limit.
+public/assets
+# The local-publish manifest points at /assets/... paths that only exist
+# locally. Shipping it would render a catalogue of broken download links;
+# production reads NEXT_PUBLIC_MANIFEST_URL from blob storage instead.
+public/manifest.json

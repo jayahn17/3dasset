@@ -1,0 +1,22 @@
+node_modules
+.next
+public/assets
+.vercel
+.env*
+.env*.local
+.env
+.vercel
+public/manifest.json
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+
+# `publish_dashboard.py --dry-run` output. Deliberately a different filename to
+# the real manifest so a dry run cannot clobber the record of what is published;
+# it is a snapshot of one moment on one box, so it goes stale the next publish.
+public/manifest.dry-run.json
+
+# per-capture benchmark specs written by recon3.py's `page` stage, and the
+# rendered comparison pages. The hand-written bench_spec_*.json stay tracked.
+benchmarks/specs/auto_*.json
+benchmarks/*.html

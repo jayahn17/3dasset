@@ -1,0 +1,51 @@
+{
+ "title": "Book 2026-08-05 \u2014 interactive reconstructions",
+ "dest": "benchmark/book_20260805",
+ "lede": "Differential Equations (Zill & Cullen) captured as 18 RGB-D keyframes. Every panel is orbitable and measurable: drag to tumble, Measure On, click two points for real inches. The AliceVision mesh is the one to measure \u2014 its scale comes from the ARKit camera track (8.2 mm mean residual). The card's printed footprint is carpet, not the book; measure the book here instead.",
+ "cards": [
+  {
+   "id": "av_book",
+   "title": "AliceVision",
+   "method": "photogrammetry, metric via ARKit track",
+   "glb": "/home/jaeahn-jammy/3dasset/demo_out/book_20260805/meshroom_visual.glb",
+   "input": "18 keyframes @ 4032x3024",
+   "views": "15 / 18 calibrated",
+   "time": "~6 min",
+   "scale": "METRIC (8.2 mm residual)",
+   "note": "Real photographic texture. Includes a carpet ring \u2014 measure the book's edges, not the mesh extents."
+  },
+  {
+   "id": "trellis_book",
+   "title": "TRELLIS",
+   "method": "generative diffusion",
+   "glb": "/home/jaeahn-jammy/3dasset/demo_out/book_20260805/asset_trellis.glb",
+   "input": "4 views picked from 18",
+   "views": "4",
+   "time": "20 s",
+   "scale": "labelled 831.9 x 863.6 x 82.5 mm \u2014 INHERITS the carpet-contaminated fuse footprint",
+   "note": "Clean isolated book shape; treat its scale label as wrong in X/Y, roughly right in thickness."
+  },
+  {
+   "id": "gut_book",
+   "title": "3DGUT \u2014 Gaussian splat",
+   "method": "splat training",
+   "splat": "/home/jaeahn-jammy/3dasset/demo_out/book_20260805/scene_panel.splat",
+   "input": "18 keyframes, ARKit poses",
+   "views": "18 / 18",
+   "time": "~80 min",
+   "scale": "METRIC (ARKit poses)",
+   "note": "Photoreal; orbit inside the panel. Tape measure not available in splat panels. Panel build: cropped to the subject, 380k splats, opacity floor 0.06 \u2014 orbits smoothly."
+  },
+  {
+   "id": "sf_book",
+   "title": "Splatfacto (nerfstudio)",
+   "method": "3DGS \u2014 same input as the 3DGUT card",
+   "splat": "/home/jaeahn-jammy/3dasset/demo_out/book_20260805/splatfacto_panel.splat",
+   "input": "same 18 ARKit-posed images as 3DGUT",
+   "views": "18 / 18",
+   "time": "~23 min (30k it)",
+   "scale": "METRIC (pose auto-rescale disabled)",
+   "note": "The A/B: identical COLMAP input, nerfstudio's splatfacto trainer instead of 3DGUT. 553k gaussians trained; panel build cropped+thinned to 301k."
+  }
+ ]
+}

@@ -1,0 +1,40 @@
+{
+ "title": "Robot arm 2026-08-05 \u2014 reconstruction benchmark",
+ "dest": "benchmark/robot_arm_20260805",
+ "lede": "A 3D-printed robot arm on a desk, captured as 58 RGB-D keyframes at 4032x3024, run through all three standard routes \u2014 TRELLIS (generative), Meshroom/AliceVision (photogrammetry) and 3DGUT (Gaussian splat). The RGB-D fuse row stays retired: it measures desk clutter, not the arm. All meshes are gravity-aligned (Y up) and metric: the RGB-D fuse natively, Meshroom via alignment of its 58 SfM cameras to the session's ARKit poses (mean residual 5.5 mm over a 1 m track).",
+ "cards": [
+  {
+   "id": "trellis_arm",
+   "title": "TRELLIS",
+   "method": "generative diffusion",
+   "glb": "/tmp/claude-1000/-home-jaeahn-jammy-3dasset/e4ef1659-0b93-42bd-b9a5-a09d91009ab4/scratchpad/trellis_arm.glb",
+   "input": "4 views picked from 58",
+   "views": "4",
+   "time": "22 s",
+   "scale": "metric via RGB-D dims (787 x 1061 x 622 mm)",
+   "note": "Clean isolated arm with invented back-side geometry. Its millimetre labels inherit the fuse's desk-contaminated AABB \u2014 treat as approximate."
+  },
+  {
+   "id": "meshroom_arm",
+   "title": "Meshroom / AliceVision",
+   "method": "photogrammetry",
+   "glb": "/tmp/claude-1000/-home-jaeahn-jammy-3dasset/e4ef1659-0b93-42bd-b9a5-a09d91009ab4/scratchpad/meshroom_arm.glb",
+   "input": "58 keyframes @ 4032x3024",
+   "views": "58 / 58 calibrated",
+   "time": "~11 min",
+   "scale": "METRIC via ARKit camera track (residual 5.5 mm)",
+   "note": "35k landmarks. True photographic texture on real geometry; matte white plastic is still a hard matching surface, so expect gaps on featureless panels."
+  },
+  {
+   "id": "gut_arm",
+   "title": "3DGUT \u2014 Gaussian splat",
+   "method": "splat training (gsplat kernels)",
+   "splat": "/home/jaeahn-jammy/3dasset/demo_out/robot_arm_20260805/scene_panel.splat",
+   "input": "58 keyframes, ARKit poses",
+   "views": "58 / 58 (auto stride)",
+   "time": "~2.4 h (3M cap; new default is 1M)",
+   "scale": "METRIC (ARKit poses are metres)",
+   "note": "The photoreal route: view-dependent appearance, no mesh. Panel build: cropped to the subject, 380k splats, opacity floor 0.06 \u2014 orbits smoothly."
+  }
+ ]
+}
