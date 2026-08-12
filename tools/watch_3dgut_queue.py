@@ -47,6 +47,13 @@ GEN3D_HEALTH = "http://127.0.0.1:8080/health"
 GEN3D_GENERATE = "http://127.0.0.1:8080/generate"
 
 
+def _lanczos(Image):
+    """Pillow moved LANCZOS under Image.Resampling in 9.1; this box's system
+    python still ships 9.0.1, and running outside the assetpipe env crashed
+    view prep with AttributeError."""
+    return getattr(getattr(Image, "Resampling", Image), "LANCZOS")
+
+
 def _log(msg: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
@@ -207,6 +214,17 @@ def _pack_3dgut_result(out_dir: Path, name: str) -> Path | None:
     return result
 
 
+def _scene_scale_reject(status: dict) -> bool:
+    """A 'reject' whose only sin is being furniture/scene-scale should still
+    flow to the router — that is exactly the 3DGUT case, not a failed scan."""
+    q = status.get("quality") or {}
+    reasons = " ".join(q.get("reasons") or [])
+    if "scene-scale" in reasons:
+        return True
+    ext = q.get("extent_m") or []
+    return bool(ext) and max(ext) > 0.61  # 24 inches
+
+
 def _pack_trellis_result(out_dir: Path, name: str) -> Path | None:
     result = out_dir.parent / f"{name}_TRELLIS_RESULT.zip"
     if result.exists():
@@ -216,6 +234,7 @@ def _pack_trellis_result(out_dir: Path, name: str) -> Path | None:
         "asset_trellis.glb",
         "asset_trellis_raw.glb",
         "asset_trellis_mm.stl",
+        "asset_trellis_mm.obj",
         "dims.json",
         "dims_mm.json",
         "route_decision.json",
@@ -349,7 +368,7 @@ def _prepare_trellis_views(
         w, h = im.size
         scale = 1024 / max(w, h)
         if scale < 1:
-            im = im.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
+            im = im.resize((int(w * scale), int(h * scale)), _lanczos(Image))
         dst = views_dir / f"view_{j:02d}.jpg"
         im.save(dst, quality=92)
         out_paths.append(dst)
@@ -362,7 +381,7 @@ def _prepare_trellis_views(
             w, h = im.size
             scale = 1024 / max(w, h)
             if scale < 1:
-                im = im.resize((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
+                im = im.resize((int(w * scale), int(h * scale)), _lanczos(Image))
             dst = views_dir / "photo.jpg"
             im.save(dst, quality=92)
             out_paths.append(dst)
@@ -600,7 +619,7 @@ def process_one(
     name = status.get("name") or status_path.stem
     if not status.get("ok"):
         return "busy-skip"
-    if status.get("usable_asset") is False:
+    if status.get("usable_asset") is False and not _scene_scale_reject(status):
         return "busy-skip"
 
     done = _load_done(captures)
@@ -729,7 +748,9 @@ def pending_jobs(
             data = json.loads(st.read_text())
         except Exception:
             continue
-        if not (data.get("ok") and data.get("usable_asset") is not False):
+        if not data.get("ok"):
+            continue
+        if data.get("usable_asset") is False and not _scene_scale_reject(data):
             continue
         finished = float(data.get("finished") or data.get("started") or 0)
         if not backfill and finished and finished < boot_ts - 600:
@@ -749,13 +770,16 @@ def main() -> int:
     ap.add_argument("--out", default=str(REPO / "demo_out"))
     ap.add_argument(
         "--folder-id",
-        default="1_HjCyP9-Th3UTjK6Kk89vTuud6ltL4AI",
+        default="1DpLpm4m4TxUn_Vn9Rfhr0o39HKM-Xkbl",
         help="Drive folder for RESULT upload",
     )
     ap.add_argument("--interval", type=float, default=30.0)
     ap.add_argument("--once", action="store_true", help="process at most one job, exit")
     ap.add_argument("--iterations", type=int, default=30_000)
-    ap.add_argument("--every", type=int, default=4)
+    # 0 = auto: run_3dgut_from_session keeps every frame of a keyframe capture
+    # and only thins video-density sweeps. A fixed 4 trained every scan on a
+    # quarter of its views — fine for a 500-frame sweep, ruinous for 27.
+    ap.add_argument("--every", type=int, default=0)
     ap.add_argument("--max-frames", type=int, default=100)
     ap.add_argument(
         "--force-route",

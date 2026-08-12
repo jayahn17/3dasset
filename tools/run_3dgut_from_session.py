@@ -67,13 +67,30 @@ def _rot_to_quat_wxyz(R: np.ndarray) -> np.ndarray:
 def write_colmap_from_session(
     session_dir: str,
     data_root: Path,
-    every: int = 4,
+    every: int = 0,
     max_frames: int = 120,
     seed_stride: int = 8,
 ) -> dict:
-    """Write images/ + sparse/0 COLMAP text using ARKit c2w poses."""
+    """Write images/ + sparse/0 COLMAP text using ARKit c2w poses.
+
+    ``every`` of 0 (the default) means AUTO: keep every frame and let
+    ``max_frames`` do the thinning.
+
+    A fixed stride was the wrong knob, because two very different things arrive
+    here. A **video sweep** is hundreds of near-duplicate frames and genuinely
+    wants thinning. A **keyframe capture** is a couple of dozen deliberately
+    spaced shots where every one is load-bearing — at ``every=4`` a 27-keyframe
+    iPad capture trained on 7 images, discarding 3 of every 4 views of a scene
+    that was already too sparse.
+
+    Thinning is left entirely to the ``max_frames`` step below because it
+    spreads its picks evenly across the whole capture and spends the full
+    budget, where an integer stride quantises and undershoots: 118 frames at
+    stride 2 yields 59 images when 100 were allowed.
+    """
     s = load_session(session_dir)
-    idxs = list(range(0, s.n_frames, max(1, every)))
+    stride = every if every and every > 0 else 1
+    idxs = list(range(0, s.n_frames, stride))
     if len(idxs) > max_frames:
         sel = np.linspace(0, len(idxs) - 1, max_frames).astype(int)
         idxs = [idxs[i] for i in sel]
@@ -165,6 +182,11 @@ def write_colmap_from_session(
 
     meta = {
         "n_images": len(idxs),
+        "n_session_frames": s.n_frames,
+        # How many views the capture had vs how many were trained on. A run that
+        # quietly dropped 3 of every 4 frames used to be invisible here.
+        "stride": stride,
+        "stride_source": "explicit" if (every and every > 0) else "auto",
         "n_points": len(points),
         "color_wh": [W, H],
         "intrinsics_color": [fx, fy, cx, cy],
@@ -244,7 +266,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("session")
     ap.add_argument("--out", required=True)
-    ap.add_argument("--every", type=int, default=4, help="keep every Nth frame")
+    ap.add_argument("--every", type=int, default=0,
+                    help="keep every Nth frame; 0 = auto, which keeps every "
+                         "frame unless the capture has more than --max-frames "
+                         "(i.e. only thins video-density sweeps)")
     ap.add_argument("--max-frames", type=int, default=100)
     ap.add_argument("--iterations", type=int, default=5000,
                     help="3DGUT steps (full quality ~30000; smoke ~5000)")

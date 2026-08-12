@@ -13,7 +13,7 @@ mkdir -p captures/{inbox,work,done,failed,status,outbox,drive_pull} demo_out log
 source "$HOME/miniconda3/etc/profile.d/conda.sh"
 conda activate assetpipe
 
-FOLDER_ID="${FOLDER_ID:-1_HjCyP9-Th3UTjK6Kk89vTuud6ltL4AI}"
+FOLDER_ID="${FOLDER_ID:-1DpLpm4m4TxUn_Vn9Rfhr0o39HKM-Xkbl}"
 INTERVAL="${INTERVAL:-60}"
 MODE="${MODE:-object}"          # object (fast preprocess) | rgbd (full TSDF)
 BACKEND="${BACKEND:-auto}"

@@ -227,6 +227,24 @@ def process(
     status["stdout_tail"] = tail
     if proc.returncode != 0:
         status["error"] = (proc.stderr or "\n".join(tail) or "process failed")[-800:]
+        # Inference rule: color+pose but no depth → this is an RGB-only capture,
+        # not a failure. Route it to TRELLIS automatically (detached; it waits
+        # for a free GPU on its own).
+        if "depth=0" in status["error"] and "color=0" not in status["error"]:
+            out_rgb = os.path.join(REPO_ROOT, "demo_out", name, "rgb_only_trellis")
+            log_path = os.path.join(REPO_ROOT, "logs", f"rgb_only_{name}.log")
+            subprocess.Popen(
+                ["nohup", sys.executable,
+                 os.path.join(REPO_ROOT, "tools", "rgb_only_trellis.py"),
+                 session, "--out", out_rgb],
+                cwd=REPO_ROOT,
+                stdout=open(log_path, "a"), stderr=subprocess.STDOUT,
+                start_new_session=True)
+            status.update(ok=True, rgb_only=True, usable_asset=False,
+                          route="rgb_only_trellis", out=out_rgb)
+            _log(f"  ⇢ {name}: no depth — inferred RGB-only → TRELLIS (log: {os.path.basename(log_path)})")
+            _finish(zip_path, dirs, status, ok=True)
+            return status
         _log(f"  ✗ {name}: {status['error'].splitlines()[-1][:120]}")
         _finish(zip_path, dirs, status, ok=False)
         return status

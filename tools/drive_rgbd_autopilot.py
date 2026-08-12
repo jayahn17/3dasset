@@ -11,7 +11,7 @@ RUN (foreground)
     python tools/drive_rgbd_autopilot.py --once
 
 ENV / flags
-    --folder-id   Drive folder id (default: Engin170_sync)
+    --folder-id   Drive folder id (default: CrateScans)
     --interval    seconds between Drive polls (default 60)
 """
 
@@ -28,7 +28,7 @@ import zipfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-DEFAULT_FOLDER = "1_HjCyP9-Th3UTjK6Kk89vTuud6ltL4AI"
+DEFAULT_FOLDER = "1DpLpm4m4TxUn_Vn9Rfhr0o39HKM-Xkbl"
 
 
 def _log(msg: str) -> None:
