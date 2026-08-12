@@ -120,7 +120,21 @@ details.panel > .panel { border: 0; border-radius: 0; margin: 0; background: tra
    LEFT of the filename at narrow widths, which is where the text wrapped to. */
 .dlist > li > .dmeta { grid-column: 1; grid-row: 1; }
 .dlist > li > .dnote { grid-column: 1; grid-row: 2; }
-.dlist > li > .dl { grid-column: 2; grid-row: 1 / span 2; }
+/* View + Download travel together on the right, so a row still reads as
+   "this file, this caveat, these two actions" at any width. */
+.dlist > li > .dact { grid-column: 2; grid-row: 1 / span 2;
+  display: flex; align-items: center; gap: 8px; }
+/* The 3D window spans the full row width BELOW both columns. */
+.dlist > li > .dview { grid-column: 1 / -1; grid-row: 3; margin: 10px 0 4px; }
+.dview .rowview { border: 1px solid var(--line2); border-radius: 10px;
+  overflow: hidden; background: #05070a; }
+/* Shorter than the hero viewer: this is a look-at-one-file window inside a list,
+   and at the panel's 70vh it pushed every following row off the screen. */
+.dview .viewer { aspect-ratio: 16/9; min-height: 240px; max-height: 46vh;
+  border-radius: 0; border: 0; }
+.dview .vbar { padding: 10px 12px; }
+.dview .inner { padding: 2px 12px 10px; }
+.dviewfoot { margin: 6px 0 0; }
 /* The file the printed size was measured from, tinted so it reads as the
    authoritative row rather than just the first one. */
 .dlist > li.isrc { background: #0c1725; margin: 0 -18px; padding: 11px 18px; }
@@ -133,9 +147,11 @@ details.panel > .panel { border: 0; border-radius: 0; margin: 0; background: tra
    the amber .chip stays reserved for the one "no real-world scale" claim. */
 .dnote .rowwarn { color: var(--warn); }
 .dnote .rowsrc { color: #cfe3ff; }
-/* Both can appear on one row (the measured file that is also flagged), so they
-   need separating rather than butting together. */
-.dnote .rowsrc + .rowwarn::before { content: " · "; color: var(--dim); }
+/* The source badge is always followed by something — a warning on a flagged row,
+   the format note otherwise — and with no separator they ran together as
+   "measured from this fileThe mesh the RGB-D fuse measured". Any sibling, not
+   just .rowwarn, which was the original rule and covered one of the two cases. */
+.dnote .rowsrc + *::before { content: " · "; color: var(--dim); }
 .panelwarn { margin: 0; padding: 8px 18px 0; font-size: 13px; color: var(--warn); }
 .empty { border: 1px dashed var(--line2); border-radius: 12px; padding: 40px;
   text-align: center; color: var(--dim); margin-top: 24px; }

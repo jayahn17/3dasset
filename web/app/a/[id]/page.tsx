@@ -7,7 +7,6 @@ import {
   displayTitle,
   fileIsMetric,
   TARGET_ORDER,
-  downloadHref,
   previewHref,
   type Asset,
   type AssetFile,
@@ -17,7 +16,6 @@ import {
 // the one definition of metric-ness and a second copy is a regression (see its
 // comment at the fileIsMetric declaration).
 import {
-  ALT_RECON_NOTE,
   NON_METRIC_UNITS,
   isAltReconstruction,
   isCaptureScale,
@@ -27,6 +25,7 @@ import { isDeclaredNonMetric } from "../../../lib/manifest";
 import Viewer from "./Viewer";
 import SplatEmbed from "./SplatEmbed";
 import Formats from "./Formats";
+import DownloadList, { ViewOneProvider } from "./DownloadList";
 
 export const dynamic = "force-dynamic";
 
@@ -176,6 +175,10 @@ export default async function AssetPage({
           </p>
         )}
 
+        {/* Wraps EVERY panel, not each one: "only one 3D window open" is a
+            budget on the page's live WebGL contexts, and per-panel state let one
+            window per target stay open at once. */}
+        <ViewOneProvider>
         {TARGET_ORDER.filter((t) => grouped.has(t)).map((t: TargetId) => {
           const info = targets[t];
           // Decide each row's verdict once, then order by it: the file the
@@ -218,57 +221,28 @@ export default async function AssetPage({
                   size" header. The middle column carried up to two sentences per
                   row and on a phone the table's own header cost a third of the
                   width — so the filename wrapped mid-word and the download
-                  button was off-screen. Same rows, same order, same verdicts. */}
+                  button was off-screen. Same rows, same order, same verdicts.
+                  The list is a client component ONLY so it can open a 3D window
+                  per file and coordinate one-at-a-time; every verdict is still
+                  computed here on the server and passed down as plain data. */}
               <div className="inner">
-                <ul className="dlist">
-                  {rows.map(({ file, note, v }) => (
-                    <li
-                      key={`${file.group}/${file.rel}`}
-                      className={v.isSource ? "isrc" : undefined}
-                    >
-                      <div className="dmeta">
-                        <code>{dupes.has(file.name) ? file.rel : file.name}</code>
-                        <span className="dsize">{file.size}</span>
-                      </div>
-                      {/* Short form of the same verdict, and it still REPLACES
-                          the glob note rather than sitting beside it: "The part
-                          in millimetres — import as a Mesh" next to "this has no
-                          real-world scale" is a contradiction the customer has to
-                          resolve. The long wording lives in All formats below. */}
-                      <p className="dnote">
-                        {v.isSource && (
-                          <span className="rowsrc">measured from this file</span>
-                        )}
-                        {v.noScale ? (
-                          <span className="rowwarn">
-                            {declaredNonMetric
-                              ? "no real-world size — this capture carried none"
-                              : "no real-world size — generated proportions, not measured"}
-                          </span>
-                        ) : v.capture ? (
-                          <span className="rowwarn">
-                            the whole sweep, not just this object
-                          </span>
-                        ) : v.alt ? (
-                          <span className="rowwarn">comparison only — do not quote its size</span>
-                        ) : (
-                          <span className="muted">{note}</span>
-                        )}
-                      </p>
-                      <a
-                        className="dl"
-                        href={downloadHref(file)}
-                        aria-label={`Download ${file.name}`}
-                      >
-                        ↓ Download
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                <DownloadList
+                  asset={asset}
+                  declaredNonMetric={declaredNonMetric}
+                  rows={rows.map(({ file, note, v }) => ({
+                    file,
+                    note,
+                    v,
+                    // Two rows in one panel can share a name, so the path is the
+                    // label whenever the bare name would be ambiguous.
+                    label: dupes.has(file.name) ? file.rel : file.name,
+                  }))}
+                />
               </div>
             </div>
           );
         })}
+        </ViewOneProvider>
 
         {/* The same files were listed twice, by two different keys: Formats
             groups by file FORMAT and carries the caveats but no download links,

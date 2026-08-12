@@ -552,7 +552,33 @@ const UNITLESS_LADDER: [number, string][] = [
 
 /* ==================================================================== component */
 
-export default function Viewer({ asset }: { asset: Asset }) {
+/**
+ * Can this file be drawn in the page, by THIS component?
+ *
+ * Exported so the download list can decide which rows get a "View" button
+ * without re-deriving the rule — the same reason lib/manifest.ts owns
+ * metric-ness. `.splat` is deliberately excluded: it needs a different renderer
+ * and is served whole-asset by SplatEmbed, so a per-file splat window would
+ * show the asset's panel splat rather than the row the customer clicked.
+ */
+export function canRenderInline(file: AssetFile): boolean {
+  return VIEWABLE.test(file.name) && !NEVER_PICK.some((rx) => rx.test(file.rel));
+}
+
+export default function Viewer({
+  asset,
+  only,
+  compact = false,
+}: {
+  asset: Asset;
+  /** Render exactly this file and hide the switcher. Used by the per-file
+   *  windows in the download list, where the row already names the file. */
+  only?: AssetFile;
+  /** Drop the panel frame, the heading and the Details block — the surrounding
+   *  row supplies all three. Everything that decides a NUMBER is unchanged, so
+   *  a compact window cannot disagree with the big one about the same file. */
+  compact?: boolean;
+}) {
   const rankedPick = useMemo(() => pickFile(asset), [asset]);
   // Every 3D file the asset ships, not only the ranked winner. The ranking
   // still chooses the DEFAULT (it encodes which file the printed dims were
@@ -561,19 +587,37 @@ export default function Viewer({ asset }: { asset: Asset }) {
   // side by side and comparing them is the point.
   const viewables = useMemo(
     () =>
-      asset.files.filter(
-        (f) => VIEWABLE.test(f.name) && !NEVER_PICK.some((rx) => rx.test(f.rel))
-      ),
-    [asset]
+      only
+        ? [only]
+        : asset.files.filter(
+            (f) => VIEWABLE.test(f.name) && !NEVER_PICK.some((rx) => rx.test(f.rel))
+          ),
+    [asset, only]
   );
   const [chosenRel, setChosenRel] = useState<string | null>(null);
   const pick = useMemo(() => {
+    // `only` wins over everything: the row that mounted this window names the
+    // file, so falling back to the ranked pick would draw a DIFFERENT file
+    // under that row's name.
+    if (only) {
+      // `declared` means "this IS the file the printed size was measured on",
+      // and it gates the "you are looking at a different file" warning. Hardcoded
+      // false, the window opened on object_mesh.ply — the measured file itself —
+      // and told the customer the measured file could not be drawn while drawing
+      // it. Matched on url first for the same reason pickFile does: rel is not
+      // unique inside an asset.
+      const m = asset.measure;
+      const isMeasured =
+        !!m &&
+        (m.url === only.url || (m.rel === only.rel && m.name === only.name));
+      return { file: only, source: describe(only, asset), declared: isMeasured };
+    }
     if (chosenRel) {
       const f = viewables.find((x) => x.rel === chosenRel);
       if (f) return { file: f, source: describe(f, asset), declared: false };
     }
     return rankedPick;
-  }, [chosenRel, viewables, rankedPick, asset]);
+  }, [only, chosenRel, viewables, rankedPick, asset]);
   const scaleInfo = useMemo(() => scaleVerdict(asset, pick), [asset, pick]);
   const metric = scaleInfo.metric;
   // What the header above and the card that linked here already say about the
@@ -1327,6 +1371,10 @@ export default function Viewer({ asset }: { asset: Asset }) {
   /* ------------------------------------------------------------------- render */
 
   if (!pick) {
+    // A row-level window is only ever mounted for a file canRenderInline()
+    // accepted, so this is the whole-asset case; in a row it would be a stray
+    // empty panel under the file name.
+    if (compact) return null;
     return (
       <div className="panel">
         <h3>3D preview</h3>
@@ -1419,17 +1467,21 @@ export default function Viewer({ asset }: { asset: Asset }) {
       : 0;
 
   return (
-    <div className="panel">
-      <h3>
-        <span aria-hidden>◳</span> {metric ? "View and measure" : "View"}
-        <span className={`chip${tolChip.cls}`} style={{ marginLeft: "auto" }}>
-          {tolChip.text}
-        </span>
-      </h3>
-      <p className="note">
-        Drag to spin · scroll to zoom
-        {metric ? " · tap two points to measure" : " · no size to measure"}
-      </p>
+    <div className={compact ? "rowview" : "panel"}>
+      {!compact && (
+        <>
+          <h3>
+            <span aria-hidden>◳</span> {metric ? "View and measure" : "View"}
+            <span className={`chip${tolChip.cls}`} style={{ marginLeft: "auto" }}>
+              {tolChip.text}
+            </span>
+          </h3>
+          <p className="note">
+            Drag to spin · scroll to zoom
+            {metric ? " · tap two points to measure" : " · no size to measure"}
+          </p>
+        </>
+      )}
 
       <div
         className={`viewer${measuring && phase === "ready" ? " measuring" : ""}`}
@@ -1700,8 +1752,11 @@ export default function Viewer({ asset }: { asset: Asset }) {
         {/* Everything a customer does not need in order to use the scan. It was
             all full-width body text: the provenance line, the triangle count,
             and a seven-line paragraph about rounding. Kept verbatim, one click
-            away, because importers and anyone checking our figures do need it. */}
-        <details className="vmore">
+            away, because importers and anyone checking our figures do need it.
+            Suppressed in a row window: the same rounding and accuracy paragraph
+            repeated under all thirteen of koala's files is the density the whole
+            page was just cleared of, and the big panel above carries it once. */}
+        <details className="vmore" hidden={compact}>
           <summary>Details</summary>
           <p>
             Showing <code>{pick.file.name}</code>
