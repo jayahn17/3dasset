@@ -36,10 +36,21 @@ function viewerUrlFor(file: AssetFile): string | null {
   return file.url.replace(/[^/]+$/, VIEWER);
 }
 
-/** scene_gaussians.splat is the trained 3DGUT scene — the reconstruction a
- *  customer wants to turn around. object.splat is the fuse's small crop, so it
- *  only wins when there is no scene splat at all. */
-function pickSplat(asset: Asset): AssetFile | null {
+/**
+ * The splat whose blob directory holds splat_view.html.
+ *
+ * DO NOT "improve" this ordering. tools/publish_splat_view.mjs runs the same
+ * preference to decide where to PUT the viewer, and derives the pathname by
+ * swapping that file's last path segment. The two are one contract: if this
+ * function prefers a different file and that file lives in a different blob
+ * directory, every asset's splat panel answers `blob 404` again — the failure
+ * that hid for weeks because the URL only exists after JS runs, so neither a
+ * manifest crawl nor a page crawl can see it.
+ *
+ * What the viewer DISPLAYS is chosen inside the published document, not here;
+ * see shownSplat below for the one thing this page still needs to know about it.
+ */
+function anchorSplat(asset: Asset): AssetFile | null {
   const splats = asset.files.filter((f) => /\.splat$/i.test(f.name));
   if (!splats.length) return null;
   return (
@@ -48,9 +59,29 @@ function pickSplat(asset: Asset): AssetFile | null {
   );
 }
 
+/**
+ * The splat the published viewer will actually load — for the button's byte
+ * count, and nothing else.
+ *
+ * scene_panel.splat is the scene cropped to the measured object with the floor
+ * plane removed; scene_gaussians.splat is the whole room. The publisher prefers
+ * the panel when one exists, so the button was quoting the room's size for a
+ * download that never happens: "Load the splat in 3D (29.7 MB)" in front of a
+ * 0.5 MB file. Overstating the cost by 60x is the kind of label that stops
+ * someone clicking the best thing on the page.
+ *
+ * Mirrors publish_splat_view.mjs's `show` choice. Falls back to the anchor, so
+ * an asset with no panel (sofa_20260805 — no scene_gaussians.ply survives to
+ * crop from) still quotes the file it really loads.
+ */
+function shownSplat(asset: Asset, anchor: AssetFile): AssetFile {
+  return asset.files.find((f) => f.name === "scene_panel.splat") ?? anchor;
+}
+
 export default function SplatEmbed({ asset }: { asset: Asset }) {
-  const splat = pickSplat(asset);
+  const splat = anchorSplat(asset);
   const src = splat ? viewerUrlFor(splat) : null;
+  const shown = splat ? shownSplat(asset, splat) : null;
   // Click to load. A scene splat is tens of megabytes and every byte crosses a
   // serverless function, so it is never pulled just because someone opened the
   // page — the same bargain Viewer.tsx strikes with AUTOLOAD_LIMIT.
@@ -65,22 +96,18 @@ export default function SplatEmbed({ asset }: { asset: Asset }) {
   return (
     <div className="panel">
       <h3>
-        <span aria-hidden>🌐</span> Gaussian splat — view in 3D
+        <span aria-hidden>🌐</span> Photoreal view (3DGS)
       </h3>
+      {/* The splat is the best-looking thing on the page, so it is where people
+          reach to measure. It is a SCENE reconstruction with no object boundary:
+          on the coffee table the densest horizontal surface is the RUG, and one
+          plane's extent moves 69.8 -> 78.1 in on the opacity cutoff alone. It
+          now carries a tape of its own, which makes saying this MORE important,
+          not less — a number you can read off it is still not a size. */}
       <p className="note">
-        The trained reconstruction itself, rendered in your browser. Drag to
-        orbit, scroll to zoom. Nothing to install.
-      </p>
-      {/* This is the best-looking render on the page, so customers reach for it
-          to measure and nothing happens. It is a SCENE reconstruction with no
-          object boundary: measured on the coffee-table splat, the densest
-          horizontal surface is the rug rather than the table, and the extent of
-          one plane moves 69.8 -> 78.1 in as the opacity cutoff changes. Say so
-          here rather than letting them find out by clicking. */}
-      <p className="note" style={{ color: "var(--warn)" }}>
-        Best for looking, not for sizing — a splat has no surface to click and
-        includes the surroundings. Use <b>View and measure</b> above for
-        dimensions.
+        Drag to spin · scroll to zoom.{" "}
+        <b style={{ color: "var(--warn)" }}>For looking, not for sizing</b> — it
+        includes the surroundings. Measure above.
       </p>
       <div className="inner">
         {open ? (
@@ -99,7 +126,7 @@ export default function SplatEmbed({ asset }: { asset: Asset }) {
           />
         ) : (
           <button type="button" className="dl" onClick={() => setOpen(true)}>
-            ▶ Load the splat in 3D ({splat.size})
+            ▶ Load 3D view ({shown!.size})
           </button>
         )}
       </div>

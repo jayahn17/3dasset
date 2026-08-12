@@ -8,9 +8,13 @@ export default async function Login({
   const { next = "/", e } = await searchParams;
   return (
     <div className="wrap" style={{ maxWidth: 420, paddingTop: 90 }}>
-      <h1 style={{ marginBottom: 8 }}>Scan assets</h1>
+      {/* The literal front door — the first screen anyone sees, and it was the
+          one place still called "Scan assets". */}
+      <h1 style={{ marginBottom: 8 }}>
+        CrateScanner <span className="qual">(Mesh &amp; 3DGS)</span>
+      </h1>
       <p className="muted" style={{ marginBottom: 22 }}>
-        This dashboard is restricted. Enter the access passphrase you were given.
+        Enter the passphrase you were given.
       </p>
       <form method="post" action="/api/login">
         <input type="hidden" name="next" value={next} />

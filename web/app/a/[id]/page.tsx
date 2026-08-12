@@ -97,96 +97,46 @@ export default async function AssetPage({
     <>
       <header className="site">
         <div className="wrap">
-          <h1>{t.name}</h1>
-          <p className="sub">
-            Spin it, tap two points to measure, or download the file for your app.
+          {/* Back link first, and always present. It used to be a single "← all
+              scans" at the very bottom of a long page, so the only way back was
+              the browser button. */}
+          <p className="crumb">
+            <Link href="/">← All scans</Link>
           </p>
+          <h1>{t.name}</h1>
 
-          {/* The measurement IS the product, so it is the biggest thing here. It
-              used to be 13px grey styled identically to "route trellis" beside
-              it, while the largest text on the page was the asset id. Only the
-              measured state is enlarged: a disputed figure and a missing one keep
-              their existing coloured treatments below, because making those big
-              would amplify a number the page is telling you not to trust.
-              No axis labels — which extent is length vs depth depends on the
-              file's frame, and guessing here would be a third answer to a
-              question the viewer's AXIS_READOUT already answers. */}
+          {/* The size, and then nothing else. This header carried a five-item
+              key/value row — mass, processed timestamp, file count — plus a
+              rounding note. Only the size is why anyone opened the page; the
+              rest is in the viewer's Details block and the downloads. */}
           {claim.state === "measured" && (
             <div className="hero">
               <span className="fig">{claim.dims}</span>
               <span className="tol">± 1–2 in</span>
             </div>
           )}
-          <p className="kv" style={{ marginTop: 14 }}>
-            {/* The measured figure moved to the .hero block above; printing it
-                here as well would put the same number on the page twice. */}
-            {/* A figure the page itself disputes gets no tolerance chip. "±1–2 in"
-                on a number that is nine times the object is not a wide tolerance,
-                it is a different object, and this header is what a customer on a
-                phone or with WebGL off reads instead of the viewer's banner. */}
-            {claim.state === "disputed" && (
-              <span>
-                size <b>{claim.dims}</b>{" "}
-                <span className="tol bad">not safe to quote</span>
-              </span>
-            )}
-            {/* An RGB-only capture reconstructs to a normalized mesh, so the
-                asset has a shape and no size. Saying so up here, not only in the
-                viewer, keeps anyone from quoting a dimension off the download. */}
-            {claim.state === "not-measurable" && (
-              <span>
-                size <b>not measurable</b>{" "}
-                <span className="tol warn">no metric scale</span>
-              </span>
-            )}
-            {/* dimsClaim's fourth state was unhandled on both surfaces: the row
-                simply rendered nothing where every other asset shows a size,
-                which reads as "still loading" rather than "none published". */}
-            {claim.state === "silent" && (
-              <span>
-                size <b>not published</b>
-              </span>
-            )}
-            {asset.mass_kg != null && (
-              <span>
-                mass <b>{asset.mass_kg.toFixed(1)} kg</b>
-              </span>
-            )}
-            {/* "route trellis" was published jargon: it names which internal
-                pipeline ran, which tells a customer nothing and is not a claim
-                about what shipped. The three reconstructions are already listed
-                by name in the viewer's file switcher. */}
-            <span>
-              processed <b>{asset.updated_iso.slice(0, 16).replace("T", " ")}</b>
-            </span>
-            <span>
-              <b>{asset.files.length}</b> files
-            </span>
-          </p>
-
-          {/* Above the fold, in the server render, in the same words the
-              viewer's red banner uses. The whole point is that it survives no
-              JavaScript, no WebGL and a reader who never scrolls. */}
+          {/* A figure the page itself disputes gets no tolerance chip and no big
+              type. "±1–2 in" on a number nine times the object is not a wide
+              tolerance, it is a different object — and this header is what a
+              customer on a phone or with WebGL off reads instead of the viewer's
+              banner. */}
           {claim.state === "disputed" && (
             <p className="hdrwarn">
-              <b>Do not quote that size.</b> {claim.why}
+              <b>Size not safe to quote.</b> {claim.why}
             </p>
           )}
-
-          {/* Which of the two things the printed figure is: the measurement, or
-              a rounded restatement of it. Absent from every manifest published
-              so far, so this whole block simply does not render for those. */}
-          {claim.state === "measured" && claim.rounding && (
-            <p className="muted hdrnote">
-              {claim.rounding.quantized ? (
-                <>
-                  Rounded to the nearest{" "}
-                  {claim.rounding.quantum_in ? `${claim.rounding.quantum_in} in` : "step"}
-                  {claim.rounding.raw ? <> (measured {claim.rounding.raw})</> : null}.
-                </>
-              ) : (
-                <>Shown as measured.</>
-              )}
+          {claim.state === "not-measurable" && (
+            <p className="sub">
+              <span className="chip warn">no real size</span> Shape only — this
+              capture carried no depth.
+            </p>
+          )}
+          {/* dimsClaim's fourth state was unhandled on both surfaces: the row
+              simply rendered nothing where every other asset shows a size, which
+              reads as "still loading" rather than "none published". */}
+          {claim.state === "silent" && (
+            <p className="sub">
+              <span className="chip">size not published</span>
             </p>
           )}
         </div>
@@ -215,13 +165,15 @@ export default async function AssetPage({
           </div>
         )}
 
-        {asset.frame && (
+        {/* The coordinate frame and the mass provenance were two grey lines of
+            body text between the pictures and the downloads. The frame moved
+            into the viewer's Details block, where the rest of the importer
+            information already lives. */}
+        {asset.mass_kg != null && (
           <p className="muted" style={{ marginTop: 18 }}>
-            For importers — coordinate frame: <code>{asset.frame}</code>
+            Mass <b style={{ color: "var(--fg)" }}>{asset.mass_kg.toFixed(1)} kg</b>
+            {asset.mass_source ? ` — ${asset.mass_source}` : ""}
           </p>
-        )}
-        {asset.mass_source && (
-          <p className="muted">Mass: {asset.mass_source}</p>
         )}
 
         {TARGET_ORDER.filter((t) => grouped.has(t)).map((t: TargetId) => {
@@ -259,76 +211,60 @@ export default async function AssetPage({
                   are fine. This adds the asset-specific caveat beside it. */}
               {allFlagged && (
                 <p className="panelwarn">
-                  Nothing in this section carries a real-world size — see the
-                  notes beside each file.
+                  Nothing here carries a real-world size — see each file below.
                 </p>
               )}
+              {/* Blocks, not a four-column table with a "file / what it is for /
+                  size" header. The middle column carried up to two sentences per
+                  row and on a phone the table's own header cost a third of the
+                  width — so the filename wrapped mid-word and the download
+                  button was off-screen. Same rows, same order, same verdicts. */}
               <div className="inner">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>file</th>
-                      <th>what it is for</th>
-                      <th className="num">size</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map(({ file, note, v }) => (
-                      <tr
-                        key={`${file.group}/${file.rel}`}
-                        className={v.isSource ? "isrc" : undefined}
+                <ul className="dlist">
+                  {rows.map(({ file, note, v }) => (
+                    <li
+                      key={`${file.group}/${file.rel}`}
+                      className={v.isSource ? "isrc" : undefined}
+                    >
+                      <div className="dmeta">
+                        <code>{dupes.has(file.name) ? file.rel : file.name}</code>
+                        <span className="dsize">{file.size}</span>
+                      </div>
+                      {/* Short form of the same verdict, and it still REPLACES
+                          the glob note rather than sitting beside it: "The part
+                          in millimetres — import as a Mesh" next to "this has no
+                          real-world scale" is a contradiction the customer has to
+                          resolve. The long wording lives in All formats below. */}
+                      <p className="dnote">
+                        {v.isSource && (
+                          <span className="rowsrc">measured from this file</span>
+                        )}
+                        {v.noScale ? (
+                          <span className="rowwarn">
+                            {declaredNonMetric
+                              ? "no real-world size — this capture carried none"
+                              : "no real-world size — generated proportions, not measured"}
+                          </span>
+                        ) : v.capture ? (
+                          <span className="rowwarn">
+                            the whole sweep, not just this object
+                          </span>
+                        ) : v.alt ? (
+                          <span className="rowwarn">comparison only — do not quote its size</span>
+                        ) : (
+                          <span className="muted">{note}</span>
+                        )}
+                      </p>
+                      <a
+                        className="dl"
+                        href={downloadHref(file)}
+                        aria-label={`Download ${file.name}`}
                       >
-                        <td>
-                          <code>{dupes.has(file.name) ? file.rel : file.name}</code>
-                        </td>
-                        {/* The verdict REPLACES the glob note when there is one,
-                            rather than sitting beside it: "The part in
-                            millimetres — import as a Mesh" next to "this has no
-                            real-world scale" is a contradiction the customer has
-                            to resolve. Wording is reused verbatim from the
-                            Formats table and ALT_RECON_NOTE so the two surfaces
-                            say the same words. */}
-                        <td className="muted">
-                          {v.isSource && (
-                            <>
-                              <span className="rowsrc">
-                                The printed size was measured from this file.
-                              </span>{" "}
-                            </>
-                          )}
-                          {v.noScale ? (
-                            <span className="rowwarn">
-                              {declaredNonMetric
-                                ? "No real-world scale — this capture carried none, so a measure tool's number is not a size."
-                                : "Not a measurement — no real-world scale. A measure tool still returns a number; it describes the generator's proportions, not the object."}
-                            </span>
-                          ) : v.capture ? (
-                            <span className="rowwarn">
-                              Measurable, but not this object: it is the raw
-                              capture the object was cut out of, so a measure tool
-                              returns the size of the sweep.
-                            </span>
-                          ) : v.alt ? (
-                            <span className="rowwarn">{ALT_RECON_NOTE}</span>
-                          ) : (
-                            note
-                          )}
-                        </td>
-                        <td className="num muted">{file.size}</td>
-                        <td style={{ textAlign: "right" }}>
-                          <a
-                            className="dl"
-                            href={downloadHref(file)}
-                            aria-label={`Download ${file.name}`}
-                          >
-                            ↓ Download
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        ↓ Download
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           );
@@ -347,14 +283,10 @@ export default async function AssetPage({
               fontWeight: 600, listStyle: "revert",
             }}
           >
-            All formats in this scan, and which apps open them
+            All formats, and which apps open them
           </summary>
           <Formats asset={asset} />
         </details>
-
-        <Link href="/" className="back">
-          ← all scans
-        </Link>
       </div>
     </>
   );

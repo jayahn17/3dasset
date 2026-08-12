@@ -31,7 +31,11 @@ h2 { font-size: 18px; margin: 34px 0 12px; letter-spacing: -.01em; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .thumb .none { color: var(--dim); font-size: 13px; }
 .card .body { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+/* The whole card is one <a>, so anything inside it inherits the link colour.
+   The NAME is the link text and stays accent-blue; the size is data, and left to
+   inherit it read as a second link to somewhere else. */
 .card h3 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+.card .csize { color: var(--fg); }
 .muted { color: var(--dim); font-size: 13px; margin: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 6px; }
 .chip { font-size: 11px; padding: 3px 9px; border-radius: 999px;
@@ -59,11 +63,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 /* The format reference is a .panel rendered inside a details.panel, so strip the
    inner frame rather than nesting two cards with two radii. */
 details.panel > .panel { border: 0; border-radius: 0; margin: 0; background: transparent; }
-.kv { display: flex; flex-wrap: wrap; gap: 8px 26px; color: var(--dim);
-  font-size: 13px; margin: 10px 0 0; }
-.kv b { color: var(--fg); font-weight: 600; }
-/* Not scoped to .kv: the index card prints the same tolerance beside the same
-   figure, and an unstyled "± 1–2 in" there would read as part of the number. */
+/* The index card prints the same tolerance beside the same figure, and an
+   unstyled "± 1–2 in" there would read as part of the number. */
 .tol { color: var(--dim); font-size: 11px; border: 1px solid var(--line2);
   border-radius: 999px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; }
 /* Red, matching .vwarn.bad in the viewer below it: "±1–2 in" and "this figure is
@@ -75,10 +76,20 @@ details.panel > .panel { border: 0; border-radius: 0; margin: 0; background: tra
 .hdrwarn { margin: 14px 0 0; max-width: 76ch; padding: 10px 12px; border-radius: 8px;
   font-size: 13px; color: var(--bad); border: 1px solid #5c2422; background: #1d0f0f; }
 .hdrwarn b { color: #ffb4b0; }
-/* Quiet by design: how a figure was rounded is a footnote to the figure, never
-   a warning about it. */
-.hdrnote { margin: 8px 0 0; max-width: 76ch; }
 .back { display: inline-block; margin: 22px 0 0; color: var(--dim); font-size: 13px; }
+
+/* "(Mesh & 3DGS)" — what the product makes, held quieter than the name so the
+   title reads as one thing rather than two. */
+.qual { color: var(--dim); font-weight: 400; font-size: .68em; letter-spacing: 0;
+  white-space: nowrap; }
+/* Back link at the TOP of the asset page. It was one "← all scans" at the very
+   bottom of a page several screens long, so in practice the only way back was
+   the browser button. */
+.crumb { margin: 0 0 10px; font-size: 13px; }
+.crumb a { color: var(--dim); }
+.crumb a:hover { color: var(--fg); }
+.foot { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 26px 0 0;
+  padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; }
 
 /* The measurement is the product, so it is the biggest thing on the asset page.
    It used to be 13px grey, styled identically to "route trellis" beside it,
@@ -90,24 +101,42 @@ details.panel > .panel { border: 0; border-radius: 0; margin: 0; background: tra
   font-variant-numeric: tabular-nums; line-height: 1.1; }
 .hero .tol { font-size: 12px; }
 
-/* Per-row verdict in the download tables. Amber TEXT (no chip) for the
-   alt-reconstruction and capture-scale cases, so the amber .chip stays reserved
-   for the one "this has no real-world scale" claim it is reserved for above. */
-td .rowwarn { color: var(--warn); }
-td .rowsrc { color: #cfe3ff; }
-tr.isrc > td { background: #0c1725; }
-.panelwarn { margin: 0; padding: 8px 18px 0; font-size: 13px; color: var(--warn); }
+/* The size on the index card. It was grey caption text the same weight as the
+   date below it, on a card whose whole job is to show you which scan this is. */
+.csize { margin: 0; font-size: 15px; font-weight: 600;
+  font-variant-numeric: tabular-nums; }
 
-/* Homepage orientation strip: what this is and what to do, in place of the
-   store telemetry (files / MB / bytes) that used to occupy the first screen. */
-.steps { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 12px 0 0; padding: 0;
-  list-style: none; color: var(--dim); font-size: 13px; }
-.steps li { display: flex; align-items: baseline; gap: 7px; }
-.steps b { color: var(--fg); font-weight: 600; }
-.strip { margin: 18px 0 0; }
-.strip h2 { font-size: 13px; margin: 0 0 8px; color: var(--dim); font-weight: 600;
-  text-transform: uppercase; letter-spacing: .05em; }
-.strip .row { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Download rows. A four-column table put a "file / what it is for / size"
+   header above every group and gave the filename a third of a phone's width, so
+   names wrapped mid-word and the button fell off the right edge. Two columns at
+   any width: the file and its note on the left, one button on the right. */
+.dlist { list-style: none; margin: 0; padding: 0; }
+.dlist > li { display: grid; grid-template-columns: 1fr auto; align-items: center;
+  gap: 4px 14px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.dlist > li:last-child { border-bottom: 0; }
+/* Explicit placement, all three of them. The button is the LAST child in DOM
+   order (so a screen reader hears the file and its caveat before the action),
+   and with auto-placement it filled row 1 column 2 — putting Download to the
+   LEFT of the filename at narrow widths, which is where the text wrapped to. */
+.dlist > li > .dmeta { grid-column: 1; grid-row: 1; }
+.dlist > li > .dnote { grid-column: 1; grid-row: 2; }
+.dlist > li > .dl { grid-column: 2; grid-row: 1 / span 2; }
+/* The file the printed size was measured from, tinted so it reads as the
+   authoritative row rather than just the first one. */
+.dlist > li.isrc { background: #0c1725; margin: 0 -18px; padding: 11px 18px; }
+.dmeta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+  min-width: 0; }
+.dmeta code { overflow-wrap: anywhere; }
+.dsize { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+.dnote { margin: 0; font-size: 13px; line-height: 1.45; }
+/* Amber TEXT, no chip, for the alt-reconstruction and capture-scale cases, so
+   the amber .chip stays reserved for the one "no real-world scale" claim. */
+.dnote .rowwarn { color: var(--warn); }
+.dnote .rowsrc { color: #cfe3ff; }
+/* Both can appear on one row (the measured file that is also flagged), so they
+   need separating rather than butting together. */
+.dnote .rowsrc + .rowwarn::before { content: " · "; color: var(--dim); }
+.panelwarn { margin: 0; padding: 8px 18px 0; font-size: 13px; color: var(--warn); }
 .empty { border: 1px dashed var(--line2); border-radius: 12px; padding: 40px;
   text-align: center; color: var(--dim); margin-top: 24px; }
 code { background: #161b22; padding: 2px 7px; border-radius: 5px; font-size: 13px; }
@@ -152,15 +181,32 @@ code { background: #161b22; padding: 2px 7px; border-radius: 5px; font-size: 13p
 .vflag { font-size: 12px; padding: 3px 9px; border-radius: 999px;
   border: 1px dashed var(--line2); color: var(--dim); white-space: nowrap; }
 
-.vread { display: grid; gap: 10px 22px; padding: 12px 0 4px;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-.vread.top { border-top: 1px solid var(--line); }
-.vread .k { display: block; color: var(--dim); font-size: 11px; text-transform: uppercase;
+/* The measurement list. Replaces a 4-column grid that showed ONE distance plus
+   its X/Y/Z deltas: the deltas were three figures nobody asked for, and the one
+   distance was destroyed by the next tap. Now one row per measurement, which is
+   what checking an object actually needs — a width and a height side by side. */
+.mlist { display: flex; flex-wrap: wrap; gap: 7px; padding: 12px 0 2px; }
+.mrow { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 10px;
+  border-radius: 999px; border: 1px solid #5c2422; background: #1d0f0f;
+  font-size: 13px; color: #ffb4b0; }
+/* Red to match the dots and the bar in the canvas — the row IS the thing on
+   screen, and a neutral chip made that connection invisible. */
+.mrow > b { font-size: 11px; min-width: 1.1em; text-align: center; color: #ff8a80; }
+.mrow > span { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mrow > span em { font-style: normal; font-weight: 400; font-size: 12px; color: var(--dim); }
+.mrow > button { font: inherit; font-size: 15px; line-height: 1; padding: 2px 6px;
+  border: 0; border-radius: 999px; background: none; color: #ff8a80; cursor: pointer; }
+.mrow > button:hover { background: #3a1614; color: #fff; }
+.mrow.wait { border-style: dashed; border-color: var(--line2); background: transparent;
+  color: var(--dim); padding: 4px 12px; }
+
+/* One line, not a grid. "Bounding box on screen / In millimetres / Printed on
+   this page" was three restatements of one number stacked in a box. */
+.vsize { margin: 8px 0 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.vsize .k { color: var(--dim); font-size: 11px; text-transform: uppercase;
   letter-spacing: .05em; }
-.vread .k em { font-style: normal; text-transform: none; letter-spacing: 0; }
-.vread b { font-size: 15px; font-variant-numeric: tabular-nums; }
-.vread b.off { font-size: 13px; font-weight: 400; color: var(--dim); }
-.vread b em { font-style: normal; font-weight: 400; font-size: 12px; color: var(--dim); }
+.vsize b { font-size: 15px; }
+.vsize em { font-style: normal; font-size: 12px; color: var(--dim); }
 
 .vwarn { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 13px;
   color: var(--warn); border: 1px solid #4a3a12; background: #1c1608; }
@@ -169,7 +215,11 @@ code { background: #161b22; padding: 2px 7px; border-radius: 5px; font-size: 13p
    the second thing, and it must not look like the first. */
 .vwarn.bad { color: var(--bad); border-color: #5c2422; background: #1d0f0f; }
 .vwarn.bad b { color: #ffb4b0; }
-.vsrc { margin-top: 10px; }
+/* "±1–2 in" and "no size at all" are different claims, so amber-warn and
+   no-metric must not be the same box; this keeps no-metric visually distinct
+   from a mismatch warning without inventing a fourth colour. */
+.vwarn.nometric { border-style: dashed; }
+.vwarn code { color: inherit; }
 /* Verdict pill INSIDE the canvas box. The warning about what is on screen used
    to live in a paragraph below a toolbar that wraps to 3-4 rows on a phone —
    two screens away from the number the customer is reading. Re-prints a verdict
@@ -198,12 +248,18 @@ code { background: #161b22; padding: 2px 7px; border-radius: 5px; font-size: 13p
   pointer-events: none; font-size: 12px; padding: 6px 12px; border-radius: 999px;
   color: var(--fg); background: rgba(8, 12, 18, .92); border: 1px solid var(--line2);
   text-align: center; max-width: min(34ch, calc(100% - 24px)); }
-/* The tolerance note is the one thing a customer must read before trusting a
-   number, so it is boxed rather than left as another grey caption. */
-.vprecision { margin: 12px 0 0; padding: 12px 14px; border-radius: 8px; font-size: 13px;
-  line-height: 1.55; color: var(--dim); border: 1px solid var(--line2); background: #0a0e14; }
-.vprecision b { color: var(--fg); }
-/* Same box, amber, for a mesh with no metric scale. "±1–2 in" and "no size at
-   all" are different claims and must not share a colour. */
-.vprecision.nometric { border-color: #4a3a12; background: #1c1608; color: #cbb98a; }
-.vprecision.nometric b { color: var(--warn); }
+/* The labels live in one absolutely-positioned layer over the canvas, so each
+   is placed with left/top in canvas pixels. Pointer events off the whole layer,
+   or a label sitting over an endpoint would swallow the drag that moves it. */
+.vlabels { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+
+/* Provenance, triangle counts and the rounding explanation — needed by
+   importers and by anyone auditing our figures, needed by nobody who just wants
+   the size. It was ~10 lines of full-width body text between the customer and
+   the download button. */
+.vmore { margin: 12px 0 0; font-size: 13px; color: var(--dim); }
+.vmore > summary { cursor: pointer; color: var(--dim); font-size: 12px;
+  text-transform: uppercase; letter-spacing: .05em; padding: 4px 0; }
+.vmore > summary:hover { color: var(--fg); }
+.vmore p { margin: 8px 0 0; line-height: 1.55; max-width: 78ch; }
+.vmore b { color: var(--fg); }

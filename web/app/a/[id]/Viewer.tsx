@@ -81,9 +81,20 @@ interface ScaleVerdict {
   why: string;
 }
 
+/**
+ * One finished measurement, as React needs it for the row list. The three.js
+ * objects that draw it live in a parallel array inside the effect — only the
+ * number and its label reach the DOM.
+ *
+ * Plural, and each endpoint draggable, because that is how the object actually
+ * gets checked: a crate is a width AND a height AND a diagonal, and the old
+ * single-shot tape threw the previous answer away on the third tap, so the
+ * customer had to write numbers down on paper to compare two edges.
+ */
 interface Measurement {
+  /** 1-based, in creation order. Never renumbered after a delete. */
+  n: number;
   dist: number;
-  d: [number, number, number];
 }
 
 /* ------------------------------------------------------------------ picking */
@@ -282,11 +293,6 @@ const AXIS_READOUT: Record<UpAxis, [AxisReadout, AxisReadout, AxisReadout]> = {
     { axis: 2, label: "height", letter: "Z" },
   ],
 };
-
-/** The pipeline's name for one axis in the FILE's frame — for the delta rows. */
-function axisLabel(frameUp: UpAxis, axis: 0 | 1 | 2): string {
-  return AXIS_READOUT[frameUp].find((a) => a.axis === axis)!.label;
-}
 
 /**
  * Does the geometry we are about to draw mean anything in inches?
@@ -590,7 +596,7 @@ export default function Viewer({ asset }: { asset: Asset }) {
   const [progress, setProgress] = useState<{ loaded: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [measurement, setMeasurement] = useState<Measurement | null>(null);
+  const [measures, setMeasures] = useState<Measurement[]>([]);
   const [pending, setPending] = useState(0);
   const [measureMode, setMeasureMode] = useState(true);
   // The tape measure reports distances, and a distance with no scale is a
@@ -598,8 +604,15 @@ export default function Viewer({ asset }: { asset: Asset }) {
   const measuring = measureMode && metric;
 
   const hostRef = useRef<HTMLDivElement | null>(null);
+  // Container the per-measurement labels are appended into. One absolutely
+  // positioned div per measurement, parented to the viewer box so a page scroll
+  // moves them with the canvas.
   const labelRef = useRef<HTMLDivElement | null>(null);
-  const apiRef = useRef<{ clear: () => void; reset: () => void } | null>(null);
+  const apiRef = useRef<{
+    clear: () => void;
+    reset: () => void;
+    remove: (n: number) => void;
+  } | null>(null);
   const modeRef = useRef(true);
   // Cached bytes, so flipping the camera up axis re-frames the scene without
   // paying for the download again.
@@ -632,7 +645,7 @@ export default function Viewer({ asset }: { asset: Asset }) {
 
     setPhase("loading");
     setError(null);
-    setMeasurement(null);
+    setMeasures([]);
     setPending(0);
 
     (async () => {
@@ -878,9 +891,13 @@ export default function Viewer({ asset }: { asset: Asset }) {
 
       /* ------------------------------------------------------- measurement */
 
+      // Red, and the same red as the splat viewer's tape — the two are the same
+      // gesture on two different renderers, so they must not look like two
+      // different tools.
+      const RED = 0xff3b30;
       const markerGeom = new THREE.SphereGeometry(1, 16, 12);
       const markerMat = new THREE.MeshBasicMaterial({
-        color: 0x58a6ff,
+        color: RED,
         // depthTest off: a picked point on the far side of the object still has
         // to be visible, otherwise the customer cannot tell what they clicked.
         depthTest: false,
@@ -889,7 +906,7 @@ export default function Viewer({ asset }: { asset: Asset }) {
       });
       const barGeom = new THREE.CylinderGeometry(1, 1, 1, 12, 1, true);
       const barMat = new THREE.MeshBasicMaterial({
-        color: 0xfbbf24,
+        color: RED,
         depthTest: false,
         transparent: true,
         opacity: 0.95,
@@ -899,44 +916,115 @@ export default function Viewer({ asset }: { asset: Asset }) {
       scene.add(gizmo);
 
       const markerR = Math.max(radius * 0.014, 0.0012);
-      const pts: T.Vector3[] = [];
       const ray = new THREE.Raycaster();
       ray.params.Points.threshold = markerR * 2;
       const ndc = new THREE.Vector2();
       const mid = new THREE.Vector3();
+      const proj = new THREE.Vector3();
       const YUP = new THREE.Vector3(0, 1, 0);
 
-      function clearMeasure() {
-        for (const c of gizmo.children.slice()) gizmo.remove(c);
-        pts.length = 0;
-        setMeasurement(null);
-        setPending(0);
-        if (labelRef.current) labelRef.current.style.display = "none";
+      /** A live measurement: two draggable ends, the bar between them, and the
+       *  floating label. `n` ties it to its React row. */
+      interface Live {
+        n: number;
+        a: T.Mesh;
+        b: T.Mesh;
+        bar: T.Mesh;
+        label: HTMLDivElement;
       }
+      const live: Live[] = [];
+      let seq = 0;
+      let first: T.Vector3 | null = null;
+      let firstDot: T.Mesh | null = null;
 
-      function addMarker(p: T.Vector3) {
+      const mkDot = (p: T.Vector3) => {
         const s = new THREE.Mesh(markerGeom, markerMat);
         s.scale.setScalar(markerR);
         s.position.copy(p);
         s.renderOrder = 999;
         gizmo.add(s);
+        return s;
+      };
+
+      /** Re-fit the bar and re-word the label. Called on create and on every
+       *  drag frame, so it must not allocate. */
+      const refresh = (m: Live) => {
+        const d = m.a.position.distanceTo(m.b.position);
+        mid.copy(m.b.position).sub(m.a.position);
+        m.bar.scale.set(markerR * 0.34, d, markerR * 0.34);
+        m.bar.position.copy(m.a.position).add(m.b.position).multiplyScalar(0.5);
+        if (d > 1e-9) m.bar.quaternion.setFromUnitVectors(YUP, mid.normalize());
+        m.label.textContent = inchStr(d);
+        setMeasures((prev) =>
+          prev.map((r) => (r.n === m.n ? { ...r, dist: d } : r)),
+        );
+        return d;
+      };
+
+      const destroy = (m: Live) => {
+        gizmo.remove(m.a);
+        gizmo.remove(m.b);
+        gizmo.remove(m.bar);
+        m.label.remove();
+        live.splice(live.indexOf(m), 1);
+      };
+
+      function clearMeasure() {
+        for (const m of live.slice()) destroy(m);
+        if (firstDot) gizmo.remove(firstDot);
+        firstDot = null;
+        first = null;
+        setMeasures([]);
+        setPending(0);
       }
 
-      function commit() {
-        const [a, b] = pts;
-        const delta = b.clone().sub(a);
-        const d = delta.length();
-        const bar = new THREE.Mesh(barGeom, barMat);
-        bar.scale.set(markerR * 0.34, d, markerR * 0.34);
-        bar.position.copy(a).add(b).multiplyScalar(0.5);
-        bar.quaternion.setFromUnitVectors(YUP, delta.clone().normalize());
-        bar.renderOrder = 999;
-        gizmo.add(bar);
-        setMeasurement({ dist: d, d: [delta.x, delta.y, delta.z] });
-        setPending(2);
-        if (labelRef.current) {
-          labelRef.current.textContent = `${inchStr(d)}  ·  ${mmStr(d)}`;
+      function addMeasure(pa: T.Vector3, pb: T.Vector3) {
+        const n = ++seq;
+        const label = document.createElement("div");
+        label.className = "vlabel";
+        labelRef.current?.appendChild(label);
+        const m: Live = {
+          n,
+          a: mkDot(pa),
+          b: mkDot(pb),
+          bar: new THREE.Mesh(barGeom, barMat),
+          label,
+        };
+        m.bar.renderOrder = 999;
+        gizmo.add(m.bar);
+        live.push(m);
+        // Seed the row before refresh(), which updates an existing row by n.
+        setMeasures((prev) => [...prev, { n, dist: pa.distanceTo(pb) }]);
+        refresh(m);
+      }
+
+      /** Screen-space distance from an event to a point, in CSS pixels. */
+      const screenDist = (p: T.Vector3, r: DOMRect, mx: number, my: number) => {
+        proj.copy(p).project(camera);
+        return Math.hypot(
+          (proj.x * 0.5 + 0.5) * r.width - mx,
+          (-proj.y * 0.5 + 0.5) * r.height - my,
+        );
+      };
+
+      /** The endpoint under the cursor, if one is close enough to grab. */
+      function handleAt(cx: number, cy: number) {
+        const r = canvas.getBoundingClientRect();
+        const mx = cx - r.left;
+        const my = cy - r.top;
+        // 14 px on a mouse; a fingertip needs more or the ends are ungrabbable.
+        let bestD = window.matchMedia?.("(pointer: coarse)").matches ? 26 : 14;
+        let best: { m: Live; end: T.Mesh } | null = null;
+        for (const m of live) {
+          for (const end of [m.a, m.b]) {
+            const d = screenDist(end.position, r, mx, my);
+            if (d < bestD) {
+              bestD = d;
+              best = { m, end };
+            }
+          }
         }
+        return best;
       }
 
       function pickPoint(cx: number, cy: number) {
@@ -945,33 +1033,75 @@ export default function Viewer({ asset }: { asset: Asset }) {
         ray.setFromCamera(ndc, camera);
         const hit = ray.intersectObject(root, true)[0];
         if (!hit) return;
-        // A third click starts a fresh measurement rather than extending the old
-        // one — the common case is measuring several features in a row.
-        if (pts.length >= 2) clearMeasure();
-        pts.push(hit.point.clone());
-        addMarker(hit.point);
-        if (pts.length === 1) setPending(1);
-        else commit();
+        if (!first) {
+          first = hit.point.clone();
+          firstDot = mkDot(first);
+          setPending(1);
+        } else {
+          if (firstDot) gizmo.remove(firstDot);
+          firstDot = null;
+          addMeasure(first, hit.point.clone());
+          first = null;
+          setPending(0);
+        }
       }
 
       // Distinguish a tap from an orbit drag. Without this every rotation drops
       // a measurement point, which makes the viewer unusable on a phone.
       let down: { x: number; y: number; t: number; id: number } | null = null;
+      let drag: { m: Live; end: T.Mesh } | null = null;
       const onDown = (e: PointerEvent) => {
         down = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+        if (!modeRef.current) return;
+        // Grabbing an endpoint must not also orbit the camera, so the controls
+        // are switched off for the duration of the drag rather than fighting it.
+        const grabbed = handleAt(e.clientX, e.clientY);
+        if (grabbed) {
+          drag = grabbed;
+          controls.enabled = false;
+          canvas.setPointerCapture?.(e.pointerId);
+        }
+      };
+      const onMove = (e: PointerEvent) => {
+        if (!drag) return;
+        const r = canvas.getBoundingClientRect();
+        ndc.set(
+          ((e.clientX - r.left) / r.width) * 2 - 1,
+          -((e.clientY - r.top) / r.height) * 2 + 1,
+        );
+        ray.setFromCamera(ndc, camera);
+        const hit = ray.intersectObject(root, true)[0];
+        // Off-surface moves are ignored rather than projected onto a plane: an
+        // endpoint that slides into empty space would return a distance to
+        // nothing, which is worse than an endpoint that simply does not follow.
+        if (!hit) return;
+        drag.end.position.copy(hit.point);
+        refresh(drag.m);
+      };
+      const endDrag = (e?: PointerEvent) => {
+        if (!drag) return;
+        drag = null;
+        controls.enabled = true;
+        if (e) canvas.releasePointerCapture?.(e.pointerId);
       };
       const onUp = (e: PointerEvent) => {
         const d = down;
         down = null;
+        if (drag) {
+          endDrag(e);
+          return;
+        }
         if (!d || d.id !== e.pointerId || !modeRef.current) return;
         if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) return;
         if (performance.now() - d.t > 800) return;
         pickPoint(e.clientX, e.clientY);
       };
-      const onCancel = () => {
+      const onCancel = (e: PointerEvent) => {
         down = null;
+        endDrag(e);
       };
       canvas.addEventListener("pointerdown", onDown);
+      canvas.addEventListener("pointermove", onMove);
       canvas.addEventListener("pointerup", onUp);
       canvas.addEventListener("pointercancel", onCancel);
       canvas.addEventListener("pointerleave", onCancel);
@@ -982,6 +1112,11 @@ export default function Viewer({ asset }: { asset: Asset }) {
           camera.position.copy(home);
           controls.target.copy(target);
           controls.update();
+        },
+        remove: (n: number) => {
+          const m = live.find((x) => x.n === n);
+          if (m) destroy(m);
+          setMeasures((prev) => prev.filter((r) => r.n !== n));
         },
       };
 
@@ -1006,16 +1141,22 @@ export default function Viewer({ asset }: { asset: Asset }) {
         raf = requestAnimationFrame(tick);
         controls.update();
         renderer.render(scene, camera);
-        const el = labelRef.current;
-        if (el) {
-          if (pts.length < 2) {
-            el.style.display = "none";
-          } else {
-            mid.copy(pts[0]).add(pts[1]).multiplyScalar(0.5).project(camera);
-            el.style.display = "block";
-            el.style.left = `${(mid.x * 0.5 + 0.5) * vw}px`;
-            el.style.top = `${(-mid.y * 0.5 + 0.5) * vh}px`;
+        // Each label tracks its own midpoint. Hidden when the midpoint falls
+        // behind the camera (z > 1), which otherwise pins the label to an edge
+        // of the box with a number for something nobody can see.
+        for (const m of live) {
+          mid
+            .copy(m.a.position)
+            .add(m.b.position)
+            .multiplyScalar(0.5)
+            .project(camera);
+          if (mid.z > 1) {
+            m.label.style.display = "none";
+            continue;
           }
+          m.label.style.display = "block";
+          m.label.style.left = `${(mid.x * 0.5 + 0.5) * vw}px`;
+          m.label.style.top = `${(-mid.y * 0.5 + 0.5) * vh}px`;
         }
       };
       raf = requestAnimationFrame(tick);
@@ -1063,9 +1204,13 @@ export default function Viewer({ asset }: { asset: Asset }) {
       teardown.push(() => {
         canvas.removeEventListener("webglcontextlost", onLost);
         canvas.removeEventListener("pointerdown", onDown);
+        canvas.removeEventListener("pointermove", onMove);
         canvas.removeEventListener("pointerup", onUp);
         canvas.removeEventListener("pointercancel", onCancel);
         canvas.removeEventListener("pointerleave", onCancel);
+        // The labels are DOM children of the host, not of the canvas, so
+        // removing the renderer does not take them with it.
+        for (const m of live.slice()) destroy(m);
         ro.disconnect();
         io.disconnect();
         controls.dispose();
@@ -1098,6 +1243,7 @@ export default function Viewer({ asset }: { asset: Asset }) {
 
   const clear = useCallback(() => apiRef.current?.clear(), []);
   const reset = useCallback(() => apiRef.current?.reset(), []);
+  const removeMeasure = useCallback((n: number) => apiRef.current?.remove(n), []);
 
   /* ------------------------------------------------------------------- render */
 
@@ -1202,10 +1348,8 @@ export default function Viewer({ asset }: { asset: Asset }) {
         </span>
       </h3>
       <p className="note">
-        Drag to orbit, scroll or pinch to zoom, right-drag or two-finger drag to pan.
-        {metric
-          ? " Tap two points on the model to measure between them."
-          : " This mesh carries no real-world scale, so the tape measure is switched off."}
+        Drag to spin · scroll to zoom
+        {metric ? " · tap two points to measure" : " · no size to measure"}
       </p>
 
       <div
@@ -1215,7 +1359,11 @@ export default function Viewer({ asset }: { asset: Asset }) {
         role="application"
         aria-label={`3D view of ${asset.title}`}
       >
-        <div className="vlabel" ref={labelRef} style={{ display: "none" }} />
+        {/* Labels are created imperatively, one per measurement, and parented
+            here rather than to the canvas so they scroll and resize with the
+            box. Pointer events stay off them or a label over an endpoint would
+            block the drag that moves it. */}
+        <div className="vlabels" ref={labelRef} />
 
         {/* The verdict about what is on screen, IN the box with it. The full
             explanations stay in their paragraphs below, but those sit under a
@@ -1287,8 +1435,14 @@ export default function Viewer({ asset }: { asset: Asset }) {
         {/* The one thing nobody works out unaided. Shown only while it is
             actionable — measuring armed, model ready, nothing placed yet — so it
             never nags over a finished measurement. */}
-        {webgl !== false && phase === "ready" && measuring && !measurement && !pending && (
+        {webgl !== false && phase === "ready" && measuring && !measures.length && !pending && (
           <div className="vhint">Tap two points on the model to measure</div>
+        )}
+        {/* Once one is placed the hint would nag, but the follow-up gesture —
+            that an end can be dragged — is not discoverable at all, so it is
+            said once, while the first measurement is the only one on screen. */}
+        {webgl !== false && phase === "ready" && measuring && measures.length === 1 && (
+          <div className="vhint">Drag either red dot to adjust · tap again for another</div>
         )}
         {webgl !== false && phase === "error" && (
           <div className="center">
@@ -1319,9 +1473,9 @@ export default function Viewer({ asset }: { asset: Asset }) {
           type="button"
           className="vbtn"
           onClick={clear}
-          disabled={phase !== "ready" || !pending || !metric}
+          disabled={phase !== "ready" || (!pending && !measures.length) || !metric}
         >
-          Clear
+          Clear{measures.length > 1 ? ` all (${measures.length})` : ""}
         </button>
         <button type="button" className="vbtn" onClick={reset} disabled={phase !== "ready"}>
           Reset view
@@ -1373,155 +1527,144 @@ export default function Viewer({ asset }: { asset: Asset }) {
       </div>
 
       <div className="inner">
-        {/* Every figure below is suppressed rather than relabelled when the
-            geometry has no scale: an inch reading off a unit-cube mesh is not
-            imprecise, it is invented. */}
-        {metric && (
-          <div className="vread" aria-live="polite">
-            <div>
-              <span className="k">Measured distance</span>
-              {measurement ? (
-                <b>
-                  {inchStr(measurement.dist)} <em>/ {mmStr(measurement.dist)}</em>
-                </b>
-              ) : (
-                <b className="off">{pending === 1 ? "tap a second point" : "tap two points"}</b>
-              )}
-            </div>
-            {([0, 1, 2] as const).map((i) => (
-              <div key={i}>
-                <span className="k">
-                  Δ{"XYZ"[i]} <em>· {axisLabel(frameUp, i)}</em>
+        {/* The measurements, newest last, in the same shape as the splat
+            viewer's list so the two tapes read as one tool. Inches lead because
+            that is what the rest of the page quotes; metres follow in the same
+            row rather than in a second table, which is how one distance used to
+            print two figures a customer had to reconcile. */}
+        {metric && (measures.length > 0 || pending === 1) && (
+          <div className="mlist" aria-live="polite">
+            {measures.map((m) => (
+              <div className="mrow" key={m.n}>
+                <b>{m.n}</b>
+                <span>
+                  {inchStr(m.dist)} <em>{mmStr(m.dist)}</em>
                 </span>
-                <b>{measurement ? inchStr(Math.abs(measurement.d[i])) : "—"}</b>
+                <button
+                  type="button"
+                  onClick={() => removeMeasure(m.n)}
+                  aria-label={`Delete measurement ${m.n}`}
+                  title="Delete"
+                >
+                  ×
+                </button>
               </div>
             ))}
+            {pending === 1 && <div className="mrow wait">tap the second point</div>}
           </div>
         )}
 
+        {/* Every figure here is suppressed rather than relabelled when the
+            geometry has no scale: an inch reading off a unit-cube mesh is not
+            imprecise, it is invented. */}
         {rows && (
-          <div className="vread top">
-            <div>
-              <span className="k">Bounding box on screen</span>
-              {metric ? (
-                <b>
-                  {rows.map((r) => inchStr(r.v)).join(" × ")}{" "}
-                  <em>{rows.map((r) => `${r.label} (${r.letter})`).join(" × ")}</em>
-                </b>
-              ) : (
-                <b>
-                  {rows.map((r) => unitStr(r.v)).join(" × ")}{" "}
-                  <em>model units along {rows.map((r) => r.letter).join(", ")} — not a size</em>
-                </b>
-              )}
-            </div>
-            {metric && (
-              <div>
-                <span className="k">In millimetres</span>
-                <b>{rows.map((r) => mmStr(r.v)).join(" × ")}</b>
-              </div>
+          <p className="vsize">
+            {metric ? (
+              <>
+                <span className="k">Overall</span>{" "}
+                <b>{rows.map((r) => inchStr(r.v)).join(" × ")}</b>{" "}
+                <em>{rows.map((r) => r.label).join(" × ")}</em>
+              </>
+            ) : (
+              <>
+                <span className="k">Overall</span>{" "}
+                <b>{rows.map((r) => unitStr(r.v)).join(" × ")}</b>{" "}
+                <em>model units — not a size</em>
+              </>
             )}
-            {metric && asset.dims && (
-              <div>
-                <span className="k">Printed on this page</span>
-                <b>
-                  {asset.dims}{" "}
-                  {/* Flagged in place as well as in the banner: a customer who
-                      reads only this grid must not copy a number that describes
-                      something other than the model beside it. */}
-                  {disputed && <em>— disputed, see below</em>}
-                </b>
-              </div>
-            )}
-          </div>
+          </p>
         )}
 
+        {/* Short, and in the customer's terms. The full reasoning moved into the
+            details block below — it was four to six sentences of pipeline
+            explanation sitting between the customer and the download button. */}
         {printedMismatch?.otherGeometry ? (
           <p className="vwarn bad">
-            <b>Do not use either of these numbers yet.</b> The model on screen and the size
-            printed at the top of this page differ by up to{" "}
-            {Math.round(printedMismatch.worst)} in on one axis — a factor of{" "}
-            {printedMismatch.ratio.toFixed(1)}. A gap that large is not the spread between two
-            reconstructions of one capture; at that size the two figures describe different
-            geometry, typically a whole-room or whole-scene mesh where the object was expected.
-            We cannot tell you from here which of the two is the object you scanned, so neither
-            figure is safe to quote until this asset is re-published. Measure inside the file you
-            intend to use, or ask us to fix the scan.
+            <b>Do not quote either size.</b> The model here and the size at the top of
+            the page differ {printedMismatch.ratio.toFixed(1)}× — they describe
+            different things. Ask us to re-run this scan.
           </p>
         ) : declaredDisputed ? (
-          /* The header disputed the printed figure without needing this panel:
-             either the publisher said so, or the figure is room-scale on its
-             face. The geometry here may load fine and still not be the thing
-             that figure describes, so the same red banner, in the same words. */
           <p className="vwarn bad">
-            <b>Do not use the size printed at the top of this page.</b>{" "}
-            {claim.state === "disputed" ? claim.why : ""} The model on screen is the geometry we
-            published for this asset; measure inside the file you intend to use, or ask us to fix
-            the scan.
+            <b>Do not quote the size at the top of the page.</b> Measure in the file
+            you will actually use, or ask us to re-run this scan.
           </p>
         ) : printedMismatch !== null ? (
           <p className="vwarn">
-            Heads up: the model on screen and the size printed at the top of this page differ by
-            up to {Math.round(printedMismatch.worst)} in on the same axis. At this size that is
-            the spread between two reconstructions of the same capture — repeat runs move
-            3.6–7.4 in — not a rendering error. Trust the file you actually intend to use, and
-            treat the gap as the honest uncertainty of this scan.
+            This model and the size at the top of the page differ by up to{" "}
+            {Math.round(printedMismatch.worst)} in — normal spread between two
+            reconstructions of one capture. Trust the file you will use.
           </p>
         ) : null}
 
-        <p className="muted vsrc">
-          Showing <code>{pick.file.name}</code>
-          {pick.file.group ? ` from ${pick.file.group}` : ""} — {pick.source}.
-          {stats
-            ? ` ${stats.points ? `${stats.verts.toLocaleString()} points` : `${stats.tris.toLocaleString()} triangles`}.`
-            : ""}
-          {altRecon ? (
-            <>
-              {" "}
-              <b style={{ color: "var(--warn)" }}>{ALT_RECON_NOTE}</b>
-            </>
-          ) : null}
-          {measuredElsewhere ? (
-            <>
-              {" "}
-              The size printed at the top of this page was measured on{" "}
-              <code>{measuredElsewhere}</code>, which this browser cannot draw — what you see is a
-              different file, so its numbers are not the authoritative ones.
-            </>
-          ) : pick.declared || !metric ? (
-            ""
-          ) : asset.dims ? (
-            " Selected automatically; the printed size may come from a different file."
-          ) : (
-            /* No dims on this asset, so there is no printed size for the pick to
-               disagree with. `runs` and `mouse` were both told one "may come
-               from a different file" on a page that prints no size at all. */
-            " Selected automatically. No size is published for this asset, so the figures above are" +
-            " measured from this file and nothing else."
-          )}
-        </p>
-
-        {metric ? (
-          <p className="vprecision">
-            <b>How accurate is this?</b> Roughly <b>± 1–2 inches</b>. Repeat reconstructions of the
-            same capture move by 3.6–7.4 in and the surface itself sits about 19 mm (0.75 in) off
-            true, so every figure here is rounded to the nearest inch on purpose — a finer digit
-            would claim precision this scan does not have. The millimetre figures are that same
-            rounded inch converted (25.4 mm each), not a second, finer measurement, so the two can
-            never disagree. Quarter-inch figures anywhere in the downloads (
-            <code>inches_0_25</code> in <code>dims.json</code>) are a rounding convention, not a
-            measurement tolerance. Use this to check fit and clearance, not to cut parts.
-          </p>
-        ) : (
-          <p className="vprecision nometric">
-            <b>This model has no real-world scale — it cannot be measured.</b> {scaleInfo.why} The
-            shape on screen is meaningful; the size is not, so no figure here is given in inches or
-            millimetres and the tape measure is switched off. Nothing on this page can tell you how
-            big this object is. To get a measurable asset, re-capture it with depth (an iPhone or
-            iPad Pro with LiDAR, via the RGB-D route) and use the resulting scan, or metricize this
-            mesh against a printed marker of known size.
+        {altRecon && (
+          <p className="vwarn">{ALT_RECON_NOTE}</p>
+        )}
+        {measuredElsewhere && (
+          <p className="vwarn">
+            The size at the top of the page was measured on{" "}
+            <code>{measuredElsewhere}</code>, which this browser cannot draw. You are
+            looking at a different file.
           </p>
         )}
+        {!metric && (
+          <p className="vwarn nometric">
+            <b>Shape only — this model has no real-world size.</b> {scaleInfo.why}
+          </p>
+        )}
+
+        {/* Everything a customer does not need in order to use the scan. It was
+            all full-width body text: the provenance line, the triangle count,
+            and a seven-line paragraph about rounding. Kept verbatim, one click
+            away, because importers and anyone checking our figures do need it. */}
+        <details className="vmore">
+          <summary>Details</summary>
+          <p>
+            Showing <code>{pick.file.name}</code>
+            {pick.file.group ? ` from ${pick.file.group}` : ""} — {pick.source}.
+            {stats
+              ? ` ${stats.points ? `${stats.verts.toLocaleString()} points` : `${stats.tris.toLocaleString()} triangles`}.`
+              : ""}{" "}
+            File frame {frameUp.toUpperCase()}-up
+            {stats ? `, grid = ${stats.grid}` : ""}.
+            {asset.frame ? (
+              <>
+                {" "}
+                Coordinate frame <code>{asset.frame}</code>.
+              </>
+            ) : null}
+          </p>
+          {metric ? (
+            <p>
+              <b>Accuracy: about ± 1–2 inches.</b> Repeat reconstructions of the same
+              capture move by 3.6–7.4 in and the surface sits about 19 mm off true, so
+              figures are rounded to the inch on purpose — a finer digit would claim
+              precision this scan does not have. The millimetre figures are that same
+              rounded inch converted, not a second measurement. Quarter-inch values in
+              the downloads (<code>inches_0_25</code> in <code>dims.json</code>) are a
+              rounding convention, not a tolerance. Good for fit and clearance, not for
+              cutting parts.
+            </p>
+          ) : (
+            <p>
+              No figure here is given in inches or millimetres and the tape measure is
+              off, because the geometry carries no scale — a measure tool would still
+              return a number, and it would describe the generator&rsquo;s proportions.
+              To get a measurable asset, re-capture with depth (an iPhone or iPad Pro
+              with LiDAR) or metricize this mesh against a printed marker of known size.
+            </p>
+          )}
+          {printedMismatch?.otherGeometry && (
+            <p>
+              The two figures differ by up to {Math.round(printedMismatch.worst)} in on
+              one axis, a factor of {printedMismatch.ratio.toFixed(1)}. A gap that large
+              is not the spread between two reconstructions; at that size they describe
+              different geometry, typically a whole-room mesh where the object was
+              expected. We cannot tell from here which one is the object you scanned.
+            </p>
+          )}
+          {declaredDisputed && claim.state === "disputed" && <p>{claim.why}</p>}
+        </details>
       </div>
     </div>
   );

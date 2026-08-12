@@ -3,52 +3,35 @@ import {
   getManifest,
   dimsClaim,
   displayTitle,
-  TARGET_ORDER,
   previewHref,
-  type TargetId,
 } from "../lib/manifest";
 
 // Always render fresh: a publish from the GPU box must show up without a
 // redeploy, so nothing here may be cached at build time.
 export const dynamic = "force-dynamic";
 
-// Standalone comparison pages live in blob storage beside the assets, not in
-// the manifest — they compare pipelines rather than describing one capture.
-// They are served through the same authorised proxy as every other blob, and
-// ?cache=0 because the blob CDN will otherwise hand back a previous version of
-// an overwritten stable pathname.
-// The list lives in blob storage (benchmark/index.json), written by recon3's
-// `page` stage — a freshly processed capture links itself here with NO
-// redeploy, exactly like assets appearing via the manifest. Fetched privately
-// server-side; failure degrades to "no links", never a broken page.
-const BENCHMARK_INDEX =
-  "https://sf4pvvi6x7hevyhw.private.blob.vercel-storage.com/dashboard/benchmark/index.json?cache=0";
-
-async function getBenchmarks(): Promise<{ label: string; href: string }[]> {
-  try {
-    const { fetchBlob } = await import("../lib/blob");
-    const res = await fetchBlob(BENCHMARK_INDEX);
-    if (!res.ok) return [];
-    const idx = (await res.json()) as { pages?: { label: string; blob: string }[] };
-    return (idx.pages ?? []).map((b) => ({
-      label: b.label,
-      href: `/api/download?inline=1&name=benchmark.html&url=${encodeURIComponent(b.blob)}`,
-    }));
-  } catch {
-    return [];
-  }
-}
+/**
+ * One surface, one kind of thing on it.
+ *
+ * There used to be a second section above the grid: a strip of links to
+ * standalone comparison pages from blob storage. It looked like a peer of the
+ * scan blocks and behaved nothing like one — a different page, a different
+ * viewer, its own rounding, and a second place to measure that could disagree
+ * with the scan's own page about the same object. Two sections that both looked
+ * like "your stuff" is the confusion; the comparison pages are an internal
+ * pipeline-evaluation tool, not a customer deliverable, so they are simply not
+ * linked here. They remain reachable by URL for us.
+ */
 
 export default async function Home() {
   const manifest = await getManifest();
-  const BENCHMARKS = await getBenchmarks();
 
   if (!manifest) {
     return (
       <>
         <header className="site">
           <div className="wrap">
-            <h1>Scan assets</h1>
+            <h1>CrateScanner <span className="qual">(Mesh &amp; 3DGS)</span></h1>
             <p className="sub">Nothing published yet.</p>
           </div>
         </header>
@@ -84,64 +67,17 @@ export default async function Home() {
     );
   }
 
-  const { assets, targets } = manifest;
+  const { assets } = manifest;
 
   return (
     <>
       <header className="site">
         <div className="wrap">
-          <h1>Your scans</h1>
-          <p className="sub">
-            Open a scan to spin it, read its size, and download the file your app
-            needs.
-          </p>
-          {/* What the customer can do, in place of the store telemetry that used
-              to hold the first screen — "6 scans · 100 files · 425.6 MB" was
-              three facts about our storage and one that restated the six visible
-              cards. No tolerance figure here on purpose: ±1–2 in is a property
-              of a scan that WAS measured, not a promise the site can make about
-              every card (some carry no scale at all). */}
-          <ol className="steps">
-            <li>
-              <b>1</b> Pick a scan
-            </li>
-            <li>
-              <b>2</b> Spin it, tap two points to measure
-            </li>
-            <li>
-              <b>3</b> Download for Blender, CAD, a simulator or the web
-            </li>
-          </ol>
-          <p className="muted" style={{ marginTop: 10 }}>
-            <Link href="/help">Which file do I need? →</Link>
-            <span style={{ marginLeft: 18 }}>
-              updated {manifest.generated.slice(0, 16).replace("T", " ")}
-            </span>
-          </p>
-
-          {/* Comparison pages are whole pages, not assets, so they have no card
-              in the grid and were previously reachable only by pasting a URL.
-              Labelled rather than left as bare pills: "▤ Sofa" beside a download
-              button gave no clue it was a different KIND of thing. Described as
-              a comparison, NOT as somewhere to measure — those pages are a
-              second measuring surface that does not yet share this app's
-              rounding or its per-file guards. */}
-          {BENCHMARKS.length > 0 && (
-            <div className="strip">
-              <h2>Compare the reconstructions</h2>
-              <p className="muted" style={{ marginBottom: 8 }}>
-                Photo mesh, AI mesh and splat side by side for one scan. For
-                sizes, use the scan&rsquo;s own page.
-              </p>
-              <div className="row">
-                {BENCHMARKS.map((b) => (
-                  <a key={b.label} className="dl" href={b.href}>
-                    {b.label.replace(/^▤\s*/, "")}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+          <h1>CrateScanner <span className="qual">(Mesh &amp; 3DGS)</span></h1>
+          {/* One line. This held a three-step numbered strip and a sub-heading
+              that between them said "pick a scan, spin it, measure it, download
+              it" — instructions for a grid of pictures that needs none. */}
+          <p className="sub">Tap a scan to spin it, measure it, download it.</p>
         </div>
       </header>
 
@@ -169,16 +105,23 @@ export default async function Home() {
                   <span className="none">no photo</span>
                 )}
               </div>
+              {/* Name, size, date. The row of target chips below this ("🧊 Blender,
+                  📐 CAD, 🤖 Isaac Sim, 🌐 Web") repeated on every card and named
+                  our export targets rather than telling anyone which scan this
+                  is — and the file count is a fact about our packaging. Which
+                  formats a scan carries is a question you ask once you have
+                  opened it, and the scan's own page answers it. */}
               <div className="body">
                 <h3>{t.name}</h3>
+                {/* The size IS the product, so on the card it is the figure, not
+                    a grey caption. Only the measured state gets it: a disputed
+                    number is one a customer copies, and there is no room here
+                    for the sentence that explains why not. */}
                 {claim.state === "measured" && (
-                  <p className="muted">
+                  <p className="csize">
                     {claim.dims} <span className="tol">± 1–2 in</span>
                   </p>
                 )}
-                {/* No figure on the card for a disputed one. There is no room
-                    here for the sentence that explains it, and a number with no
-                    explanation is the thing a customer copies. */}
                 {claim.state === "disputed" && (
                   <p className="muted">
                     <span className="chip bad">size not safe to quote</span>
@@ -198,23 +141,20 @@ export default async function Home() {
                     <span className="chip">size not published</span>
                   </p>
                 )}
-                <p className="muted">
-                  {t.scannedOn
-                    ? `Scanned ${t.scannedOn} · ${a.files.length} files`
-                    : `${a.files.length} files · ${a.updated_iso.slice(0, 10)}`}
-                </p>
-                <div className="chips">
-                  {TARGET_ORDER.filter((t) => a.targets.includes(t)).map((t) => (
-                    <span key={t} className="chip on" title={targets[t]?.name}>
-                      {targets[t]?.icon} {targets[t]?.name.split(" / ")[0]}
-                    </span>
-                  ))}
-                </div>
+                {t.scannedOn && <p className="muted">Scanned {t.scannedOn}</p>}
               </div>
             </Link>
             );
           })}
         </div>
+
+        {/* The "Which file do I need?" link used to sit in the header competing
+            with the scans. It is a real page and has to stay reachable, but it is
+            a question you have after picking a scan, not before. */}
+        <p className="foot muted">
+          <Link href="/help">Which file do I need?</Link>
+          <span>updated {manifest.generated.slice(0, 16).replace("T", " ")}</span>
+        </p>
       </div>
     </>
   );
