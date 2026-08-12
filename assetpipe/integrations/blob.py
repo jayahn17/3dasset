@@ -84,34 +84,81 @@ class PresignedPutUploader:
 class VercelBlobUploader:
     """Convenience REST PUT to Vercel Blob.
 
-    NOTE: confirm ``api_version`` against the @vercel/blob version your son
-    deploy uses — Vercel bumps it periodically. For production, minting client
-    tokens from a son endpoint + PresignedPutUploader is the sturdier path.
+    The endpoint, header names and ``api_version`` all track the official SDK
+    and Vercel bumps them periodically. To re-derive them rather than guess::
+
+        npm install @vercel/blob
+        grep -rhoE '"x-[a-z0-9-]+"' node_modules/@vercel/blob/dist/*.js | sort -u
+        grep -rhoE 'BLOB_API_VERSION = [0-9]+' node_modules/@vercel/blob/dist/*.js
+        grep -rhoE 'defaultVercelBlobApiUrl = "[^"]*"' node_modules/@vercel/blob/dist/*.js
+        # and how put() builds its request:
+        grep -rhoE 'const params = new URLSearchParams\(\{ pathname \}\)' -A3 \
+            node_modules/@vercel/blob/dist/*.js
+
+    Checked against @vercel/blob 2.6.1 (api version 12).
+    For production, minting client tokens from a son endpoint +
+    PresignedPutUploader is the sturdier path.
     """
 
-    def __init__(self, token: str, prefix: str = "scans", api_version: str = "7") -> None:
+    # v12 uploads go to the API host with the pathname as a QUERY PARAM.
+    # The old scheme — PUT https://blob.vercel-storage.com/<pathname> — still
+    # resolves but rejects every request with 400 "Invalid pathname", because
+    # that host now only serves *reads* (of public blobs; private reads live at
+    # https://<storeid>.private.blob.vercel-storage.com/<pathname>).
+    API_URL = "https://vercel.com/api/blob"
+
+    def __init__(self, token: str, prefix: str = "scans", api_version: str = "12",
+                 add_random_suffix: bool = False, allow_overwrite: bool = True,
+                 access: str = "public") -> None:
         self.token = token
         self.prefix = prefix.strip("/")
         self.api_version = api_version
+        # The store id is not encoded in an OIDC token, so the SDK always sends
+        # it as its own header. A read-write token is `vercel_blob_rw_<store>_
+        # <secret>`, so for our case it can just be read back out of the token.
+        self.store_id = token.split("_")[3] if token.count("_") >= 4 else ""
+        # A store's access level is fixed when it is created and there is no
+        # update command. Requesting the wrong one fails the whole upload with
+        # 400 "Cannot use public access on a private store", so this must match
+        # `vercel blob get-store <id>` → Access.
+        self.access = access
+        # Random suffixes default OFF. The dashboard publishes its manifest to a
+        # URL that is baked into the site as NEXT_PUBLIC_MANIFEST_URL; a suffix
+        # would mint a new URL on every publish and silently strand the site on
+        # the first one, defeating the whole publish-without-redeploy design.
+        # Stable pathnames also make re-publishing idempotent, which needs
+        # overwrite permission.
+        self.add_random_suffix = add_random_suffix
+        self.allow_overwrite = allow_overwrite
 
     def upload(self, local_path: str, dest_name: str | None = None) -> str:
         import requests  # lazy
+        from urllib.parse import urlencode
 
         name = dest_name or os.path.basename(local_path)
         pathname = f"{self.prefix}/{name}" if self.prefix else name
+        headers = {
+            "authorization": f"Bearer {self.token}",
+            "x-api-version": self.api_version,
+            "x-content-type": content_type_for(local_path),
+            "x-add-random-suffix": "1" if self.add_random_suffix else "0",
+            "x-allow-overwrite": "1" if self.allow_overwrite else "0",
+            # NOT "x-access" — that name is ignored, the request then defaults
+            # to public, and a private store rejects the whole upload with 400.
+            "x-vercel-blob-access": self.access,
+        }
+        if self.store_id:
+            headers["x-vercel-blob-store-id"] = self.store_id
         with open(local_path, "rb") as fh:
+            # A real file object lets requests set Content-Length from the file
+            # size rather than chunking, which the API needs for large meshes.
             resp = requests.put(
-                f"https://blob.vercel-storage.com/{pathname}",
-                data=fh,
-                headers={
-                    "authorization": f"Bearer {self.token}",
-                    "x-api-version": self.api_version,
-                    "x-content-type": content_type_for(local_path),
-                    "x-add-random-suffix": "1",
-                },
-                timeout=600,
+                f"{self.API_URL}/?{urlencode({'pathname': pathname})}",
+                data=fh, headers=headers, timeout=600,
             )
-        resp.raise_for_status()
+        if not resp.ok:  # the body says *why*; raise_for_status alone does not
+            raise RuntimeError(
+                f"blob PUT {pathname} → {resp.status_code}: {resp.text[:300]}")
         return resp.json()["url"]
 
 
@@ -122,5 +169,6 @@ def make_uploader(kind: str | None, **kw):
     if kind == "local":
         return LocalCopyUploader(kw["dest_dir"], kw["base_url"])
     if kind == "vercel":
-        return VercelBlobUploader(kw["token"], prefix=kw.get("prefix", "scans"))
+        return VercelBlobUploader(kw["token"], prefix=kw.get("prefix", "scans"),
+                                  access=kw.get("access", "public"))
     raise ValueError(f"unknown uploader kind: {kind!r} (use none|local|vercel)")

@@ -745,6 +745,7 @@ def cmd_sim_export(args) -> int:
         args.mesh,
         args.out,
         units=args.units,
+        up=args.up,
         material=args.material,
         density=args.density,
         mass_kg=args.mass,
@@ -805,9 +806,15 @@ def main(argv=None) -> int:
     )
     se.add_argument("mesh", help="visual mesh (.glb/.obj/.ply/.stl)")
     se.add_argument("--out", default="sim_out", help="output directory")
-    se.add_argument("--units", default="auto", choices=["auto", "meters", "inches"])
+    se.add_argument("--units", default="auto",
+                    choices=["auto", "meters", "inches", "mm"])
+    se.add_argument("--up", default="y", choices=["y", "z"],
+                    help="up axis of the source mesh: 'y' for GLB/OBJ from a "
+                         "scan or generator, 'z' for anything already levelled "
+                         "to a floor (tools/splat_to_cad.py output)")
     se.add_argument("--material", default="generic",
-                    choices=["generic", "cardboard", "wood", "plastic", "metal"])
+                    choices=["generic", "cardboard", "wood", "plastic",
+                             "metal", "upholstery"])
     se.add_argument("--density", type=float, default=None, help="kg/m^3 override")
     se.add_argument("--mass", type=float, default=None,
                     help="measured mass in kg (beats any density prior)")

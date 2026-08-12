@@ -12,6 +12,9 @@ sim_out/
 logs/
 images/
 mouse_photos/
+recon_work/
+kiri_oss_out/
+cad_out/
 *.db
 *.ply
 *.glb
@@ -19,6 +22,14 @@ mouse_photos/
 *.stl
 WhatsApp Image*.jpeg
 WhatsApp Image*.jpg
+
+# publisher upload cache: blob URL per (dest, content hash) + the downscaled
+# hero images. Machine-local state about what THIS box has already uploaded, so
+# committing it would tell another checkout that files it has never sent are
+# already live. web/.gitignore already excludes public/assets and
+# public/manifest.json; leaving this one tracked was the asymmetry that made a
+# stale-cache-vs-empty-store mismatch easy to hit.
+.publish_cache/
 
 # conda (temp requirements file written during `conda env create`)
 env/condaenv.*.requirements.txt
@@ -31,6 +42,12 @@ worker_data/
 roomscape/scenes/*
 !roomscape/scenes/README.md
 roomscape/blobs/
+
+# node: only ever installed at the repo root to READ @vercel/blob's dist and
+# confirm the API constants that integrations/blob.py reimplements in pure
+# Python — nothing here is imported at runtime. package.json/-lock.json ARE
+# tracked, because they pin the version those constants were checked against.
+node_modules/
 
 # python
 __pycache__/
@@ -51,3 +68,6 @@ views/
 
 # model weights (auto-downloaded by ultralytics; multi-hundred MB)
 *.pt
+
+# local, per-deployment list of Drive accounts to process (real email addresses)
+captures/status/accounts_allow.json

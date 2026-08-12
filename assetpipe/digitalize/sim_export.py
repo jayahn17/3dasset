@@ -35,11 +35,15 @@ except ImportError:  # pragma: no cover
 INCHES_PER_METER = 39.37007874015748
 
 # Density priors (kg/m^3) for common scanned-prop material classes.
+# These are *apparent* densities over the mesh's own volume, not material
+# densities: upholstery is mostly foam and air, so a couch that would weigh
+# 375 kg as solid wood really weighs ~70.
 DENSITY_PRIORS = {
     "cardboard": 120.0,
     "wood": 500.0,
     "plastic": 400.0,
     "metal": 2700.0,
+    "upholstery": 60.0,
     "generic": 300.0,
 }
 
@@ -59,8 +63,14 @@ def _guess_unit_scale(mesh, units: str) -> tuple[float, str]:
         return 1.0, "meters"
     if units == "inches":
         return 1.0 / INCHES_PER_METER, "inches"
+    if units in ("mm", "millimeters"):
+        return 0.001, "millimeters"
     span = float(mesh.extents.max())
-    # CrateScanner mesh.obj bakes inches (span >> 5); metric assets are a few m.
+    # CrateScanner mesh.obj bakes inches (span >> 5); CAD exports bake mm
+    # (span >> 100 — 2177 is a 2.2 m couch, never a 55 m one); metric assets
+    # are a few m.
+    if span > 100.0:
+        return 0.001, "millimeters(auto)"
     if span > 5.0:
         return 1.0 / INCHES_PER_METER, "inches(auto)"
     return 1.0, "meters(auto)"
@@ -71,6 +81,7 @@ def sim_export(
     out_dir: str,
     *,
     units: str = "auto",
+    up: str = "y",
     density: Optional[float] = None,
     material: str = "generic",
     mass_kg: Optional[float] = None,
@@ -85,6 +96,11 @@ def sim_export(
 
     ``target_size_m``: uniform-rescale so the largest axis equals this, for
     normalized (generative) meshes; use measure.py dims as the source.
+
+    ``up``: axis the source mesh stands on. GLB/OBJ from a scan or generator
+    are Y-up (the default). Anything already levelled to a floor — the CAD
+    export from ``tools/splat_to_cad.py`` — is ``"z"``, and rotating it again
+    would lay the prop on its back.
     """
     import numpy as np
     import trimesh
@@ -100,8 +116,11 @@ def sim_export(
         mesh.apply_scale(float(target_size_m) / float(mesh.extents.max()))
 
     # GLB/OBJ are Y-up; sim (REP-103 / SimReady) wants Z-up, base pivot at 0.
-    mesh.apply_transform(
-        trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0]))
+    if up.lower() == "y":
+        mesh.apply_transform(
+            trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0]))
+    elif up.lower() != "z":
+        raise ValueError(f"up must be 'y' or 'z', got {up!r}")
     mn, mx = mesh.bounds
     mesh.apply_translation([-(mn[0] + mx[0]) / 2, -(mn[1] + mx[1]) / 2, -mn[2]])
 
@@ -145,6 +164,7 @@ def sim_export(
         "asset": safe,
         "source": os.path.abspath(mesh_path),
         "units_in": units_resolved,
+        "up_in": up.lower(),
         "extent_m": [round(x, 4) for x in ext],
         "watertight": watertight,
         "mass_source": ("measured" if mass_kg is not None else
@@ -160,7 +180,8 @@ def sim_export(
     report["urdf"] = _write_urdf(out_dir, safe, visual_obj, hull_paths,
                                  props_mass, com, inertia)
     report["mjcf"] = _write_mjcf(out_dir, safe, visual_obj, hull_paths,
-                                 props_mass, com, inertia, friction)
+                                 props_mass, com, inertia, friction,
+                                 rgb=_mean_color(mesh))
     if _HAVE_USD:
         report["usd"] = _write_usd(out_dir, safe, mesh, hulls, props_mass,
                                    com, inertia, friction, rho,
@@ -198,8 +219,20 @@ def _write_urdf(out_dir, name, visual_obj, hull_paths, mass, com, I) -> str:
     return path
 
 
+def _mean_color(mesh) -> tuple[float, float, float]:
+    """Average vertex colour as 0-1 RGB, mid-grey when the mesh has none."""
+    import numpy as np
+
+    visual = getattr(mesh, "visual", None)
+    vcolors = getattr(visual, "vertex_colors", None)
+    if vcolors is None or not len(vcolors):
+        return (0.6, 0.6, 0.6)
+    rgb = np.asarray(vcolors, dtype=float)[:, :3].mean(0) / 255.0
+    return tuple(float(min(max(c, 0.0), 1.0)) for c in rgb)
+
+
 def _write_mjcf(out_dir, name, visual_obj, hull_paths, mass, com, I,
-                friction) -> str:
+                friction, rgb=(0.6, 0.6, 0.6)) -> str:
     import numpy as np
 
     # MuJoCo wants principal ("diagonal") inertia + orientation quaternion.
@@ -212,9 +245,12 @@ def _write_mjcf(out_dir, name, visual_obj, hull_paths, mass, com, I,
 
     q = tt.quaternion_from_matrix(
         np.vstack([np.hstack([R, [[0], [0], [0]]]), [0, 0, 0, 1]]))  # wxyz
+    # MJCF meshes carry no per-vertex colour, so the scan's average tone is
+    # the closest honest stand-in — otherwise every scanned prop renders grey.
     assets = [f'    <mesh name="{name}_vis" file="{os.path.basename(visual_obj)}"/>']
     geoms = [f'      <geom type="mesh" mesh="{name}_vis" contype="0" '
-             f'conaffinity="0" group="2"/>']
+             f'conaffinity="0" group="2" '
+             f'rgba="{rgb[0]:.3f} {rgb[1]:.3f} {rgb[2]:.3f} 1"/>']
     for i, p in enumerate(hull_paths):
         assets.append(
             f'    <mesh name="{name}_c{i:02d}" file="{os.path.basename(p)}"/>')
@@ -225,11 +261,16 @@ def _write_mjcf(out_dir, name, visual_obj, hull_paths, mass, com, I,
     mjcf = f"""<mujoco model="{name}">
   <compiler meshdir="." angle="radian"/>
   <option timestep="0.002"/>
+  <!-- MuJoCo's default offscreen buffer is 640x480; headless renders of this
+       prop fail without a larger one. -->
+  <visual><global offwidth="1920" offheight="1080"/></visual>
   <asset>
 {nl.join(assets)}
   </asset>
   <worldbody>
-    <geom type="plane" size="2 2 0.1" rgba="0.9 0.9 0.9 1"/>
+    <light pos="1.5 -1.5 3" dir="-0.4 0.4 -1" diffuse="0.7 0.7 0.7"/>
+    <light pos="-2 2 3" dir="0.5 -0.5 -1" diffuse="0.4 0.4 0.4"/>
+    <geom type="plane" size="4 4 0.1" rgba="0.9 0.9 0.9 1"/>
     <body name="{name}" pos="0 0 {0.02:.3f}">
       <freejoint/>
       <inertial pos="{com[0]:.6f} {com[1]:.6f} {com[2]:.6f}"
@@ -287,14 +328,22 @@ def _write_usd(out_dir, name, mesh, hulls, mass, com, I, friction, density,
 
     geo = UsdGeom.Scope.Define(stage, f"/{name}/geometry")
     vis = author_mesh(f"/{name}/geometry", "visual", mesh)
-    try:  # bake vertex colors when the scan has them
-        vc = mesh.visual.to_color().vertex_colors
+
+    # Bake vertex colors when the scan has them. Two visual types arrive here:
+    # ColorVisuals already carries per-vertex colour and has no .to_color(),
+    # TextureVisuals needs the conversion. Calling .to_color() unconditionally
+    # raises on the first — and a scan mesh is the case that has colour, so
+    # swallowing that error silently ships every prop grey.
+    visual = getattr(mesh, "visual", None)
+    vcolors = getattr(visual, "vertex_colors", None)
+    if vcolors is None or len(vcolors) != len(mesh.vertices):
+        to_color = getattr(visual, "to_color", None)
+        vcolors = to_color().vertex_colors if to_color else None
+    if vcolors is not None and len(vcolors) == len(mesh.vertices):
         vis.CreateDisplayColorAttr(
-            [Gf.Vec3f(*(c[:3] / 255.0)) for c in vc],
-        )
-        vis.GetDisplayColorPrimvar().SetInterpolation("vertex")
-    except Exception:  # noqa: BLE001
-        pass
+            [Gf.Vec3f(*(np.asarray(c[:3], dtype=float) / 255.0)) for c in vcolors])
+        UsdGeom.PrimvarsAPI(vis.GetPrim()).GetPrimvar(
+            "displayColor").SetInterpolation("vertex")
 
     pmat = UsdShade.Material.Define(stage, f"/{name}/physics_material")
     mat_api = UsdPhysics.MaterialAPI.Apply(pmat.GetPrim())

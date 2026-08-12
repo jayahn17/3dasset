@@ -188,6 +188,16 @@ def _inspect_manifest_session(root: str, manifest_path: str, report: dict) -> di
             f"intrinsics for every frame ({report['n_with_intrinsics']}/{report['n_color']})"
         )
 
+    # The frame-count floor has to enter `missing` too, or it fails the session
+    # without ever naming itself: a 1-frame capture has every field present, so
+    # `missing` stays empty and the caller prints "missing: unknown" beside
+    # "color=1" — which reads as "colour is present" rather than "one frame".
+    if report["n_color"] < 3:
+        report["missing"].append(
+            f"at least 3 color frames (capture has {report['n_color']}) — "
+            "the scan was stopped before enough of the object was recorded"
+        )
+
     report["ok_for_nvblox"] = not report["missing"] and report["n_color"] >= 3
     if report["ok_for_nvblox"]:
         report["hint"] = "Session is fuse-ready for nvblox / TSDF."

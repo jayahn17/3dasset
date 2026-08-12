@@ -142,17 +142,34 @@ def apply_rgbd_scale_to_glb(
 
     mesh.export(str(scaled_glb))
 
-    # STL in millimeters for Onshape / Fusion / SolidWorks mesh import.
+    # STL + OBJ in millimeters for Onshape / Fusion / SolidWorks mesh import.
+    # These are fitted PER AXIS to the RGB-D AABB so CAD "Measure" matches
+    # dims_mm.json on all three axes (the GLB above stays uniformly scaled,
+    # preserving the generator's proportions for visual use).
+    import numpy as np
+
     stl_path = out_dir / "asset_trellis_mm.stl"
     mesh_mm = mesh.copy()
-    mesh_mm.apply_scale(1000.0)  # m → mm
+    fx2, fy2, fz2 = mesh_aabb_extents(mesh_mm)
+    t_l, t_w, t_h = target_m["length"], target_m["width"], target_m["height"]
+    # glTF/TRELLIS is y-up: y ↔ height (RGB-D height is the gravity axis).
+    # Map the footprint axes by size order to avoid a 90° mislabel.
+    if (fx2 >= fz2) == (t_l >= t_w):
+        ax_scale = (t_l / fx2, t_h / fy2, t_w / fz2)
+    else:
+        ax_scale = (t_w / fx2, t_h / fy2, t_l / fz2)
+    mesh_mm.vertices = mesh_mm.vertices * (np.array(ax_scale) * 1000.0)
+    mesh_mm.vertices -= mesh_mm.bounds.mean(axis=0)
     mesh_mm.export(str(stl_path))
+    obj_path = out_dir / "asset_trellis_mm.obj"
+    mesh_mm.export(str(obj_path))
 
     sx, sy, sz = mesh_aabb_extents(mesh)
     return {
         "glb": str(scaled_glb),
         "raw_glb": str(raw_glb) if raw_glb.is_file() else None,
         "stl_mm": str(stl_path),
+        "obj_mm": str(obj_path),
         "dims_mm": str(out_dir / "dims_mm.json"),
         "dims": str(dims_out),
         "scale_factor": scale,

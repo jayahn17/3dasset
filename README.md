@@ -3,6 +3,10 @@
 **Primary path (Mac + iPad + Linux):** scan with **CrateScanner** (Xcode / LiDAR),
 send RGB-D to this box, fuse with **nvblox**.
 
+→ **End-to-end pipeline (phone → Drive → GPU → web dashboard):**  
+> **[docs/PIPELINE_E2E.md](docs/PIPELINE_E2E.md)** — one capture's whole life,
+> including which parts are automatic today and which are not.
+
 → **Full Engin170 loop (iPad capture → Linux backend → iPad view-only):**  
 > **[docs/ENGIN170_WORKFLOW.md](docs/ENGIN170_WORKFLOW.md)**
 >

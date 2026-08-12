@@ -49,18 +49,53 @@ def _sharpness_gray(rgb: np.ndarray) -> float:
     return float(lap.var())
 
 
-def score_frames(session, stride: int = 3) -> list[FrameScore]:
-    """Rank frames; higher score = better single-view object capture."""
+# Preferred stand-off for a hand-held object capture. Not a hard limit — see
+# _depth_window.
+DEPTH_LO_M = 0.25
+DEPTH_HI_M = 1.8
+# Below this many survivors the strict ceiling is doing more harm than good.
+MIN_SCORED_FRAMES = 6
+
+
+def _depth_window(depths: list[float]) -> tuple[float, float, bool]:
+    """Preferred depth window, widened to the capture's own range if the strict
+    one would throw nearly everything away.
+
+    A session shot at 2.2 m with clean depth is still a usable object capture,
+    but the fixed 1.8 m ceiling silently reduced one to a *single* frame — and
+    a one-frame slab then measured as a 48" "object" that routed the scan and
+    scaled its TRELLIS mesh. Widening only when the strict window starves keeps
+    well-shot captures scoring exactly as they did before.
+    """
+    usable = [d for d in depths if d > DEPTH_LO_M]
+    if not usable:
+        return DEPTH_LO_M, DEPTH_HI_M, False
+    if len([d for d in usable if d < DEPTH_HI_M]) >= MIN_SCORED_FRAMES:
+        return DEPTH_LO_M, DEPTH_HI_M, False
+    # Keep the bulk of the capture: never tighter than the strict ceiling, and
+    # never past the range where phone LiDAR depth is still trustworthy.
+    hi = min(max(DEPTH_HI_M, float(np.median(usable)) * 1.6), 5.0)
+    return DEPTH_LO_M, hi, True
+
+
+def score_frames(
+    session, stride: int = 3, *, info: Optional[dict] = None
+) -> list[FrameScore]:
+    """Rank frames; higher score = better single-view object capture.
+
+    ``info``, if given, receives the depth window actually used — the caller
+    records it so a widened run is visible in analysis.json rather than silent.
+    """
     from PIL import Image
 
-    scores: list[FrameScore] = []
+    # First pass reads depth only: colour is a 12 MP JPEG decode, so it waits
+    # until a frame has actually cleared the gates.
+    stats: list[tuple[int, float, float, float]] = []  # index, vfrac, cmed, pstd
     for i in range(0, session.n_frames, max(1, stride)):
         fr = session.frames[i]
         depth_mm = np.array(Image.open(fr.depth_path))
-        color = np.asarray(Image.open(fr.color_path).convert("RGB"))
         H, W = depth_mm.shape[:2]
-        valid = depth_mm > 50
-        vfrac = float(valid.mean())
+        vfrac = float((depth_mm > 50).mean())
         if vfrac < 0.4:
             continue
         # center patch depth (object usually framed mid-frame)
@@ -69,13 +104,24 @@ def score_frames(session, stride: int = 3) -> list[FrameScore]:
         pv = patch[patch > 50]
         if len(pv) < 80:
             continue
-        cmed = float(np.median(pv)) * 0.001
-        # sweet spot ~0.4–1.2 m for phone LiDAR objects
-        if not (0.25 < cmed < 1.8):
-            continue
-        sharp = _sharpness_gray(color)
         # depth should vary in center (object stands off floor) but not chaotic
-        pstd = float(np.std(pv)) * 0.001
+        stats.append(
+            (i, vfrac, float(np.median(pv)) * 0.001, float(np.std(pv)) * 0.001)
+        )
+
+    lo, hi, widened = _depth_window([s[2] for s in stats])
+    if info is not None:
+        info["n_depth_ok"] = len(stats)
+        info["depth_window_m"] = [round(lo, 3), round(hi, 3)]
+        info["depth_window_widened"] = widened
+
+    scores: list[FrameScore] = []
+    for i, vfrac, cmed, pstd in stats:
+        if not (lo < cmed < hi):
+            continue
+        sharp = _sharpness_gray(
+            np.asarray(Image.open(session.frames[i].color_path).convert("RGB"))
+        )
         # score: sharp + good distance + some relief + lots of valid depth
         dist_bonus = 1.0 - min(abs(cmed - 0.65) / 0.65, 1.0)
         relief = min(pstd / 0.08, 1.0)
@@ -305,37 +351,74 @@ def _poisson_rigid_mesh(
     }
 
 
+ICP_CORR_DIST = 0.045
+ICP_MIN_FITNESS = 0.2
+ICP_RMSE_AT_1M = 0.02
+ICP_RMSE_MAX = 0.035
+
+
+def _icp_rmse_bound(xyz_anchor: np.ndarray) -> float:
+    """ICP residual ceiling, scaled to the anchor's working distance.
+
+    Phone LiDAR noise grows with range (~19 mm surface RMS around a metre), so
+    a flat 20 mm bound is slack at arm's length and *tighter than the sensor
+    itself* out at 2 m. That is how a clean 2.2 m capture merged zero frames
+    while ICP was reporting 0.53 fitness — good alignments were being thrown
+    away on residuals of 21–25 mm.
+    """
+    if len(xyz_anchor) == 0:
+        return ICP_RMSE_AT_1M
+    d = float(np.median(np.abs(xyz_anchor[:, 2])))
+    return float(
+        np.clip(ICP_RMSE_AT_1M * max(1.0, d), ICP_RMSE_AT_1M, ICP_RMSE_MAX)
+    )
+
+
 def _align_to_anchor(
     xyz: np.ndarray,
     xyz_anchor: np.ndarray,
     *,
     T_pose: np.ndarray,
-) -> Optional[np.ndarray]:
-    """Return 4x4 taking ``xyz`` → anchor frame, or None if ICP fails."""
+) -> tuple[Optional[np.ndarray], dict[str, Any]]:
+    """4x4 taking ``xyz`` → anchor frame (None if ICP fails), plus its stats.
+
+    The stats go straight into ``align_log`` so a rejected frame records *why*
+    it was rejected instead of a bare "skip_icp".
+    """
     import open3d as o3d
 
     if len(xyz) < 40 or len(xyz_anchor) < 40:
-        return None
+        return None, {"reason": "too few points"}
     src = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(xyz))
     dst = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(xyz_anchor))
     # Pose init often fails under ARKit drift — also try centroid align.
     T_center = np.eye(4)
     T_center[:3, 3] = xyz_anchor.mean(0) - xyz.mean(0)
-    best = None
-    for T0 in (T_center, T_pose):
+    best: Optional[tuple[float, float, np.ndarray]] = None
+    best_init = ""
+    for tag, T0 in (("center", T_center), ("pose", T_pose)):
         reg = o3d.pipelines.registration.registration_icp(
             src,
             dst,
-            0.045,
+            ICP_CORR_DIST,
             T0,
             o3d.pipelines.registration.TransformationEstimationPointToPoint(),
             o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=80),
         )
         if best is None or reg.fitness > best[0]:
             best = (reg.fitness, reg.inlier_rmse, reg.transformation)
-    if best is None or best[0] < 0.2 or best[1] > 0.02:
-        return None
-    return best[2]
+            best_init = tag
+    assert best is not None
+    rmse_max = _icp_rmse_bound(xyz_anchor)
+    stats: dict[str, Any] = {
+        "init": best_init,
+        "fitness": round(float(best[0]), 3),
+        "rmse": round(float(best[1]), 4),
+        "rmse_max": round(rmse_max, 4),
+    }
+    if best[0] < ICP_MIN_FITNESS or best[1] > rmse_max:
+        return None, stats
+    return best[2], stats
 
 
 def build_object_asset(
@@ -358,12 +441,14 @@ def build_object_asset(
     out_dir = os.path.abspath(out_dir)
     os.makedirs(out_dir, exist_ok=True)
 
-    ranked = score_frames(session, stride=stride)
+    score_info: dict[str, Any] = {}
+    ranked = score_frames(session, stride=stride, info=score_info)
     analysis = {
         "n_session_frames": session.n_frames,
         "n_scored": len(ranked),
         "stride": stride,
         "max_frames_requested": max_frames,
+        **score_info,
         "top": [asdict(s) for s in ranked[:12]],
     }
     with open(os.path.join(out_dir, "analysis.json"), "w") as fh:
@@ -406,16 +491,16 @@ def build_object_asset(
         assert c2w_0 is not None
         c2w_i = np.asarray(fr.pose, float).reshape(4, 4)
         T_pose = np.linalg.inv(c2w_0) @ c2w_i
-        T = _align_to_anchor(xyz_c, xyz_anchor, T_pose=T_pose)
+        T, icp = _align_to_anchor(xyz_c, xyz_anchor, T_pose=T_pose)
         if T is None:
-            align_log.append({"frame": idx, "status": "skip_icp"})
+            align_log.append({"frame": idx, "status": "skip_icp", **icp})
             continue
         ones = np.ones((len(xyz_c), 1))
         xyz0 = (T @ np.concatenate([xyz_c, ones], 1).T).T[:, :3]
         clouds.append((xyz0, rgb))
         photos.append(idx)
         align_log.append(
-            {"frame": idx, "status": "merged_icp", "points": int(len(xyz0))}
+            {"frame": idx, "status": "merged_icp", "points": int(len(xyz0)), **icp}
         )
 
     analysis["chosen_requested"] = chosen
@@ -445,6 +530,17 @@ def build_object_asset(
             pcd = cleaned
         xyz = np.asarray(pcd.points)
         rgb = (np.asarray(pcd.colors) * 255).astype(np.uint8)
+
+    # Everything so far lives in the ANCHOR CAMERA frame, whose +Y points DOWN
+    # (image rows). Exported as-is, every viewer showed the asset upside down
+    # and the AABB was measured on camera-tilted axes. The anchor's c2w pose is
+    # gravity-aligned ARKit world (Y up), so one transform fixes both: assets
+    # render upright, and length/width/height mean along-gravity axes.
+    if c2w_0 is not None:
+        xyz = (c2w_0[:3, :3] @ xyz.T).T + c2w_0[:3, 3]
+        analysis["frame"] = "arkit_world_y_up"
+        with open(os.path.join(out_dir, "analysis.json"), "w") as fh:
+            json.dump(analysis, fh, indent=2)
 
     # Rigid body: Poisson surface (closed mesh) — primary asset, not a cut shell
     mesh_info: dict[str, Any] = {}
