@@ -99,17 +99,20 @@ the only gesture on the camera view is a single tap.
 
 ### App icon
 
-The icon lives in `CrateScanner/Assets.xcassets/AppIcon.appiconset` and is
-generated from source, so tweaking the artwork is a code edit:
+The icon lives in `CrateScanner/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`.
+It is now **hand-made artwork** — a shipping box with a barcode being scanned —
+so edit or replace that PNG directly.
 
-```bash
-cd mobile/CrateScannerApp
-swift tools/make_app_icon.swift \
-    CrateScanner/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
-```
+> ⚠️ **Do not run `tools/make_app_icon.swift`.** It renders the earlier
+> generated cube mark and would silently overwrite the current icon. It's kept
+> for reference only; delete it if it keeps catching people out.
 
-`View/CubeMark.swift` draws the same cube as vectors for the intro screen; keep
-the two in step if you change one.
+Requirements for whatever replaces it: 1024×1024, **no alpha channel**, and
+**no rounded corners baked in** — iOS applies its own mask, so a corner radius
+drawn into the artwork shows up as a double edge on the home screen.
+
+`View/CubeMark.swift` still draws the old cube as vectors, and the intro screen
+uses it as its hero. That no longer matches the icon; worth reconciling.
 
 ### Google Drive destination — one shared core folder
 

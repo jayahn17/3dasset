@@ -3,10 +3,18 @@
 //  make_app_icon.swift
 //  CrateScanner
 //
-//  Renders the app icon — the same isometric scanned cube that CubeMark.swift
-//  draws inside the app — to a 1024×1024 PNG for the asset catalog.
+//  ⚠️ SUPERSEDED — running this OVERWRITES the current app icon.
 //
-//  The icon is committed, so you only need this when the artwork changes:
+//  The shipped icon is now hand-made artwork (a shipping box with a barcode
+//  being scanned), not this generated cube. This script is kept only because
+//  CubeMark.swift still draws the same geometry for the intro screen, and the
+//  two were designed together. If you run the command below you will silently
+//  revert the icon to the cube.
+//
+//  Renders the isometric scanned cube that CubeMark.swift draws inside the app
+//  to a 1024×1024 PNG for the asset catalog.
+//
+//  Historical usage:
 //
 //      cd mobile/CrateScannerApp
 //      swift tools/make_app_icon.swift \
