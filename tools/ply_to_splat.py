@@ -31,7 +31,7 @@ SH_C0 = 0.28209479177387814
 
 def convert(path: str, out_path: str, *, flip_y: bool = True,
             center: bool = True, max_gaussians: int = 0,
-            min_opacity: float = 0.02) -> dict:
+            min_opacity: float = 0.02, crop_radius: float = 0.0) -> dict:
     v = PlyData.read(path)["vertex"]
     n0 = len(v)
 
@@ -81,6 +81,18 @@ def convert(path: str, out_path: str, *, flip_y: bool = True,
             mid = np.median(xyz, axis=0)
             xyz = xyz - mid
             offset = [float(x) for x in mid]
+        if crop_radius and crop_radius > 0:
+            # Hard spatial crop about the (centered) subject. The 1–99% box
+            # above removes statistical outliers, but a room-scale tail —
+            # walls, carpet, floaters several metres out — survives it and
+            # renders as fog around the object in the web viewer. For panel
+            # embeds the subject IS the deliverable, so everything beyond this
+            # radius goes.
+            keep = np.linalg.norm(xyz, axis=1) <= crop_radius
+            n_outlier += int((~keep).sum())
+            xyz, op, scales, quats, rgb = (
+                a[keep] for a in (xyz, op, scales, quats, rgb)
+            )
         radius = float(np.percentile(np.linalg.norm(xyz, axis=1), 95))
         radius = max(radius, 0.25)
 
@@ -127,13 +139,17 @@ def main() -> None:
     ap.add_argument("--max", type=int, default=0,
                     help="cap gaussian count, keeping the most visible")
     ap.add_argument("--min-opacity", type=float, default=0.02)
+    ap.add_argument("--crop-radius", type=float, default=0.0,
+                    help="drop splats farther than this many metres from the "
+                         "centred subject (0 = keep everything)")
     args = ap.parse_args()
 
     out = args.out or os.path.splitext(args.ply)[0] + ".splat"
     print(json.dumps(convert(args.ply, out, flip_y=not args.no_flip_y,
                              center=not args.no_center,
                              max_gaussians=args.max,
-                             min_opacity=args.min_opacity), indent=2))
+                             min_opacity=args.min_opacity,
+                             crop_radius=args.crop_radius), indent=2))
 
 
 if __name__ == "__main__":
