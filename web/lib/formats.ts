@@ -753,18 +753,52 @@ export function isCaptureScale(file: { rel: string }): boolean {
  * meshroom_visual.* matches too, and errs the other way — it reconstructs the
  * surroundings as well, so it reads LARGER than the object. Either direction is
  * a number a customer must not quote.
+ *
+ * nvblox_visual.* is the interesting case: on the sofa it is the BEST geometry on
+ * the page (74.9 x 34.4 x 32.5 against a ~79 x 35 x 34 truth, worst axis -4.1 in,
+ * integrating 356 of 356 frames where the in-house ICP fuse merged 2-4). It is
+ * still flagged, because its depth axis moves 5 in (29.4 -> 34.4) on a 5.8 deg
+ * yaw choice and its 7.5 mm voxels are already 0.30 in. "Better than everything
+ * else here" and "safe to quote" are different claims; this guard is about the
+ * second one, and nvblox has not earned it until it drives a published dimension.
  */
-const ALT_RECON_NAME = /(^|\/)(kiri|kiri_oss|meshroom)_visual\.(glb|gltf|obj|ply)$/i;
+/*
+ * Matched by the CONVENTION, not by a list of pipeline names.
+ *
+ * This was `(kiri|kiri_oss|meshroom)_visual\.` and had to be edited every time a
+ * route was added — so `nvblox_visual.glb` and `instantngp_visual.glb` shipped
+ * with no caveat at all, and instant-ngp is RGB-only and reads +14.8 in over
+ * truth on the sofa. A publisher adding a route must not have to remember to
+ * come here.
+ *
+ * `<pipeline>_visual.<ext>` is the publisher's own name for "another
+ * reconstruction of this capture". Verified across all nine live assets: every
+ * *_visual.* file is one of these (kiri, kiri_oss, meshroom, nvblox, instantngp)
+ * and NO asset ever declares one as its measure source — that is always
+ * object_mesh.ply. So the generic rule cannot swallow the measured file.
+ *
+ * It also fails SAFE: an unrecognised future route gets "do not quote a size off
+ * it" until someone deliberately promotes it, which is the right default for a
+ * reconstruction nobody has measured yet.
+ */
+const ALT_RECON_NAME = /(^|\/)[a-z0-9]+(?:_[a-z0-9]+)*_visual\.(glb|gltf|obj|ply)$/i;
 
 export function isAltReconstruction(file: { rel: string; name: string }): boolean {
   return ALT_RECON_NAME.test(file.rel) || ALT_RECON_NAME.test(file.name);
 }
 
 /** One sentence, printed wherever an alternate reconstruction is listed. */
+// Deliberately states no DIRECTION of error. "It does not cover the whole
+// object" was written for the KIRI fragments, which run 4-6x short, and it was
+// already wrong for meshroom_visual (which reconstructs the surroundings too and
+// reads LARGER). It is wronger now that nvblox_visual matches this rule: nvblox
+// integrates every frame and is the closest geometry on the sofa. What is true
+// of all of them is that they disagree with the measured file, which is the only
+// thing a customer needs in order not to quote one.
 export const ALT_RECON_NOTE =
   "A second reconstruction of the same capture, kept for comparison. It is in " +
-  "metres, but it is not the file the printed size was measured from and it " +
-  "does not cover the whole object — do not quote a dimension off it.";
+  "metres, but it is not the file the printed size was measured from and its " +
+  "dimensions disagree with it — do not quote a dimension off it.";
 
 /**
  * The honesty note. Repeated verbatim anywhere a dimension is shown, because

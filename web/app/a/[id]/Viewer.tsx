@@ -161,12 +161,23 @@ function reconLabel(f: AssetFile): string {
   const n = f.name.toLowerCase();
   // 3DModel.obj is KIRI Engine's own export name, so it is matched by name and
   // not by a "kiri" substring that isn't there.
+  if (/kiri_oss/.test(n) || /kiri_oss/.test(f.rel.toLowerCase()))
+    return "Open-source clone";
   if (/kiri/.test(n) || /kiri/.test(f.rel.toLowerCase()) || n === "3dmodel.obj")
     return "KIRI Engine";
   if (/meshroom/.test(n)) return "Photo mesh";
+  if (/nvblox/.test(n)) return "Depth fuse (nvblox)";
+  if (/instant_?ngp/.test(n)) return "NeRF (instant-ngp)";
   if (/trellis/.test(n)) return "AI mesh";
   if (/_m\.(ply|obj)$|_mm\.(stl|obj|ply)$/.test(n)) return "CAD mesh";
   if (/^object_mesh\./.test(n)) return "Scan";
+  // Last resort derives the pipeline from the publisher's own
+  // `<pipeline>_visual.<ext>` convention rather than saying "Other". Returning
+  // "Other" is what hid nvblox and instant-ngp: two routes shipped, both landed
+  // in one anonymous bucket, and a customer reported the nvblox output missing.
+  // A route nobody has named here now at least shows its own name.
+  const vis = /^([a-z0-9]+(?:_[a-z0-9]+)*)_visual\./.exec(n);
+  if (vis) return vis[1].replace(/_/g, " ");
   return "Other";
 }
 
@@ -174,10 +185,20 @@ function describe(f: AssetFile, asset: Asset): string {
   const n = f.name.toLowerCase();
   // KIRI and Meshroom fell through to "published geometry", which named neither
   // what produced them nor why their numbers differ from the printed size.
+  if (/kiri_oss/.test(n) || /kiri_oss/.test(f.rel.toLowerCase()))
+    return "our open-source clone of the KIRI pipeline, for comparison";
   if (/kiri/.test(n) || /kiri/.test(f.rel.toLowerCase()) || n === "3dmodel.obj")
     return "KIRI Engine photogrammetry, a second reconstruction of this capture";
   if (/meshroom/.test(n))
     return "AliceVision photogrammetry, a second reconstruction of this capture";
+  // Deliberately NOT "the most accurate geometry on this page". That is a
+  // comparative claim which changes per asset and which nothing here computes,
+  // and it would compete with the measured/disputed verdict the page already
+  // gives. Say what it IS; the caveat is carried by isAltReconstruction.
+  if (/nvblox/.test(n))
+    return "NVIDIA nvblox, a TSDF fusion of every depth frame in the capture";
+  if (/instant_?ngp/.test(n))
+    return "instant-ngp NeRF, reconstructed from colour only — no depth was used";
   if (/trellis/.test(n)) return "TRELLIS generative reconstruction, not the measured fuse";
   if (/_m\.ply$|_m\.obj$|_mm\.(stl|obj|ply)$/.test(n))
     return "CAD mesh rebuilt from the Gaussian splat";
