@@ -1,0 +1,100 @@
+id: ch1_time_stepping
+title: "Stepping m v̇ = Ψ through time: the φ-method and the adaptive step"
+domain: engineering
+level: ME 244
+chapter: "1b"
+summary: >
+  Every particle of the swarm obeys m v̇ = Ψ (eq. 1.20), and a simulation can only advance it in finite steps Δt.
+  Expanding v in Taylor series about t + φΔt (eqs. 1.21–1.23) turns the equation of motion into the one-parameter
+  update v(t+Δt) = v(t) + (Δt/m)Ψ(t+φΔt) (eq. 1.24): φ = 0 is explicit forward Euler, one force evaluation per step
+  but stable only for small Δt; φ = ½ cancels the Δt² error term; any φ > 0 puts v(t+Δt) on both sides. Here that
+  implicit step is solved by the same fixed-point iteration as Appendix 3.10, applied to the velocity update
+  (eq. 1.24): its contraction constant η grows with φΔt, and its error measure drives a controller that grows or
+  shrinks Δt to meet a tolerance in a chosen number of passes. The force is linear drag, Ψ = −c v, so v̇ = −v/τ
+  with τ = m/c has the exact solution v₀e^(−t/τ); velocities are shown as fractions of v₀ because the linear
+  problem is scale-free. The trajectory is a genuine forward-Euler integration at Δt = 0.1 s, the defaults put the
+  adaptive controller at its fixed point (Δt_tol = Δt), and every other quantity is the closed form the text's
+  formulas take for this problem.
+notes:
+  - "At λ = Δt/τ = 0.2 the forward-Euler factor 1 − λ = 0.800 misses the exact e^(−λ) = 0.8187 by 1.9·10⁻² per step (≈ λ²/2), a 2.3 % relative deficit; the φ = ½ factor (1 − λ/2)/(1 + λ/2) = 0.8182 misses it by 5.5·10⁻⁴ (≈ λ³/12 to leading order; the local-error node at the defaults). The (φ − ½)λ² term of A_φ − e^(−λ) vanishes, which is what Ô(Δt)² = O(Δt)³ means in eq. 1.24 (midpoint bullet after eq. 1.32)."
+  - "The per-step deficit compounds as 1 − ((1 − λ)e^λ)^(t/Δt): the explicit trajectory is 11 % low after five steps (t = 0.5 s) and 50 % low at t = 3 s = 6τ, and it reaches 5 % of v₀ at t = 1.4 s, one full step before the exact solution does at τ ln 20 ≈ 3τ (1.498 s). While the error is small it is ≈ tΔt/2τ² at a fixed time, so halving Δt roughly halves it (at t = 3 s it falls from 0.50 to 0.27). The absolute shortfall v_ex − v peaks near t = τ (0.040 v₀ at 0.5 s) and then shrinks with both velocities while the relative error keeps climbing."
+  - "Forward Euler is stable only while |1 − λ| ≤ 1, i.e. Δt ≤ 2τ = 1 s here: at Δt = τ the velocity drops to zero in a single step and for Δt > τ it changes sign every step. The φ = ½ and φ = 1 factors stay inside (−1, 1] for every Δt (for 0 < φ < ½ only while Δt ≤ 2τ/(1 − 2φ)); the text calls backward Euler very stable (very dissipative) and the midpoint scheme stable, and as Δt grows the φ = ½ factor tends to −1, oscillating instead of damping. That stability is only usable if the implicit equation is solved exactly: the fixed-point iteration of Appendix 3.10 converges only while η = φΔt/τ < 1, i.e. Δt < 2τ at φ = ½ (forward Euler's own limit) and Δt < τ at φ = 1. Solved this way, the implicit step buys accuracy, not a larger stable step."
+  - "The price of φ > 0 is the fixed-point iteration v^(L+1,K) = G(v^(L+1,K−1)) + R with contraction constant η = φΔt/τ. Under eq. 3.112's error model (the true error shrinks by η every pass, from ϖ₀ = 1), meeting TOL = 10⁻⁵ takes K = ln TOL/ln η = 5 passes at η = 0.1, i.e. 50 force evaluations per simulated second against 10 for the explicit scheme at the same Δt; the measure step 4(a) can actually compute, the change between successive passes, runs about one pass behind that model (ϖ_K ≈ (1 + η)η^(K−1)). Matching the φ = ½ error at a fixed time (0.67 % at t = 1 s, 2.0 % at t = 3 s) with forward Euler needs tΔt_FE/2τ² = tΔt²/12τ³, i.e. Δt_FE ≈ Δt²/6τ = 3.3 ms and about 300 evaluations per simulated second: six times the implicit cost."
+  - "Appendix 3.10 turns η into a step controller: with η ≈ SΔt^p (p = 1 here, p ≈ 2 when Ψ depends on position) eq. 3.113 fixes the step that meets TOL in exactly K_d passes, Δt_tol = (τ/φ)TOL^(1/K_d) = 0.10 s, and eq. 3.114 writes it as Φ_K Δt with Φ_K = TOL^(1/K_d)/η = 1 at the defaults: the run's Δt = 0.1 s is already the controller's fixed point, with K = K_d = 5. Because Φ_K ∝ 1/Δt the product does not depend on the step you start from, so from any other step the controller lands on Δt_tol in one update; step 5(c) then caps it at Δt_lim, the discretisation bound of footnote 10, for which the text gives no value."
+  - "Tightening the tolerance is cheap. At the fixed point every step takes K = K_d passes, so the cost is K_d/Δt_tol ∝ TOL^(−1/K_d): a ten times tighter TOL costs 10^(1/5) = 1.58 times the evaluations and shrinks Δt by 37 %, the logarithmic price of a contraction. For the 20 % tightening of the timeline's panel B the exact changes are −4.4 % in Δt and +4.6 % in cost, against the linearised −4 % and +4 % shown there."
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems (ME 244 primer, 2026 draft), §1.2 Temporal discretization methods (§1.2.1 Isolating a single particle), eqs. 1.20–1.32 (the φ-method; repeated as Appendix 3.9, eqs. 3.90–3.102)."
+  - "Zohdi, ibid., Appendix 3.10 temporally adaptive iterative schemes, eqs. 3.103–3.115 (contraction constant η, error measure ϖ, Z_K and Φ_K, the step-size algorithm 3.115 and footnotes 8–10); applied here to the velocity update rather than to positions."
+variables:
+  - {id: tau_r, name: Response time, symbol: τ, unit: s, kind: parameter, default: 0.5, range: [0.05, 5], description: "The force in m v̇ = Ψ (eq. 1.20) is linear drag Ψ = −c v, so v̇ = −v/τ with τ = m/c, the response time of §8.3; the mass only enters through this ratio. τ sets λ = Δt/τ and so enters every per-step factor, the contraction constant, the controller's target and the exact decay e^(−t/τ)."}
+  - {id: dt, name: Time step, symbol: Δt, unit: s, kind: parameter, default: 0.1, range: [0.001, 2], description: "The step of the φ-method (eq. 1.24) and of the controller quantities below. The trajectory is integrated at dynamics.time.step, which is the same 0.1 s, so it is exactly the φ = 0 member at this Δt; the two must be changed together, and since the integration step is fixed this parameter has no arrow into the trajectory. Forward Euler stays stable only for Δt ≤ 2τ, and the closed-form check (invariant) needs Δt < τ."}
+  - {id: phi, name: Implicitness weight, symbol: φ, unit: "1", kind: parameter, default: 0.5, range: [0, 1], description: "Where between t and t + Δt the Taylor expansion is centred and the force is sampled (eq. 1.21): φ = 0 forward Euler (explicit), φ = ½ the text's ‘midpoint’ scheme (trapezoidal for the endpoint-weighted force of eqs. 1.25 and 1.31; the two coincide here because Ψ is linear), φ = 1 backward Euler. Any φ > 0 makes v(t+Δt) appear on both sides of eq. 1.24, hence the iteration of Appendix 3.10."}
+  - {id: TOL, name: Iteration tolerance, symbol: TOL, unit: "1", kind: parameter, default: 1.0e-5, range: [1.0e-8, 0.1], description: "Normalised iterative error ϖ at which a time step is accepted (eq. 3.113); step 4(b) of algorithm 3.115 compares Z_K = ϖ_K/TOL with 1. With K_d = 5, TOL = 10⁻⁵ makes the run's Δt = 0.1 s the controller's own choice."}
+  - {id: Kd, name: Desired iterations, symbol: K_d, unit: "1", kind: parameter, default: 5, range: [1, 20], description: "Number of fixed-point passes the controller wants each step to take (footnote 9: typically five to ten)."}
+  - {id: v, name: Velocity (explicit trajectory), symbol: v/v₀, unit: "1", kind: state, default: 1, description: "Velocity as a fraction of v₀: the problem is linear, so every velocity scales with v₀ and every error below is the same for any v₀. Integrated with the forward-Euler rule v ← v + Δt·(−v/τ), the φ = 0 member of eq. 1.24 at Δt = 0.1 s and the explicit choice the text adopts for the swarm (§1.2.1). Its distance from e^(−t/τ) is the real discretisation error, not a model of it."}
+  - {id: v_exact, name: Exact velocity, symbol: v_ex/v₀, unit: "1", kind: derived, equation: exp(-t/tau_r), description: "Closed-form solution of m v̇ = −c v as a fraction of v₀, the benchmark every step size is judged against."}
+  - {id: gap, name: Explicit shortfall, symbol: (v_ex − v)/v₀, unit: "1", kind: derived, equation: v_exact - v, description: "How far the explicit trajectory has fallen below the exact one. It grows while the per-step deficits pile up, peaks near t = τ and then shrinks with both velocities, although the relative error keeps rising."}
+  - {id: err_rel, name: Relative error of the explicit trajectory, symbol: ε_rel, unit: "1", kind: derived, equation: 1 - v/v_exact, description: "Positive because 1 − λ < e^(−λ): forward Euler undershoots the decay, and the per-step deficit compounds as 1 − ((1 − λ)e^λ)^(t/Δt)."}
+  - {id: A_phi, name: φ-method decay factor per step, symbol: A_φ, unit: "1", kind: derived, equation: (1 - (1 - phi)*dt/tau_r)/(1 + phi*dt/tau_r), description: "Use eq. 1.25, v(t+φΔt) = φv(t+Δt) + (1−φ)v(t), inside Ψ = −(m/τ)v in eq. 1.24 and solve for v(t+Δt) = A_φ v(t). The exact factor e^(−Δt/τ) is 0.8187; forward Euler gives 0.800, φ = ½ gives 0.8182, backward Euler 0.8333. For φ ≥ ½ it stays inside (−1, 1] at every Δt."}
+  - {id: loc_err, name: Local error of one φ-step, symbol: "|A_φ − e^(−λ)|", unit: "1", kind: derived, equation: "abs((1 - (1 - phi)*dt/tau_r)/(1 + phi*dt/tau_r) - exp(-dt/tau_r))", description: "How far the φ-method factor A_φ misses the exact factor e^(−λ) (λ = Δt/τ) in one step, written out in closed form so its arrows carry the total effect of Δt and φ: 1.9·10⁻² ≈ λ²/2 at φ = 0 (forward Euler's O(Δt)² local truncation, the error the trajectory above commits) and 5.5·10⁻⁴ ≈ λ³/12 at φ = ½, where the λ² term cancels."}
+  - {id: eta, name: Contraction constant, symbol: η, unit: "1", kind: derived, equation: phi*dt/tau_r, description: "Writing eq. 1.24 as v^(L+1,K) = G(v^(L+1,K−1)) + R (eq. 3.106) with G(v) = −φ(Δt/τ)v gives ‖G(a) − G(b)‖ = η‖a − b‖ (eqs. 3.108–3.110); the iteration converges iff η < 1, i.e. Δt < τ/φ. Here η ∝ Δt (p = 1 in eq. 3.111); for the position update of Appendix 3.10 it scales as (φΔt)²/m, p ≈ 2."}
+  - {id: dt_tol, name: Step size the controller aims for, symbol: Δt_tol, unit: s, kind: derived, equation: "TOL**(1/Kd)*tau_r/max(phi, 1e-6)", description: "Eq. 3.113, (SΔt_tol^p)^K_d ϖ₀ = TOL, solved with η = SΔt (S = φ/τ, p = 1, ϖ₀ = 1): the step at which exactly K_d passes meet the tolerance, 0.10 s at the defaults. Eq. 3.114 writes the same step as Φ_K Δt with Φ_K = TOL^(1/K_d)/η; step 5(c) then caps it at Δt_lim. Undefined at φ = 0, where there is no iteration to control: the formula floors φ at 10⁻⁶, so there it is merely enormous and only Δt_lim would bind."}
+  - {id: cost, name: Force evaluations per simulated second, symbol: K/Δt, unit: 1/s, kind: derived, equation: "max(1, log(TOL)/log(min(eta, 0.999)))/dt", description: "Each pass evaluates Ψ once; K = ln TOL/ln η passes shrink a normalised error of 1 below TOL (eq. 3.112), treated here as a continuous estimate (the actual count is the next whole number), and there are 1/Δt steps per second. The explicit scheme needs a single evaluation per step, hence the floor of 1. Meaningful only for η < 1: for η ≥ 1 the iteration diverges and no step is accepted, and the formula caps η at 0.999 so the cost shows up as huge instead of failing."}
+relations:
+  - {from: tau_r, to: v_exact, sign: "+", mechanism: "A longer response time keeps the exact velocity e^(−t/τ) higher at every later instant; declared by hand only because the slope is zero at t = 0, where the loader reads signs."}
+  - {from: dt_tol, to: dt, sign: "+", gain: 1.0, delay: 1, mechanism: "Steps 5(b) and 6(a) of algorithm 3.115 make Φ_K Δt = Δt_tol the step of the next increment (or of the restarted one); at the defaults the two are already equal, so a relative change in Δt_tol passes one for one to Δt."}
+dynamics:
+  time: {unit: s, start: 0, end: 3, step: 0.1}
+  rates:
+    v: -v/tau_r
+  integrator: euler
+events:
+  - {id: err10, label: "Explicit error passes 10 %", when: "err_rel >= 0.1", once: true, description: "Five forward-Euler steps at λ = 0.2: a per-step relative deficit of 2.3 % has compounded to 10.9 %."}
+  - {id: euler5, label: "Explicit v below 5 % of v₀", when: "v <= 0.05", once: true, description: "The numerical velocity decays too fast and crosses 5 % of v₀ at t = 1.4 s, one step before the exact solution."}
+  - {id: exact5, label: "Exact v below 5 % of v₀ (τ ln 20 ≈ 3τ)", when: "v_exact <= 0.05", once: true, description: "e^(−3) = 0.0498 < 0.05, so the exact solution crosses 5 % at τ ln 20 = 1.498 s, just before 3τ; the event fires at the 1.5 s sample."}
+invariants:
+  - {label: "Closed form of the explicit recurrence, v = v₀(1 − λ)^(t/Δt)", expr: "v*(1 - dt/tau_r)**(-t/dt)", tolerance: 1.0e-8}
+cascade:
+  shock: {TOL: -0.2}
+  default_delay: 1
+  damping: 0.6
+  threshold: 0.02
+  max_depth: 6
+  time_unit: step
+tree:
+  kind: decision
+  title: "One time step of the adaptive scheme (algorithm 3.115)"
+  root:
+    label: "Tolerance met: Z_K = ϖ_K/TOL ≤ 1?"
+    branches:
+      - label: "Z_K ≤ 1"
+        child:
+          label: "Converged early: K < K_d?"
+          branches:
+            - label: "K < Kd"
+              child:
+                label: "Accept, Δt ← min(Δt_lim, Φ_K Δt) (5a–c): end time reached?"
+                branches:
+                  - label: "yes"
+                    child: {label: "Stop: trajectory complete"}
+                  - label: "no"
+                    child: {label: "Next step L+1: go to (1)"}
+            - label: "K = Kd"
+              child: {label: "Accept; Φ_K ≥ 1 (≈ 1): Δt kept or grown slightly (not stated in 3.115)"}
+      - label: "Z_K > 1"
+        child:
+          label: "Used all K_d iterations?"
+          branches:
+            - label: "K < Kd"
+              child: {label: "Iterate again: K ← K + 1 (3.106)"}
+            - label: "K = Kd"
+              child: {label: "Shrink: Δt ← Φ_K Δt; restart at t (6)"}
+  algorithms:
+    - {name: decision, path: ["Z_K ≤ 1", "K = Kd"], intro: "The default case under eq. 3.112's error model: η = 0.1 meets TOL = 10⁻⁵ in exactly K = K_d = 5 passes, so Z_K = 1 and Φ_K = TOL^(1/K_d)/η = 1, and the step is accepted with Δt = Δt_tol = 0.1 s unchanged: the run sits at the controller's fixed point. Algorithm 3.115 states no rule for this boundary case (step 5 needs K < K_d), so accepting is an interpretation."}
+    - {name: bfs, intro: "Every outcome of one time step, level by level: accept and grow (capped at Δt_lim), accept and hold, iterate again, or shrink and restart."}
+figures:
+  - {type: variable_graph, title: "How Δt, φ and the tolerance set accuracy, iteration and cost", caption: "Arrows run from cause to effect; blue + means the effect rises with the cause, red − that it falls. The step Δt feeds both sides of the trade-off: through η = φΔt/τ into the number of passes and the evaluations per second, and into the φ-method's local error |A_φ − e^(−λ)|. τ sets λ = Δt/τ, so it reaches the decay factor, the local error, η, the controller's target Δt_tol and both velocities. The controller output Δt_tol is the only arrow into Δt; the trajectory nodes (v, v_ex, the shortfall and ε_rel) are integrated at the run's fixed step, so no arrow runs from Δt into them. The self-loop on v is the damping itself, a balancing loop."}
+  - {type: influence_matrix, title: "Elasticities at the defaults (λ = 0.2, φ = ½, TOL = 10⁻⁵, K_d = 5)", caption: "Each cell is the percentage change in the column produced by a 1 % increase in the row, other inputs fixed. Read the Δt row: the φ = ½ local error rises almost as Δt³ (2.8), η rises in proportion (1.0), the evaluations per second fall (−0.57) because fewer steps outweigh the extra passes, and Δt_tol does not move at all: the controller's target is independent of the step you start from. In the φ row the local error reacts sharply (−30) because A_φ − e^(−λ) changes sign just above φ = ½, near φ ≈ 0.52 at λ = 0.2. The shortfall and ε_rel columns are evaluated at t = 0, before any step is taken: both are zero there, so only the initial v moves them and their −1 cells give the direction, not an elasticity."}
+  - {type: timeline, series: [v, gap, err_rel], title: "Forward Euler at Δt = 0.1 s against the exact decay, and what a tighter tolerance sets off", caption: "Panel A: the explicit trajectory v (as a fraction of v₀), its shortfall below the exact e^(−t/τ) and the relative error; the shortfall peaks near t = τ and then shrinks while the relative error keeps climbing to 50 % at t = 3 s. Panel B: lowering TOL by 20 % lowers the step the controller hands to the next increment by 4 % (Δt_tol ∝ TOL^(1/K_d)); at the smaller step the φ = ½ local error falls about as Δt³ (−11 %) and η in proportion, while the evaluations per second rise 4 %. The two smaller pulls on the cost, from the tighter TOL itself and from the smaller η, are ±1.7 % and cancel at the controller's fixed point, so they stay below the 2 % propagation threshold. The hops are linearised elasticities (exactly −4.4 % for Δt and +4.6 % for the cost). The forward-Euler curve in Panel A is unaffected, because it does not iterate."}
+  - {type: scene3d, title: "The same run in 3D / VR", caption: "Lanes are variables, depth is time, height is magnitude: the explicit velocity lane falls below the exact one, the shortfall lane peaks near t = τ and falls back while the relative-error lane keeps climbing, and the spheres replay the tolerance cascade hop by hop. Drag to orbit, scrub time, or enter VR."}
+  - {type: tree, algorithm: decision, title: "Accept, grow, iterate or shrink: one time step of algorithm 3.115", caption: "The highlighted path is the default case: under eq. 3.112's error model the iteration meets TOL in exactly K = K_d = 5 passes, so Z_K = 1 and Φ_K = TOL^(1/K_d)/η = 1, and the step is accepted with Δt = Δt_tol = 0.1 s kept. Converging in fewer passes accepts the step and grows it by Φ_K, capped at Δt_lim (5a–c); missing the tolerance after K_d passes shrinks the step and restarts it (6). The leaf on the default path is an interpretation, since algorithm 3.115 states no rule for Z_K ≤ 1 at K = K_d."}

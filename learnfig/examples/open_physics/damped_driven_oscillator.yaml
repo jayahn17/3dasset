@@ -1,0 +1,221 @@
+id: damped_driven_oscillator
+title: "The damped, driven oscillator: why a lightly damped spring answers loudest near ω₀"
+domain: physics
+level: "introductory"
+chapter: "15"
+summary: >
+  A mass m on a spring of force constant k, slowed by a damping force −b·dx/dt and pushed by a periodic
+  force F(t) = F₀cos(ωt), obeys m·d²x/dt² + b·dx/dt + kx = F₀cos(ωt). Left alone it would ring at close to its
+  natural angular frequency ω₀ = √(k/m) while its amplitude decays as e^(−bt/2m); driven, it forgets that
+  free ringing and settles into a steady swing at the drive frequency ω whose amplitude
+  A = (F₀/k)/√((1 − ω²/ω₀²)² + (ω/Qω₀)²) is the static deflection F₀/k amplified near ω₀ — to Q = √(mk)/b
+  times F₀/k at ω = ω₀ — and which lags the drive by a phase δ that passes through 90° at resonance. The time
+  evolution is the genuine equation of motion (OpenStax eq. 15.27, with the drive written as a cosine)
+  integrated numerically; the scenario around it is constructed: the mass starts at rest at equilibrium when
+  the drive is switched on at t = 0, and the drive is switched off at t = 8 s so the stored energy rings down.
+notes:
+  - "ω₀, ζ and Q are all built from two ratios, k/m and b/m: ω₀ = √(k/m), and the damping ratio ζ = 1/(2Q) = (b/m)/(2ω₀) compares the damping rate with the natural frequency. With m = 1 kg, k = 100 N/m and b = 1.25 kg/s the model gives ω₀ = 10 rad/s and Q = √(mk)/b = 8, so ζ = 0.0625. Since b² = 1.56 kg²/s² is far below 4mk = 400 kg²/s², the oscillator is underdamped; worked by hand from eq. 15.26, it would ring freely at √(ω₀² − (b/2m)²) = 9.98 rad/s. Its driven amplitude would lose its peak at b = √(2mk) = 14.1 kg/s (ζ = 1/√2), and it would become critically damped only at b = 2√(mk) = 20 kg/s, sixteen times the default."
+  - "Resonance is a cancellation, not an amplification of the force. In A = (F₀/m)/√((ω₀² − ω²)² + (bω/m)²) the spring term kx and the inertia term m·d²x/dt² cancel when ω = ω₀, leaving only damping to limit the swing: A = F₀/(bω₀) = Q·F₀/k = 8 × 1 cm (the true peak, at ω_r = ω₀√(1 − 2ζ²) = 9.96 rad/s, is only 0.2 % higher; worked by hand). At the default ω = 9.8 rad/s (inside the half-width b/2m = 0.625 rad/s) the model gives A = 7.77 cm and a phase lag δ = 72°; far below ω₀ the response tends to the static F₀/k with δ → 0, far above it to F₀/(mω²) with δ → 180°."
+  - "Energy stored versus energy lost each cycle is another definition of Q. In the steady state the mechanical energy E = ½mv² + ½kx² swings between ½mω²A² ≈ 0.290 J and ½kA² ≈ 0.302 J, while the damper removes E_cyc = ∮bv²dt = πbωA² = 0.232 J per drive cycle; worked by hand, 2π × (mean stored energy)/(energy lost per cycle) = (k + mω²)/(2bω) = 8.0, which is Q."
+  - "Starting from rest, the response is the steady swing plus a free transient that dies as e^(−bt/2m), so the build-up time constant 2m/b is set by damping, not by F₀. x first exceeds 0.9·A = 7.0 cm at t = 3.34 s. With zero detuning the envelope 1 − e^(−bt/2m) would reach 0.9 only at 2m·ln10/b = 3.7 s; here the transient (at 9.98 rad/s) slowly slips out of antiphase with the 9.8 rad/s swing and cancels it less, so the detuned envelope reaches 0.9 at about 3.33 s, and a separate run of the same equation driven exactly at 9.98 rad/s takes 3.9 s. By t = 5m/b = 4 s the transient is down to e^(−5/2) ≈ 8 % of A, but because it still interferes with the steady swing the stored energy stays short of its steady band until t ≈ 7 s. When the drive stops at t = 8 s nothing replaces the damper's losses and the stored energy decays on average as e^(−bt/m): from 0.290 J to 0.0021 J by t = 12 s, a factor ≈ 0.007 over four seconds (e^(−5) = 0.0067, plus a per-cycle ripple: the loss rate bv² is zero at every turning point, so the energy falls in steps)."
+  - "More damping means less energy lost per cycle near resonance. Raising b by 50 % (to 1.875 kg/s; worked by hand from the same formulas) raises ζ to 0.094, lowers Q from 8 to 5.3, cuts A from 7.77 cm to 5.32 cm (−32 %), increases δ from 72° to 78° and lowers E_cyc = πbωA² from 0.232 J to 0.163 J (−30 %): because A ∝ 1/b near ω₀, the loss ∝ bA² falls even though the damper is stronger. The drive can put in only πF₀A·sin δ per cycle, so a smaller swing accepts less work. This holds inside the half-power band, where bω > m|ω₀² − ω²|; far from resonance A barely depends on b and a stronger damper does take more energy per cycle. The chain-reaction panel follows a smaller, +10 % increase of b, for which first-order hops stay close to the exact result."
+sources:
+  - "OpenStax, University Physics Volume 1 (Ling, Sanny & Moebs, 2016; CC BY 4.0), Chapter 15 'Oscillations', §15.2 Energy in Simple Harmonic Motion, eq. 15.12: E_Total = ½kx² + ½mv² = ½kA²."
+  - "Ibid., §15.5 Damped Oscillations, eqs. 15.23 (m·d²x/dt² + b·dx/dt + kx = 0), 15.24 (x(t) = A₀e^(−bt/2m)cos(ωt + φ)), 15.25 (ω₀ = √(k/m)) and 15.26 (ω = √(ω₀² − (b/2m)²)); the regimes underdamped (b² < 4mk), critically damped (b² = 4mk) and overdamped (b² > 4mk)."
+  - "Ibid., §15.6 Forced Oscillations, eqs. 15.27 (−kx − b·dx/dt + F₀sin(ωt) = m·d²x/dt²), 15.28 (x(t) = A cos(ωt + φ)) and 15.29 (A = F₀/√(m²(ω² − ω₀²)² + b²ω²)); the maximum amplitude F₀/(bω) at resonance and the quality factor Q = ω₀/Δω ≈ mω₀/b for light damping."
+  - "Taylor, Classical Mechanics (University Science Books, 2005), §5.4 Damped Oscillations, §5.5 Driven Damped Oscillations and §5.6 Resonance: the phase lag δ = arctan[2βω/(ω₀² − ω²)] with β = b/2m, Q = ω₀/2β, and the amplitude maximum at √(ω₀² − 2β²)."
+variables:
+  - id: m
+    name: Mass
+    symbol: m
+    unit: kg
+    kind: parameter
+    default: 1.0
+    range: [0.2, 5]
+    description: "Inertia of the oscillating body; it resists changes of velocity, lowers the natural frequency ω₀ = √(k/m), raises Q = √(mk)/b and sets how slowly damping removes energy (energy decay time m/b)."
+  - id: k
+    name: Spring constant
+    symbol: k
+    unit: N/m
+    kind: parameter
+    default: 100
+    range: [10, 500]
+    description: "Hooke's law restoring force −kx; a stiffer spring raises ω₀ and Q and shrinks the static deflection F₀/k."
+  - id: b
+    name: Damping constant
+    symbol: b
+    unit: kg/s
+    kind: parameter
+    default: 1.25
+    range: [0.1, 40]
+    description: "The damping force is −b·dx/dt (eq. 15.23), opposite to the velocity and proportional to it. The default makes Q = √(mk)/b = 8; above b = √(2mk) = 14.1 kg/s the driven amplitude has no peak, and b = 2√(mk) = 20 kg/s would be critical damping."
+  - id: F0
+    name: Drive amplitude
+    symbol: F₀
+    unit: N
+    kind: external
+    default: 1.0
+    range: [0, 5]
+    description: "Peak of the periodic applied force F(t) = F₀cos(ωt). OpenStax writes F₀sin(ωt) (eq. 15.27). For the steady state the choice only shifts the origin of time; for this switch-on from rest it changes the transient (in a separate run with sin, x first reaches 0.9·A at 3.49 s instead of 3.34 s). Switched to 0 at t = 8 s in the constructed run."
+  - id: omega
+    name: Drive frequency
+    symbol: ω
+    unit: rad/s
+    kind: external
+    default: 9.8
+    range: [0.5, 30]
+    description: "Angular frequency of the applied force; in the steady state the mass moves at ω, not at its own ω₀. The default sits 2 % below ω₀, inside the resonance half-width b/2m, where A is still above 1/√2 of its peak."
+  - id: Fd
+    name: Drive force
+    symbol: F(t)
+    unit: N
+    kind: derived
+    equation: F0*cos(omega*t)
+    description: "The applied force at time t, F₀cos(ωt) (eq. 15.27 with the drive as a cosine); it drops to zero when the drive is switched off at t = 8 s. In the steady state each crest of x trails a crest of F(t) by δ/ω = 72°/360° × 0.641 s ≈ 0.13 s. In the influence matrix it is read at t = 0, where it equals F₀."
+  - id: omega0
+    name: Natural frequency
+    symbol: ω₀
+    unit: rad/s
+    kind: derived
+    equation: sqrt(k/m)
+    description: "Eq. 15.25: the frequency at which the spring force and the inertia exactly trade off; the undamped mass would oscillate at ω₀ forever."
+  - id: Q
+    name: Quality factor
+    symbol: Q
+    unit: "1"
+    kind: derived
+    equation: sqrt(m*k)/b
+    description: "Q = √(mk)/b = mω₀/b ≈ ω₀/Δω, where Δω ≈ b/m is the full width at half maximum of the A² (stored-energy) resonance curve; at |ω − ω₀| = b/2m the amplitude is down to 1/√2 of its peak (§15.6). Also ≈ 2π × stored energy / energy lost per cycle, and the factor by which the amplitude at ω = ω₀ exceeds the static deflection F₀/k. The damping ratio is ζ = 1/(2Q)."
+  - id: A
+    name: Steady-state amplitude
+    symbol: A
+    unit: m
+    kind: derived
+    equation: (F0/k)/sqrt((1 - (omega/omega0)**2)**2 + (omega/(Q*omega0))**2)
+    description: "A = (F₀/k)/√((1 − ω²/ω₀²)² + (ω/Qω₀)²): the static deflection F₀/k, amplified when ω nears ω₀ and capped there at Q·F₀/k. The first term under the root is the mismatch between spring and inertia, the second the damping, added at right angles. It is eq. 15.29 rewritten with b/m = ω₀/Q, so that m and b act on A only through ω₀ and Q."
+  - id: delta
+    name: Phase lag
+    symbol: δ
+    unit: deg
+    kind: derived
+    equation: atan2(omega*omega0/Q, omega0**2 - omega**2)*180/pi
+    description: "x = A cos(ωt − δ) with tan δ = (ωω₀/Q)/(ω₀² − ω²) = (bω/m)/(ω₀² − ω²), converted to degrees (×180/π). δ ≈ 0 when the spring dominates (ω ≪ ω₀), 90° at resonance, where the force is in phase with the velocity and does positive work all cycle, and → 180° when inertia dominates. OpenStax's φ in eq. 15.28, x = A cos(ωt + φ), equals −δ."
+  - id: E_cyc
+    name: Energy lost per cycle
+    symbol: E_cyc
+    unit: J
+    kind: derived
+    equation: pi*b*omega*A**2
+    description: "In the steady state the damper's power b·v² averages ½bω²A², so one period 2π/ω costs ∮b·v²dt = πbωA²; the drive must supply exactly this much work each cycle, πF₀A·sin δ."
+  - id: x
+    name: Displacement
+    symbol: x
+    unit: m
+    kind: state
+    default: 0
+    description: "Starts at rest at equilibrium when the drive is switched on (constructed initial condition); grows through the transient toward the steady swing A cos(ωt − δ), and rings down after the drive is switched off."
+  - id: v
+    name: Velocity
+    symbol: v = dx/dt
+    unit: m/s
+    kind: state
+    default: 0
+    description: "Changes at the rate (F(t) − bv − kx)/m: Newton's second law with the drive, the damping force and the spring force (eq. 15.27)."
+  - id: E
+    name: Stored energy
+    symbol: E
+    unit: J
+    kind: derived
+    equation: 0.5*m*v**2 + 0.5*k*x**2
+    description: "Kinetic plus spring potential energy (eq. 15.12 form). Not conserved: dE/dt = F(t)·v − b·v², drive power in minus damping power out; in the steady state it swings between ½mω²A² and ½kA² twice per cycle."
+relations:
+  - from: A
+    to: E
+    sign: "+"
+    gain: 2
+    delay: 2
+    mechanism: "Once the transient has died the mass swings with amplitude A, so the energy it stores, between ½mω²A² and ½kA², scales as A²: a larger steady-state amplitude means more stored energy."
+dynamics:
+  time: {unit: s, start: 0, end: 12, step: 0.002}
+  rates:
+    x: v
+    v: (Fd - b*v - k*x)/m
+  integrator: rk4
+events:
+  - id: near_A
+    label: "x > 0.9·A"
+    when: "x >= 0.9*A"
+    once: true
+    description: "The swing has grown to 90 % of the steady-state amplitude A. The free transient, which at t = 0 exactly cancels the steady response (x and v both start at zero), decays as e^(−bt/2m). With zero detuning the envelope 1 − e^(−bt/2m) would reach 0.9 at 2m·ln10/b = 3.7 s. Here the transient rings at 9.98 rad/s and slips out of antiphase with the 9.8 rad/s swing (0.18 rad/s × 3.3 s ≈ 0.6 rad), so it no longer fully cancels it: the detuned envelope reaches 0.9 at about 3.33 s and x crosses 0.9·A at 3.34 s. Driven exactly at 9.98 rad/s (a separate run) the crossing comes at 3.9 s."
+  - id: transient_over
+    label: "t = 5m/b"
+    when: "t >= 5*m/b"
+    once: true
+    description: "Five energy decay times m/b after switch-on the free ringing is down to e^(−5/2) ≈ 8 % of A. Because it still interferes with the steady swing, the stored energy stays short of its steady band (0.260–0.285 J during 4–5 s against 0.290–0.302 J; energy goes as the square of the swing, so the cross term is up to about 2 × 8 %), and it settles only by t ≈ 7 s."
+  - id: drive_off
+    label: "Drive switched off"
+    t: 8.0
+    sets: {F0: 0}
+    description: "Constructed: F₀ is set to 0, so F(t) is zero from here on. With nothing replacing the work done by the damper, the stored energy rings down on average as e^(−bt/m) and the motion returns to the free damped oscillation of eq. 15.24."
+cascade:
+  shock: {b: 0.1}
+  default_delay: 1
+  damping: 0.6
+  threshold: 0.02
+  max_depth: 4
+  time_unit: step
+tree:
+  kind: decision
+  title: "Which regime, and is the drive resonant? (§15.5–15.6)"
+  root:
+    label: "Compare b² with 4mk"
+    branches:
+      - label: "b² < 4mk (ζ < 1)"
+        child:
+          label: "Underdamped: rings when free. Peak possible?"
+          branches:
+            - label: "yes: b² < 2mk (ζ < 1/√2)"
+              child:
+                label: "Drive near ω₀?"
+                branches:
+                  - label: "yes: |ω − ω₀| ≲ b/2m"
+                    child: {label: "Resonance: A ≈ Q·F₀/(√2k) to Q·F₀/k, 45° < δ < 135°"}
+                  - label: "no: ω ≪ ω₀"
+                    child: {label: "Spring-limited: A ≈ F₀/k, δ ≈ 0°"}
+                  - label: "no: ω ≫ ω₀"
+                    child: {label: "Mass-limited: A ≈ F₀/(mω²), δ ≈ 180°"}
+            - label: "no: 2mk ≤ b² < 4mk"
+              child: {label: "Rings when free, but no resonance peak: A ≤ F₀/k for all ω"}
+      - label: "b² = 4mk (ζ = 1)"
+        child:
+          label: "Critically damped: fastest, no ringing"
+          branches:
+            - label: "driven at any ω"
+              child: {label: "No resonance peak: A ≤ F₀/k"}
+      - label: "b² > 4mk (ζ > 1)"
+        child:
+          label: "Overdamped: slow creep, no ringing"
+          branches:
+            - label: "driven at any ω"
+              child: {label: "No resonance peak: A ≤ F₀/k"}
+  algorithms:
+    - name: decision
+      path: ["b² < 4mk (ζ < 1)", "yes: b² < 2mk (ζ < 1/√2)", "yes: |ω − ω₀| ≲ b/2m"]
+      intro: "The defaults: b² = 1.56 kg²/s² is far below 4mk = 400 kg²/s² and below 2mk = 200 kg²/s², and ω = 9.8 rad/s lies within b/2m = 0.625 rad/s of ω₀ = 10 rad/s, so the oscillator is underdamped, can show a peak, and is driven at resonance: here A = 7.77 cm and δ = 72°."
+figures:
+  - type: variable_graph
+    title: "What sets the steady swing: from m, k, b, F₀ and ω to ω₀, Q, A, δ and the energy lost per cycle"
+    caption: "Arrows run from cause to effect; blue + means the effect rises with the cause, red − that it falls, grey ? that the formula is flat where the sign is read. m and k set ω₀ = √(k/m), and with b they set Q = √(mk)/b. The amplitude is written as A = (F₀/k)/√((1 − ω²/ω₀²)² + (ω/Qω₀)²), so m and b reach A only through ω₀ and Q: the static deflection F₀/k (hence the direct k → A arrow), amplified as ω nears ω₀ and capped there at Q·F₀/k. ω, ω₀ and Q also set the phase lag δ, and b, ω and A the energy the damper takes per cycle, E_cyc = πbωA². Arrows among these steady-state quantities show their sign at the defaults, just below resonance; ω → A, ω₀ → A and Q → δ, for example, reverse above it. The states x and v close the two balancing loops of the equation of motion: the spring (x → v → x, B1) and the damper (v → v, B2). In the equation of motion only these loop links, v → x (+1), x → v (−k/m) and v → v (−b/m), and the drive's push F(t) → v (+1/m) are sign-definite. The other arrows of the motion change sign with its phase: F₀ → F(t) is cos ωt, ω → F(t) is −F₀t·sin ωt, b → v is −v/m, k → v is −x/m, m → v is −(net force)/m², and x → E and v → E are kx and mv. Their +/− is the sign at t = 0; where the formula is flat at rest (b → v, k → v, x → E, v → E) it is read with x and v nudged to 0.5 m and 0.5 m/s, and ω → F(t) is grey because it is exactly 0 at t = 0. The numbered arrow is the one hand-written link, explained in the key."
+  - type: influence_matrix
+    title: "Who moves whom near resonance (ω = 0.98 ω₀)"
+    caption: "Each cell is the percentage change of the column variable per 1 % increase of the row variable, the other inputs held fixed, computed from the equations at the defaults. Blue cells rise with the cause and red cells fall, the same colours as the arrows in the variable graph. Close to resonance the drive frequency dominates: 1 % more ω (towards ω₀) raises A by 3.7 %, δ by 12 % and E_cyc by 8.4 %. m and k enter A and δ together through the net stiffness k − mω², the spring force minus the force needed to swing the mass at ω. Near resonance that difference is small, so a 1 % heavier mass or a 1 % softer spring both shrink it and pull ω₀ toward the drive: A rises by 2.3 % or 2.4 %, δ by 5.6 % or 5.9 %. The two differ by the factor ω²/ω₀² = 0.96, because 1 % more m changes the inertia term mω² = 0.96k rather than k itself. On Q = √(mk)/b they act with the same sign: each raises it by 0.5 %. Damping lowers A almost in inverse proportion (−0.91), so even the loss per cycle E_cyc = πbωA² falls (−0.81) when b rises; F₀ scales A in proportion and E_cyc as its square, and leaves δ untouched. The F(t) column is the drive at t = 0, where it equals F₀."
+  - type: timeline
+    series: [Fd, x, E]
+    title: "Switch-on, steady state and ring-down of a Q = 8 oscillator driven at 0.98 ω₀"
+    caption: "Panel A is a constructed run of the genuine equation of motion m·dv/dt = F(t) − bv − kx (RK4, step 2 ms): the mass starts at rest at equilibrium when the drive F(t) = F₀cos(ωt) is switched on. The swing grows as the free transient decays: x first exceeds 0.9·A = 7.0 cm at t = 3.34 s, its crests are within 4 % of A = 7.77 cm from t ≈ 4.6 s and within 1 % from t ≈ 6.5 s, while the stored energy E climbs into its steady band between ½mω²A² = 0.290 J and ½kA² = 0.302 J (0.288–0.301 J by t = 7–8 s). In the steady state each crest of x trails a crest of the drive by δ/ω = 72°/360° × 0.641 s ≈ 0.13 s. At t = 8 s the drive drops to zero and E rings down on average as e^(−bt/m), to 0.0021 J at t = 12 s. Panel B follows a 10 % increase of b as first-order hops (each arrow multiplies the relative change by its local elasticity, or by sign × 0.6 for the rate laws): b → Q (−10 %) → A (−9.1 %) → E_cyc and E (−18 % each, since both go as A²), with δ +2.3 % through Q. E_cyc also receives +10 % directly from the stronger damper, so its net first-order change is −8 %, close to the exact −7.6 % (exact Q −9.1 %, A −8.3 %, δ +2.1 %, steady stored energy −16 %). The v and x rows and the two small early E markers (−3.6 % and −2.2 %) come from the rate laws, which carry only a direction (generic gain 0.6), so v even appears twice with opposite signs (−6 % and +2.2 %). A relative change of a zero-mean oscillating state is not defined: the size of the change in the swing is the A row, and the size of the change in stored energy is the last E marker, −18 %, reached through A (E ∝ A²)."
+  - type: scene3d
+    title: "The same run and chain reaction in 3D / VR"
+    caption: "Lanes across the width are the variables, depth is time and height is magnitude: watch x and v grow through the transient, hold a steady swing and ring down after t = 8 s while E climbs, plateaus and decays, and the drive F(t) keeps its full swing until it drops to zero at the switch-off (ω₀ and Q stay constant); A and E_cyc also drop to zero there because with F₀ = 0 the steady state is rest. Then scrub through the chain reaction of the +10 % damping shock. Drag to orbit; press Enter VR on a headset."
+  - type: tree
+    title: "Damping regime and resonance: a decision tree"
+    caption: "The first test compares b² with 4mk, i.e. ζ = b/(2√(mk)) with 1 (§15.5): it decides whether the free motion rings. Whether the driven amplitude has a peak is a different, stricter test: A(ω) has a maximum, at ω_r = √(ω₀² − b²/2m²) = ω₀√(1 − 2ζ²), only if b² < 2mk (ζ < 1/√2; here b < 14.1 kg/s). Between b² = 2mk and 4mk the oscillator still rings when free, but A ≤ F₀/k at every ω, so the peak disappears at ζ = 1/√2, not at critical damping. A lightly damped oscillator is then classified by where the drive sits relative to ω₀ (§15.6): within the half-width b/2m it resonates, with A between about Q·F₀/(√2k) and Q·F₀/k and 45° < δ < 135° (exactly Q·F₀/k and 90° at ω = ω₀); far below, the spring sets A ≈ F₀/k in phase with the force; far above, inertia sets A ≈ F₀/(mω²) in antiphase. Critically damped and overdamped oscillators have no peak either. The highlighted path is the defaults: b² = 1.56 kg²/s² ≪ 2mk = 200 kg²/s², and |ω − ω₀| = 0.2 rad/s < b/2m = 0.625 rad/s, giving A = 7.77 cm and δ = 72°."

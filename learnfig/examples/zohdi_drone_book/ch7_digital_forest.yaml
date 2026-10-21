@@ -1,0 +1,251 @@
+id: ch7_digital_forest
+title: "A digital forest: LiDAR canopy statistics, a growth engine and the cost that ties them"
+domain: engineering
+level: ME 244
+chapter: "7"
+summary: >
+  A drone-borne LiDAR turns a stand of trees into a digital elevation model h(x_i) whose first four moments
+  (mean A, spread S, skewness L, kurtosis K of canopy height) are the observations. A physics engine grows
+  thousands of trees from seedlings under light, water, soil and neighbour competition, dH_i/dt = G_i/(αH_i) − ΣI_ij,
+  and a genetic algorithm tunes its eleven parameters Λ until the engine's canopy statistics match the LiDAR's;
+  the normalized mismatch Π is the handshake between twin and field. Here one representative tree, with N_n
+  neighbours at the planting spacing TOL growing at the same rate, closes eqs. 7.14–7.15 into
+  dH/dt = G/(αH + N_n e^(−βTOL)) and keeps five of the eleven parameters (spacing Λ₂, the resources Λ₃–Λ₅ folded
+  into one growth drive G, seedling size Λ₇); the field obeys the same law with the generating parameters Λ^gen, except that it shares the
+  twin's seedling size so that the two curves start together.
+notes:
+  - "The first integral of dH/dt = G/(αH + c), with c = N_n e^(−βTOL), gives the exact solution H(t) = [√((αH₀ + c)² + 2αGt) − c]/α, so (αH + c)²/(2α) − Gt stays constant along the whole trajectory (checked as an invariant) and H_T is this formula at the end of the run. While αH ≪ c growth is nearly linear at rate G/c, although by the crossover αH = c (day 70.5) the rate has already roughly halved, from G/(αH₀ + c) to G/(2c). Late it tends to √(2Gt/α) − c/α, so crowding never fades: it permanently subtracts c/α ≈ 1.9 m from the height a lone tree would reach (12.86 m against the exact 12.99 m at four years). The days themselves are illustrative: the chapter gives neither the w's of eq. 7.13 nor a time span, so the crossover day, the closure day and the 13 m after four years follow from the calibration chosen here."
+  - "Because every ancillary dimension (branch, root and fruit lengths and radii) is proportional to H (§7.5), biomass scales as H³ (eq. 7.27), so to first order a biomass error is three times the height error. Planting 20 % closer costs 3.2 % of four-year height (12.99 → 12.58 m) and 9.3 % of biomass (2194 → 1989 kg) in the full run (the chain reaction's first-order estimate is −2.9 % and −8.8 %), and a LiDAR height bias of x % becomes about 3x % in the inventory; exactly, a 10 % drop in height is a 27 % drop in biomass (1 − 0.9³). The growth law uses the chapter's linear calibration αH ∝ B (eq. 7.14), not the cubic M_i of eq. 7.27, and the chapter does not reconcile the two: if the demand really scaled with the cubic biomass, dH/dt ∝ G/H³ would give H ∝ t^(1/4) and far slower late growth."
+  - "Spacing enters the engine only through e^(−βTOL) (eq. 7.15). Reading the chapter's unitless Λ₂ as cm and taking β = 0.1 /m are both assumptions (βTOL ≈ 1.15). With them, planting 20 % closer raises the neighbour load by 26 % (23 % to first order) and cuts the seedling growth rate by 20 % (22 % to first order). By year four it costs only 3.2 % of height, because crowding becomes a fixed offset, but the crowns close 317 days earlier (day 858 against 1174)."
+  - "Every term of the cost, Π_i = ‖M_i(h) − M_i(h°)‖ / ‖M_1(h°)‖ (eq. 7.8), is normalized by the observed mean canopy height, so a mismatch in the spread or the skewness is weighed on the same scale as a mismatch in the mean. In this one-tree reduction the stand has no spread (S = L = K = 0 for twin and field), so only Π₁ survives; the chapter needs the higher moments Π₂–Π₄ to identify the variation parameters Λ₈–Λ₁₁, which this figure cannot show. Fed Λ^100, the chapter's full engine matches the field to Π₁ = 0.000639 (§7.7). This reduction cannot, because it drops the tree count Λ₁, the area Λ₆ and the variations Λ₈–Λ₁₁ that the GA also tuned and its w's are invented: here the twin ends 3.0 % above the field and the frame-averaged |Π₁| over 100 frames is 0.025, about 38 times the chapter's value. The gap measures what the reduction leaves out, not a GA residual."
+  - "Error drives model adjustment (Fig. 7.1), but the GA is a population search, not a feedback controller: strings whose spacing or resources bring the twin's canopy toward the field's rank higher and survive, so the loop R → TOL in the variable graph has a sign but no gain. The growth drive G and the load N_n e^(−βTOL) trade off, so the GA can zero Π₁ without recovering TOL^gen: the chapter's optimum Λ^100 plants 7.3 % tighter than Λ^gen (1148.6 against 1239.5) and makes up for it with 4.3 % more light and 19.8 % more water, and the chapter notes that less sensitive variables can differ more between the generating and the optimal vector."
+  - "In this reduction the trade-off shows up in time. The twin, planted 7 % tighter but with a 7.5 % larger growth drive, loses early, when crowding sets the rate (Π₁ < 0 until about day 25, minimum −0.7 % at day 4.5), and wins late, when resources do (Π₁ → +3.0 %). The canopy mean alone cannot tell spacing from resources apart, which is why the GA can settle on a parameter vector different from Λ^gen that fits nearly as well."
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems (ME 244 primer, 2026 draft), Ch. 7: §7.2.1 canopy moments and cost (eqs. 7.1–7.8), §7.2.2 UAV-LiDAR time of flight (eqs. 7.9–7.11), §7.3 growth engine (eqs. 7.12–7.25), §7.4 design vector Λ₁–Λ₁₁ (eq. 7.26), §7.5 ancillary biomass (eq. 7.27), §7.6 GA harmonization (eqs. 7.28–7.30), §7.7 numerical example (eq. 7.31, Λ^gen and Λ^100)."
+
+variables:
+  # ---- the twin's inputs (values = the GA optimum Λ^100 of §7.7) ----
+  - id: TOL
+    name: Planting spacing Λ₂
+    symbol: TOL
+    unit: cm
+    kind: parameter
+    default: 1148.6
+    range: [900, 1300]
+    description: "Minimum distance between trees enforced by random sequential addition, ‖r_i − r_j‖ ≥ TOL (eq. 7.26); the chapter quotes Λ₂^100 = 1148.57 without a unit, read here as cm (about 11.5 m). Only βTOL enters the model, so the unit and β are assumed together: read as mm the neighbour load would be 5.35 and the growth regime would change completely."
+  - id: G
+    name: Growth drive of the twin
+    symbol: G
+    unit: m/day
+    kind: parameter
+    default: 0.07464
+    range: [0.011, 0.11]
+    description: "Eq. 7.13 for the mean tree (R_k = 0, τ₄ = 1), G = w₁Λ₃ + w₂Λ₄ + w₃Λ₅ with light Λ₃^100 = 107736 W, water Λ₄^100 = 16788 L and soil Λ₅^100 = 14516 (read as kg, although as fertilizer per tree that would be 14.5 t, so it is effectively a soil index). The w's are not in the chapter: w₁ = 2.3e-7 m/(W·day), w₂ = 1.5e-6 m/(L·day), w₃ = 1.7e-6 m/(kg·day) are chosen so the three terms are equal (0.0248, 0.0252 and 0.0247 m/day), and their overall scale, which makes an 8.65 cm seedling grow 3.75 cm/day (1.9 m in 70 days, 13 m in four years, far faster than real seedlings), is an illustrative calibration; only the form of the growth law comes from the chapter."
+  - id: H0
+    name: Seedling height Λ₇
+    symbol: H(0)
+    unit: m
+    kind: parameter
+    default: 0.0865
+    range: [0.01, 0.1]
+    description: "Initial trunk height H_i(t = 0), Λ₇^100 = 0.0865 m. The field deliberately reuses it instead of Λ₇^gen = 0.0963 m so that the mismatch starts at zero; its effect on four-year height is negligible (elasticity 0.001)."
+  - id: T_h
+    name: Length of the growing period
+    symbol: T
+    unit: day
+    kind: parameter
+    default: 1460
+    range: [365, 2920]
+    description: "Period over which the frames are taken and the cost is averaged (eq. 7.7), equal to the simulated horizon. The chapter gives no time span (Fig. 7.6 is labelled in days), so four years is an illustrative choice."
+  # ---- calibration constants of the engine ----
+  - id: alpha
+    name: Biomass calibration
+    symbol: α
+    unit: 1/m
+    kind: constant
+    default: 1.0
+    description: "Tree-type factor with αH_i ∝ B(H_i) (eq. 7.14): the chapter's linear calibration of the biomass the growth drive has to feed, not the cubic ancillary biomass M_i of eq. 7.27."
+  - id: beta
+    name: Interaction decay
+    symbol: β
+    unit: 1/m
+    kind: constant
+    default: 0.1
+    description: "Decay of the neighbour interaction with distance, I_ij ∝ e^(−β d_ij) (eq. 7.15); the chapter gives no value, so β = 0.1 /m, like the cm reading of TOL, is an assumption (βTOL ≈ 1.15)."
+  - id: cB
+    name: Biomass coefficient
+    symbol: c_B
+    unit: kg/m^3
+    kind: constant
+    default: 1.0
+    description: "Mass per unit H³ in eq. 7.27 once every organ dimension is ∝ H (§7.5). The chapter gives no proportionality constants (and its V_f formula carries a typo, N_b N_r … R_r); with N_b = N_r = 10 and N_f = 10 fruit per branch (§7.7), c_B = 1 kg/m³ is an illustrative, trunk-dominated order-of-magnitude choice."
+  # ---- the real stand (what the LiDAR sees), set by the generating vector Λ^gen of §7.7 ----
+  - id: G_obs
+    name: Growth drive of the field
+    symbol: G°
+    unit: m/day
+    kind: external
+    default: 0.06946
+    description: "Eq. 7.13 with the generating vector Λ^gen (Λ₃ = 103334, Λ₄ = 14008, Λ₅ = 14516) and the same w's, 0.02377 + 0.02101 + 0.02468 m/day; the twin does not know it."
+  - id: TOL_gen
+    name: Spacing of the field Λ₂^gen
+    symbol: TOL°
+    unit: cm
+    kind: external
+    default: 1239.464
+    description: "The field's true spacing Λ₂^gen = 1239.464 (cm, as for TOL); it sets the field's neighbour load 6 e^(−βTOL°) = 1.737 in its rate law, fixed by the stand and not by the twin's TOL."
+  # ---- derived: the engine ----
+  - id: crowd
+    name: Neighbour load of the twin
+    symbol: N_n e^(−βTOL)
+    unit: "1"
+    kind: derived
+    equation: 6*exp(-beta*TOL/100)
+    description: "Eq. 7.15 with N_n = 6 identical neighbours at d_ij = TOL (cm → m). Six is the hexagonal upper bound: eqs. 7.16 (d_ij ≤ TOL) and 7.26 (d_ij ≥ TOL) together admit only neighbours at exactly TOL, and a random-sequential-addition stand jams near 55 % coverage with fewer such contacts, so this overstates crowding."
+  - id: H
+    name: Trunk height (twin)
+    symbol: H
+    unit: m
+    kind: state
+    equation: H0
+    description: "Height of the representative tree in the digital forest, integrated from its rate law (eq. 7.25 uses explicit Euler, rk4 here); its stand mean is the twin's M₁ = A."
+  - id: F_rate
+    name: Growth rate F
+    symbol: dH/dt
+    unit: m/day
+    kind: derived
+    equation: G/(alpha*H + crowd)
+    description: "Eqs. 7.14–7.15 with every neighbour growing at the same rate, F = G/(αH) − N_n F e^(−βTOL)/(αH) solved for F; it is the rate law of H, and the constraint 7.24 never binds in this symmetric case."
+  - id: M_tree
+    name: Biomass per tree
+    symbol: M_i
+    unit: kg
+    kind: derived
+    equation: cB*H**3
+    description: "Eq. 7.27, ρ_t V_t + ρ_r V_r + ρ_f V_f, with every volume ∝ H³ because every length and radius ∝ H (§7.5)."
+  - id: H_T
+    name: Height at the end of the run
+    symbol: H(T)
+    unit: m
+    kind: derived
+    equation: (sqrt((alpha*H0 + crowd)**2 + 2*alpha*G*T_h) - crowd)/alpha
+    description: "The exact first integral of the growth law solved for the height at t = T, [√((αH₀ + c)² + 2αGT) − c]/α with c = N_n e^(−βTOL); it equals the integrated H at the end of the run (12.99 m) and lets the influence matrix and the chain reaction show what sets the end-of-season canopy."
+  - id: H_obs
+    name: Canopy height of the field
+    symbol: H°
+    unit: m
+    kind: state
+    equation: H0
+    description: "What the LiDAR digital elevation model reports frame after frame (Fig. 7.2): the mean canopy of a field grown with the same law, driven by G° and its own spacing TOL°. It shares the twin's seedling height so the curves start together; with the true Λ₇^gen = 0.0963 m, Π₁ would start at −10 % and still end at +2.95 %."
+  - id: R
+    name: Twin-to-field canopy ratio
+    symbol: R = 1 + Π₁
+    unit: "1"
+    kind: derived
+    equation: H/H_obs
+    description: "R = M₁(h)/M₁(h°), so the signed first-moment cost of eq. 7.8 is Π₁ = R − 1. M₁ = A (eq. 7.3) averages DEM heights over all N_c points; taking it as the mean trunk height is a crown-top approximation that holds after canopy closure, before which the DEM also sees gaps. The GA minimizes |Π| averaged over the frames (eq. 7.7): in the chapter the total cost Π_tot fell from a generation-1 average of 0.2261 to 0.000747 (eq. 7.31; the chapter also prints 0.001840), with Π₁ = 0.000639 at the optimum. This one-tree reduction ends at Π₁ = 0.030 instead, for the reasons given in the notes."
+
+relations:
+  - from: crowd
+    to: H
+    sign: "-"
+    gain: 0.127
+    kind: dynamic
+    mechanism: "A heavier neighbour load divides the growth drive all season through dH/dt = G/(αH + N_n e^(−βTOL)), but because crowding ends up as a fixed offset c/α the four-year height responds weakly; the gain 0.127 is the closed-form elasticity ∂ln H_T/∂ln(N_n e^(−βTOL)) at the defaults, so the chain reaction reports the end-of-run height instead of an arbitrary rate-law factor."
+  - from: R
+    to: TOL
+    sign: "-"
+    mechanism: "The GA keeps the strings with the smallest time-averaged |Π| (eq. 7.7), so when the twin's canopy sits above the field's (R > 1) strings with tighter spacing, or with fewer resources, rank higher and TOL tends to fall; it is a population search over generations with no gain in the chapter, and the chapter's run moved water Λ₄ (+20 %) more than TOL (−7 %)."
+
+dynamics:
+  time: {unit: day, start: 0, end: 1460, step: 0.5}
+  rates:
+    H: G/(alpha*H + crowd)
+    H_obs: G_obs/(alpha*H_obs + 6*exp(-beta*TOL_gen/100))
+  integrator: rk4
+
+events:
+  - id: overtake
+    label: "Twin overtakes field (Π₁ = 0)"
+    when: "R >= 1 and t > 1"
+    once: true
+    description: "Crowding costs the tighter-planted twin while it sets the rate; from about day 25 its larger growth drive wins and Π₁ turns positive."
+  - id: crossover
+    label: "Self-limiting overtakes crowding (αH = N_n e^(−βTOL))"
+    when: "alpha*H >= crowd"
+    once: true
+    description: "Below this height the neighbour load sets the rate (nearly linear growth at G/c); above it the tree's own calibration term αH does (parabolic growth). The rate has already halved by here."
+  - id: closure
+    label: "Canopy closes"
+    when: "H >= TOL/100"
+    once: true
+    description: "Assuming branch length L_b ≈ H/2 (the chapter gives only L_b ∝ H, §7.5), neighbours at spacing TOL meet when H = TOL; from here the DEM would see a nearly continuous canopy surface (an interpretation, not stated in the chapter)."
+  - id: closer
+    label: "Planted 20 % closer (shock)"
+    shock: {TOL: -0.2}
+
+invariants:
+  - label: "twin's growth first integral (αH + N_n e^(−βTOL))²/(2α) − G t"
+    expr: "(alpha*H + crowd)**2/(2*alpha) - G*t"
+    tolerance: 1e-6
+  - label: "field's growth first integral (αH° + N_n e^(−βTOL°))²/(2α) − G° t"
+    expr: "(alpha*H_obs + 6*exp(-beta*TOL_gen/100))**2/(2*alpha) - G_obs*t"
+    tolerance: 1e-6
+
+cascade:
+  shock: {TOL: -0.2}
+  default_delay: 1
+  damping: 0.6
+  threshold: 0.02
+  max_depth: 3
+  time_unit: step
+
+tree:
+  kind: general
+  title: "The digital-forest pipeline: scan → statistics → engine → cost → GA (Fig. 7.1)"
+  root:
+    label: "Digital twin of a stand (Fig. 7.1)"
+    children:
+      - label: "1 Scan: UAV-LiDAR time of flight"
+        children:
+          - {label: "t_tot = d₁/v + d₂/v (7.9)"}
+          - {label: "d₁ = v·t_tot − L/sin θ (7.11)"}
+      - label: "2 Observe: DEM frames f = 1…N_f"
+        children:
+          - {label: "Heights h(x_i), i = 1…N_c (7.1)"}
+          - {label: "Moments A, S, L, K (7.3–7.6)"}
+      - label: "3 Engine: grow N_p trees (7.12)"
+        children:
+          - {label: "Place ≥ TOL apart; assign τ₁…τ₄"}
+          - {label: "H_i ← H_i + Δt·F_i; update I_ij"}
+          - {label: "Ancillary biomass ∝ H³ (7.27)"}
+      - label: "4 Cost Π_total(Λ) (7.7)"
+        children:
+          - {label: "Π_i = |M_i(h) − M_i(h°)| / M₁(h°)"}
+          - {label: "Average w_i Π_i over N_f frames"}
+      - label: "5 GA: minimize Π over Λ⁻ ≤ Λ ≤ Λ⁺"
+        children:
+          - {label: "S = 24 strings, ranked by Π (7.28)"}
+          - {label: "Mate top pairs; keep 6 + 6 (7.29)"}
+          - {label: "Add 12 random; readapt every 20 gens"}
+  algorithms:
+    - {name: preorder, intro: "Preorder lists the stages once. In a real run stages 1–2 happen once, and stages 3–5 repeat for each of the 24 strings in each of 100 generations (2400 engine runs), with the GA producing the strings that the engine then grows."}
+
+figures:
+  - type: variable_graph
+    title: "Who drives whom in the digital forest"
+    caption: "The growth drive G (light, water and soil, eq. 7.13) and the neighbour load N_n e^(−βTOL) set by the spacing TOL meet in the growth law dH/dt = G/(αH + N_n e^(−βTOL)); H(T) is its closed-form value at the end of the run. Height feeds back on its own rate (balancing loop), sets the biomass and, through the ratio R to the field's canopy, the mismatch Π₁ = R − 1. The GA closes a second balancing loop back onto TOL, with a sign but no gain because it is a population search."
+  - type: influence_matrix
+    title: "How strongly each input moves each derived quantity"
+    caption: "Percent change in the column per 1 % change in the row at the defaults. At the seedling stage (columns dH/dt, H, M_i) spacing moves the growth rate slightly more than the whole growth drive does (1.10 against 1.00), only the seedling height moves height, and biomass responds three times as strongly as height. By year four (column H(T)) the order has flipped: the growth drive gives elasticity 0.56 on height, spacing only 0.15. The neighbour load responds to spacing more than one-for-one (−1.15) because it is exponential in TOL."
+  - type: timeline
+    title: "Four growing years of twin and field, then a 20 % tighter planting"
+    caption: "Panel A: twin height H and field height H° from the same seedling size, the growth rate, the per-tree biomass and the canopy ratio R = 1 + Π₁; markers show where Π₁ changes sign (about day 25), where self-limiting overtakes crowding (day 70.5) and where crowns close (day 1174). Panel B: the chain reaction after the twin is planted 20 % closer. The neighbour load rises 23 % and the seedling growth rate falls 22 %, but four-year height falls only 2.9 % and biomass 8.8 % (first order; the full run gives −3.2 % and −9.3 %). The GA's response on TOL acts over generations, not growing days, and has no gain in the chapter, so the chain stops at the cost."
+    series: [H, H_obs, F_rate, M_tree, R]
+  - type: scene3d
+    title: "The same chain reaction in three dimensions"
+    caption: "Lanes are variables, depth is time, height is the size of the change; scrub to follow the tighter planting through the neighbour load and the seedling growth rate into four-year height, biomass and the canopy ratio R that the cost measures."
+  - type: tree
+    title: "The digital-forest pipeline as a tree"
+    caption: "Preorder lists the five stages of one digital-twin study in the order they are first reached; stages 3–5 then repeat 2400 times (24 strings × 100 generations)."
+    algorithm: preorder

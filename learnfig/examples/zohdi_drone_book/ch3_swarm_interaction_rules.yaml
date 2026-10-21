@@ -1,0 +1,91 @@
+id: ch3_swarm_interaction_rules
+title: How a swarm member decides where to fly
+domain: engineering
+level: ME 244
+chapter: "3"
+summary: >
+  Every drone in the swarm points its thrust along a weighted sum of three urges: pull toward targets, push away
+  from obstacles, and keep a comfortable spacing from other members. Twelve numbers set those urges, and a
+  genetic algorithm later tunes them; here we see what each number does and what goes wrong when one is off.
+notes:
+  - Each interaction is a difference of two exponentials, w₁e^(−a₁d) − w₂e^(−a₂d); the first term attracts at long range, the second repels at short range.
+  - Sensing radii S_mt, S_mo, S_mm cut interactions off; the hard tolerances Tol decide what counts as a mapped target or a crash.
+  - Raising the member–member weight pulls the swarm together, which trades fewer lost drones for more collisions; the cascade figure follows that trade-off.
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems, §3.2 (eqs. 3.5–3.23) and §3.3."
+variables:
+  - {id: d_mt, name: Distance to target, symbol: d^mt, unit: m, kind: parameter, default: 60, range: [0, 500]}
+  - {id: wt1, name: Target attraction weight, symbol: w_t1, unit: "1", kind: parameter, default: 1.0}
+  - {id: wt2, name: Target short-range push, symbol: w_t2, unit: "1", kind: parameter, default: 0.0}
+  - {id: a1, name: Target decay (long range), symbol: a₁, unit: 1/m, kind: parameter, default: 0.002}
+  - {id: a2, name: Target decay (short range), symbol: a₂, unit: 1/m, kind: parameter, default: 0.05}
+  - {id: pull_t, name: Net pull to target, symbol: n̂^mt, unit: "1", kind: derived, equation: wt1*exp(-a1*d_mt) - wt2*exp(-a2*d_mt), description: "Eq. 3.7, scalar magnitude along the target direction."}
+  - {id: d_mo, name: Distance to obstacle, symbol: d^mo, unit: m, kind: parameter, default: 20, range: [0, 500]}
+  - {id: wo1, name: Obstacle long-range weight, symbol: w_o1, unit: "1", kind: parameter, default: 0.0}
+  - {id: wo2, name: Obstacle repulsion weight, symbol: w_o2, unit: "1", kind: parameter, default: 1.5}
+  - {id: b2, name: Obstacle decay, symbol: b₂, unit: 1/m, kind: parameter, default: 0.05}
+  - {id: push_o, name: Net push from obstacle, symbol: n̂^mo, unit: "1", kind: derived, equation: wo1 - wo2*exp(-b2*d_mo), description: Eq. 3.12 with b₁ → 0; negative means move away.}
+  - {id: Wmt, name: Target weight, symbol: W_mt, unit: "1", kind: parameter, default: 1.0, description: How much the target urge counts in the final direction (eq. 3.20).}
+  - {id: Wmo, name: Obstacle weight, symbol: W_mo, unit: "1", kind: parameter, default: 1.0}
+  - {id: Wmm, name: Member weight, symbol: W_mm, unit: "1", kind: parameter, default: 0.5}
+  - {id: F_thrust, name: Thrust available, symbol: F_i, unit: N, kind: parameter, default: 20}
+  - {id: m, name: Member mass, symbol: m_i, unit: kg, kind: parameter, default: 1.5}
+  - {id: accel, name: Acceleration along n*, symbol: "|v̇|", unit: m/s^2, kind: derived, equation: F_thrust/m, description: "Eq. 3.23, gravity already cancelled by extra thrust."}
+  - {id: crowding, name: Swarm crowding, symbol: κ, unit: "1", kind: external, default: 1, description: How tightly members cluster (qualitative).}
+  - {id: collisions, name: Member–member collisions, symbol: N_c, unit: collisions, kind: external, default: 1}
+  - {id: lost, name: Immobilized drones, symbol: N_x, unit: drones, kind: external, default: 1, description: Drones stopped by a crash with an obstacle or each other.}
+  - {id: mapped, name: Targets mapped, symbol: N_T, unit: targets, kind: external, default: 100}
+  - {id: cost, name: Cost Π, symbol: Π, unit: "1", kind: external, default: 0.2, description: "Eq. 3.30, fraction of targets left unmapped over the mission (plus penalties)."}
+relations:
+  - {from: Wmm, to: crowding, sign: "+", delay: 1, mechanism: A larger member weight makes drones steer toward each other.}
+  - {from: crowding, to: collisions, sign: "+", delay: 1, mechanism: Tighter spacing means more pairs fall inside the crash tolerance Tol_rr.}
+  - {from: collisions, to: lost, sign: "+", delay: 1, mechanism: Colliding members are immobilized for the rest of the run.}
+  - {from: Wmo, to: lost, sign: "-", delay: 1, mechanism: "A stronger obstacle urge keeps drones outside Tol_rO, so fewer crash."}
+  - {from: Wmo, to: mapped, sign: "-", delay: 2, gain: 0.3, mechanism: Too much obstacle avoidance makes drones detour and miss targets.}
+  - {from: lost, to: mapped, sign: "-", delay: 1, mechanism: Immobilized drones map nothing more.}
+  - {from: Wmt, to: mapped, sign: "+", delay: 1, mechanism: A stronger target urge drives members straight at unmapped targets.}
+  - {from: mapped, to: cost, sign: "-", delay: 1, mechanism: "Π counts unmapped targets, so mapping more lowers the cost."}
+  - {from: lost, to: cost, sign: "+", delay: 1, gain: 0.5, mechanism: Penalized cost adds a term for lost drones.}
+  - {from: accel, to: mapped, sign: "+", delay: 2, gain: 0.4, mechanism: Faster drones reach targets sooner within the mission time.}
+cascade:
+  shock: {Wmm: 0.5}
+  default_delay: 1
+  damping: 0.7
+  time_unit: step
+tree:
+  kind: decision
+  title: What happens to member i at each time step (§3.3)
+  root:
+    label: "Within Tol_rO of an obstacle?"
+    branches:
+      - label: "yes"
+        child: {label: "Crash: member immobilized"}
+      - label: "no"
+        child:
+          label: "Within Tol_rr of another member?"
+          branches:
+            - label: "yes"
+              child: {label: "Both members immobilized"}
+            - label: "no"
+              child:
+                label: "Within Tol_rT of a target?"
+                branches:
+                  - label: "yes"
+                    child: {label: "Target mapped; remove it next step"}
+                  - label: "no"
+                    child:
+                      label: "Keep flying: v ← v + Δt·F·n*/m"
+                      branches:
+                        - label: "‖v‖ > v_max"
+                          child: {label: "Rescale v to v_max (eq. 3.28)"}
+                        - label: "‖v‖ ≤ v_max"
+                          child: {label: "r ← r + Δt·v (eq. 3.26)"}
+  algorithms:
+    - {name: decision, path: ["no", "no", "no", "‖v‖ > v_max"], intro: "Follow one member through the checks of a single time step."}
+    - {name: bfs, intro: "All the outcomes a member can meet, level by level."}
+figures:
+  - type: variable_graph
+  - type: influence_matrix
+  - type: timeline
+  - type: scene3d
+  - type: tree

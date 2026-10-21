@@ -1,0 +1,91 @@
+id: ch9_satellite_orbit
+title: "One satellite around Planet-X: the two-body orbit"
+domain: physics
+level: ME 244
+chapter: "9"
+summary: >
+  A satellite feels only the planet's gravity, which falls off with the square of distance. Launched a little
+  faster than circular speed it follows an ellipse, trading speed for height and back again, while its energy
+  and angular momentum stay exactly constant; those two invariants are what the simulation is checked against.
+notes:
+  - Circular speed √(GM/r) is the one speed at which gravity supplies exactly the centripetal pull; 5 % more makes an ellipse, √2 more escapes.
+  - Specific energy ε = v²/2 − GM/r is negative for a bound orbit and fixes the semi-major axis a = −GM/(2ε); the period follows from a alone.
+  - Angular momentum h = x·v_y − y·v_x is conserved, so the satellite moves slowest at apoapsis and fastest at periapsis.
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems, §9.2 (eqs. 9.3–9.5) and §9.7.2 conic sections."
+variables:
+  - {id: G, name: Gravitational constant, symbol: G, unit: m^3/(kg*s^2), kind: constant, default: 6.674e-11}
+  - {id: M, name: Planet mass, symbol: M, unit: kg, kind: parameter, default: 5.972e24, description: Earth-like Planet-X.}
+  - {id: r0, name: Initial radius, symbol: r₀, unit: m, kind: parameter, default: 6.771e6, description: 400 km above an Earth-sized planet.}
+  - {id: boost, name: Speed factor at launch, symbol: v₀/v_c, unit: "1", kind: parameter, default: 1.05, range: [0.8, 1.4]}
+  - {id: x, name: Position x, symbol: x, unit: m, kind: state, default: 6.771e6}
+  - {id: y, name: Position y, symbol: y, unit: m, kind: state, default: 0}
+  - {id: vx, name: Velocity x, symbol: v_x, unit: m/s, kind: state, default: 0}
+  - {id: vy, name: Velocity y, symbol: v_y, unit: m/s, kind: state, equation: boost*sqrt(G*M/r0), description: Initial condition set by the launch speed factor.}
+  - {id: r, name: Distance from centre, symbol: r, unit: m, kind: derived, equation: sqrt(x**2 + y**2)}
+  - {id: speed, name: Speed, symbol: v, unit: m/s, kind: derived, equation: sqrt(vx**2 + vy**2)}
+  - {id: v_circ, name: Circular speed at r₀, symbol: v_c, unit: m/s, kind: derived, equation: sqrt(G*M/r0)}
+  - {id: eps, name: Specific energy, symbol: ε, unit: J/kg, kind: derived, equation: 0.5*(vx**2 + vy**2) - G*M/sqrt(x**2 + y**2)}
+  - {id: h, name: Specific angular momentum, symbol: h, unit: m^2/s, kind: derived, equation: x*vy - y*vx}
+  - {id: a, name: Semi-major axis, symbol: a, unit: m, kind: derived, equation: -G*M/(2*(0.5*(boost**2)*G*M/r0 - G*M/r0)), description: From the launch energy; negative energy ⇒ bound orbit.}
+  - {id: period, name: Orbital period, symbol: T, unit: s, kind: derived, equation: 2*pi*sqrt(a**3/(G*M))}
+  - {id: apoapsis, name: Apoapsis radius, symbol: r_a, unit: m, kind: derived, equation: 2*a - r0, description: Launch point is periapsis when boost > 1.}
+dynamics:
+  time: {unit: s, start: 0, end: 7000, step: 2}
+  rates:
+    x: vx
+    y: vy
+    vx: -G*M*x/(x**2 + y**2)**1.5
+    vy: -G*M*y/(x**2 + y**2)**1.5
+events:
+  - {id: apo, label: Apoapsis, when: "x*vx + y*vy <= 0 and t > 100", once: true, description: Radial velocity turns inward; highest point of the orbit.}
+  - {id: orbit, label: One orbit complete, when: "t >= period", once: true, stop: true}
+  - {id: boost_shock, label: Launch speed +3 % (shock), shock: {boost: 0.03}}
+invariants:
+  - {label: specific energy ε, expr: "0.5*(vx**2 + vy**2) - G*M/sqrt(x**2 + y**2)", tolerance: 1e-4}
+  - {label: angular momentum h, expr: "x*vy - y*vx", tolerance: 1e-6}
+cascade:
+  shock: {boost: 0.03}
+  default_delay: 1
+  time_unit: step
+figures:
+  - type: variable_graph
+  - type: influence_matrix
+  - {type: timeline, series: [r, speed, eps, h]}
+  - type: scene3d
+  - type: tree
+  - type: spatial
+    path: [x, y]
+    origin_radius: 6.371e6          # display only: draws the planet under the orbit (r0 is 400 km above it)
+    live:                            # the real ISS beside the model's circular speed
+      - label: ISS orbital speed, right now
+        url: https://api.wheretheiss.at/v1/satellites/25544
+        field: velocity
+        unit: km/h
+        compare: v_circ
+        every: 5
+tree:
+  kind: decision
+  title: Which conic does the satellite follow? (§9.7.2)
+  root:
+    label: "Specific energy ε < 0?"
+    branches:
+      - label: "yes"
+        child:
+          label: "Launch speed exactly v_c?"
+          branches:
+            - label: "yes"
+              child: {label: "Circle, r = r₀ (§9.2.6)"}
+            - label: "no"
+              child: {label: "Ellipse, a = −GM/(2ε)"}
+      - label: "no"
+        child:
+          label: "ε = 0 (v₀ = √2 v_c)?"
+          branches:
+            - label: "yes"
+              child: {label: "Parabola: just escapes"}
+            - label: "no"
+              child: {label: "Hyperbola: escapes with speed left"}
+  algorithms:
+    - {name: decision, path: ["yes", "no"], intro: "Launched at 1.05 v_c the energy is negative and the speed is not exactly circular: an ellipse."}
+    - {name: bfs, intro: "All four conics, ordered by the sign of the energy."}

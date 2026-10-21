@@ -1,0 +1,213 @@
+id: e_mass_energy
+title: "General results of the theory: energy, mass and the speed limit c"
+domain: physics
+level: "undergraduate"
+chapter: "XV"
+summary: >
+  Special relativity replaces the kinetic energy ½mv² of a material point by mc²/√(1−v²/c²), an expression that
+  grows without bound as v approaches c and whose series expansion mc² + ½mv² + (3/8)mv⁴/c² + … contains classical
+  mechanics as the v ≪ c limit. The same reasoning, combined with Maxwell's electrodynamics, shows that a body which
+  absorbs energy E₀ gains inertial mass E₀/c², so the conservation of mass and of energy become one law.
+notes:
+  - "Constructed model, not in §XV: a 1 kg point already moving at 0.3 c is pushed by a steady 70 N (about seven times its weight) with dp/dt = F and p = mv/√(1−v²/c²), so that dv/dt = F/(mγ³). Because Einstein's energy mc²/√(1−v²/c²) tends to infinity as v → c, the acceleration collapses toward zero while p keeps growing at exactly F per unit time (the invariant p − Ft); the run stops when the point reaches 0.99 c after about 0.91 yr. The speed saturates below c, the momentum does not."
+  - "The expansion mc² + ½mv² + (3/8)mv⁴/c² + … makes classical mechanics the small-v/c limit: the third term over the second is ¾v²/c², and the full velocity-dependent part E − mc² = mc²(γ−1) divided by ½mv² equals 2γ²/(γ+1), which is 1 at rest and rises without bound; the ratio panel climbs from 1.07 to 12.4 as ½mv² stalls below ½mc² while E − mc² keeps rising."
+  - "A body moving at v that absorbs energy E₀ (measured in its own rest frame) has its energy raised by E₀/√(1−v²/c²), exactly as if its mass were m + E₀/c²: the same 1 MJ raises the energy by 1.05 MJ at 0.3 c and by 7.1 MJ at 0.99 c (the timeline strip 'energy rise on absorbing E₀'). Inertial mass is a measure of energy content, and the two separate conservation laws of pre-relativistic physics merge into one."
+  - "Constructed model, not in §XV: the work F·x equals the rise of E = γmc² (the invariant E − Fx), so energy is conserved in its relativistic form. But work fixes only changes of E, so it cannot say what the constant mc² means. The absorption argument does: mc² is the energy the body had, judged from a system moving with it, before it took up E₀."
+  - "For everyday bodies E₀/c² is far below m: the default 1 MJ adds about 11 ng to a 1 kg body, one part in 10¹¹. That is why Einstein says that in 1920 the inertia of energy could not yet be compared with experiment, and why classical mechanics could establish mass conservation as a law of independent validity (the edition's note adds that E = mc² has since been confirmed time and again). Separately, deviations from classical mechanics appear only when v is not small compared with c, which in 1920 meant only rapid electrons and ions."
+sources:
+  - "Einstein, Relativity: The Special and General Theory (1920, R. W. Lawson translation; Project Gutenberg #30155), §XV General results of the theory: kinetic energy mc²/√(1−v²/c²) replacing ½mv², its series expansion mc² + ½mv² + (3/8)mv⁴/c² + …, the absorbed energy E₀ raising the energy by E₀/√(1−v²/c²) and the inertial mass by E₀/c², and the energy written as (mc² + E₀)/√(1−v²/c²)."
+  - "Einstein, ibid., §XIV The heuristic value of the theory of relativity (laws must be covariant under the Lorentz transformation), the premise of §XV; and the §XV closing remark on action at a distance propagating at c."
+variables:
+  - id: c
+    name: Velocity of light
+    symbol: c
+    unit: m/s
+    kind: constant
+    default: 2.99792458e+8
+    description: The constant velocity of light in vacuo that, with the principle of relativity, fixes the Lorentz transformation.
+  - id: m
+    name: Rest mass of the material point
+    symbol: m
+    unit: kg
+    kind: parameter
+    default: 1.0
+    range: [0.1, 1000]
+    description: The mass m of Einstein's material point before it absorbs anything; the default is a 1 kg body.
+  - id: F
+    name: Constant force on the point
+    symbol: F
+    unit: N
+    kind: parameter
+    default: 70
+    range: [1, 1000]
+    description: Steady push along the motion; the default 70 N is about seven times the weight of the 1 kg body, so the classical acceleration F/m would be about 7 g.
+  - id: E0
+    name: Energy absorbed as radiation
+    symbol: E₀
+    unit: J
+    kind: parameter
+    default: 1.0e+6
+    range: [0, 1.0e+9]
+    description: Energy taken up by the body without change of velocity, as judged from a system moving with the body (Einstein's footnote 11); the default 1 MJ is roughly the heat that brings 2.4 litres of ice-cold water to the boil.
+  - id: v
+    name: Velocity
+    symbol: v
+    unit: m/s
+    kind: state
+    default: 8.99377374e+7
+    range: [0, 2.99792458e+8]
+    description: Speed of the material point; it is already at 0.3 c when the force starts, where ½mv² underestimates E − mc² by about 7 %, and is driven toward c.
+  - id: x
+    name: Distance travelled
+    symbol: x
+    unit: Tm
+    kind: state
+    default: 0
+    description: Path length along the force in terametres (1 Tm = 10¹² m, about 6.7 times the Earth–Sun distance); F·x is the work the force has done so far, and the 7758 Tm reached at the 0.99 c stop is about 0.82 light-year.
+  - id: gamma
+    name: Lorentz factor
+    symbol: 1/√(1−v²/c²)
+    unit: "1"
+    kind: derived
+    equation: 1/sqrt(1 - v**2/c**2)
+    description: The factor that multiplies mc² in Einstein's energy expression; it is 1 at rest and infinite at v = c.
+  - id: p
+    name: Momentum
+    symbol: p
+    unit: kg*m/s
+    kind: derived
+    equation: gamma*m*v
+    description: Relativistic momentum mv/√(1−v²/c²); the quantity whose rate of change equals the force, which the rate law dv/dt = F/(mγ³) builds in and the invariant p − Ft checks.
+  - id: E
+    name: Energy of the material point
+    symbol: E
+    unit: PJ
+    kind: derived
+    equation: gamma*m*c**2/1e15
+    description: Einstein's expression mc²/√(1−v²/c²) for the kinetic energy of a material point, including the term mc² that does not depend on v (Einstein's 1920 "kinetic energy"; today γmc² is called the total energy and T = (γ−1)mc² the kinetic energy); in petajoules (1 PJ = 10¹⁵ J, hence the /10¹⁵).
+  - id: E_newton
+    name: Classical kinetic energy
+    symbol: ½mv²
+    unit: PJ
+    kind: derived
+    equation: m*v**2/2/1e15
+    description: The well-known expression ½mv² of classical mechanics, the second term of the series alone; in petajoules.
+  - id: T
+    name: Velocity-dependent energy
+    symbol: E − mc²
+    unit: PJ
+    kind: derived
+    equation: m*v**2*gamma**2/(gamma + 1)/1e15
+    description: The part of E that depends on v, mc²(γ−1), written through the identity c²(γ−1) = v²γ²/(γ+1) as ½mv²·2γ²/(γ+1) = ½mv² + (3/8)mv⁴/c² + …; this is what ½mv² approximates (today's kinetic energy); in petajoules.
+  - id: ratio
+    name: Exact over classical energy
+    symbol: (E − mc²)/(½mv²)
+    unit: "1"
+    kind: derived
+    equation: 2*gamma**2/(gamma + 1)
+    description: The exact velocity-dependent energy divided by ½mv², which the identity 2c²(γ−1)/v² = 2γ²/(γ+1) makes finite at rest; 1 when v ≪ c, unbounded as v → c.
+  - id: dm
+    name: Mass gained from E₀
+    symbol: E₀/c²
+    unit: ng
+    kind: derived
+    equation: E0/c**2*1e12
+    description: The increase of inertial mass when the body takes up energy E₀, in nanograms (the factor 10¹² converts kg to ng); the inertial mass of a body is not a constant but varies with its energy.
+  - id: dE_abs
+    name: Energy rise on absorbing E₀
+    symbol: E₀/√(1−v²/c²)
+    unit: MJ
+    kind: derived
+    equation: E0*gamma/1e6
+    description: "The rise in the body's energy when it takes up E₀ (rest-frame) at speed v: 1.05 MJ at 0.3 c, 7.1 MJ at 0.99 c. Divided by γc², it is the mass gain E₀/c², which is why the body has the energy (mc² + E₀)/√(1−v²/c²) of a body of mass m + E₀/c²; in megajoules (hence the /10⁶)."
+relations: []
+dynamics:
+  time: {unit: yr, start: 0, end: 1.0, step: 0.0005}
+  rates:
+    v: F/(m*gamma**3)*3.15576e7
+    x: v*3.15576e7/1e12
+  integrator: rk4
+events:
+  - id: half_c
+    label: Reaches 0.5 c
+    when: "v >= 0.5*c"
+    once: true
+    description: "Half the speed of light: ½mv² now falls 19 % short of the exact E − mc² (ratio 1.24)."
+  - id: nine_tenths_c
+    label: Reaches 0.9 c
+    when: "v >= 0.9*c"
+    once: true
+    description: At nine tenths of c the acceleration F/(mγ³) has fallen to about a twelfth of its classical value F/m.
+  - id: near_c
+    label: Reaches 0.99 c (stop)
+    when: "v >= 0.99*c"
+    once: true
+    stop: true
+    description: After about 0.91 yr the speed has crept within one per cent of c; the momentum and energy are still rising steadily with no bound in sight.
+  - id: stronger_push
+    label: Force +50 % (shock)
+    shock: {F: 0.5}
+invariants:
+  - {label: "momentum law p − Ft", expr: "p - F*t*3.15576e7", tolerance: 1.0e-8}
+  - {label: "work–energy E − Fx", expr: "E - F*x*1e-3", tolerance: 1.0e-8}
+cascade:
+  shock: {F: 0.5}
+  default_delay: 1
+  damping: 0.6
+  threshold: 0.01
+  max_depth: 6
+  time_unit: step
+tree:
+  kind: general
+  title: "§XV"
+  root:
+    label: "Two postulates: relativity + constant c"
+    children:
+      - label: "Lorentz transformation"
+        children:
+          - label: "Laws must be Lorentz-covariant"
+            children:
+              - label: "Mechanics rewritten for v near c"
+                children:
+                  - label: "Energy mc²/√(1−v²/c²) replaces ½mv²"
+                    children:
+                      - {label: "→ ∞ as v → c, so v < c always"}
+                      - label: "Series mc² + mv²/2 + 3mv⁴/8c² + …"
+                        children:
+                          - {label: "3rd/2nd term = ¾v²/c² ≪ 1: classical"}
+                          - {label: "mc² term has no v: meaning deferred"}
+              - label: "Energy conserved in every K′ + Maxwell–Lorentz"
+                children:
+                  - label: "Absorb E₀ (rest frame) at speed v"
+                    children:
+                      - label: "Energy rises by E₀/√(1−v²/c²)"
+                        children:
+                          - label: "Same as mass m + E₀/c² at speed v"
+                            children:
+                              - label: "Inertial mass gains E₀/c²"
+                                children:
+                                  - {label: "Mass + energy conservation unified"}
+                                  - {label: "mc² = energy before absorption"}
+                                  - {label: "E₀/c² ≪ m: untestable in 1920"}
+              - label: "No instantaneous action at a distance"
+                children:
+                  - {label: "Influences propagate at c"}
+  algorithms:
+    - {name: preorder, title: "The argument in Einstein's order (pre-order)", intro: "Read the argument in the order Einstein makes it: each step, then everything that follows from it, before the next branch. Every arrow down the tree means 'leads to'."}
+    - {name: bfs, title: "How many steps each result is from the postulates (breadth-first)", intro: "One level at a time: the postulates, the Lorentz transformation, the covariance requirement, then its three consequences and what follows from each, so the depth of a node is the number of inferences between it and the postulates."}
+figures:
+  - type: variable_graph
+    title: "How force, speed, momentum, energy and mass hang together in §XV"
+    caption: "Arrows run from cause to effect (blue +, red −). The velocity feeds the Lorentz factor 1/√(1−v²/c²), which in turn feeds the energy E = γmc², the momentum p = γmv, the velocity-dependent energy E − mc², the ratio of exact to classical energy and the energy rise γE₀ on absorbing E₀; v also reaches p, ½mv², E − mc² and the distance x directly. The dashed arc closes the balancing loop B1 between v and the Lorentz factor: dv/dt = F/(mγ³) shrinks as γ grows, which is what keeps v below c. The rate law dv/dt = F/(mγ³) is Newton's dp/dt = F with p = γmv, so dp/dt = F needs no arrow of its own; the momentum invariant p − Ft confirms it. The inertia of E₀ appears as E₀ → E₀/c² and in the energy rise γE₀ = (E₀/c²)·γc²."
+  - type: influence_matrix
+    title: "Who moves whom: percentage sensitivities at 0.3 c"
+    caption: "Each cell is the percentage change in the column variable for a 1 % increase in the row variable at the defaults (v = 0.3 c). Read the v row: momentum and ½mv² respond about one-to-one and two-to-one, as in classical mechanics, and the exact E − mc² slightly more steeply (2.15), while the Lorentz factor moves only 0.1 % per 1 % (its elasticity is γ²v²/c²); E = γmc² and the energy rise γE₀ are proportional to γ and move by the same 0.1 %, because at 0.3 c the rest energy mc² dominates E. Read the c row: a larger c lowers the Lorentz factor and the mass E₀/c² (−2 %) but raises E (+1.9 %), since mc² grows with c² while the v²/c² correction shrinks. Read the E₀ row: absorbed energy raises the mass gain and the energy rise one-to-one and leaves the motion untouched. F and x have no row: the force acts only through the rate dp/dt = F, which lives in the timeline."
+  - type: timeline
+    title: "A material point under constant force: v saturates, p does not"
+    series: [v, p, T, E_newton, ratio, dE_abs]
+    caption: "Panel A: with dp/dt = F the momentum rises in a straight line while v bends over toward c. E − mc² grows without bound, but only about linearly in time, eventually in step with p. The classical ½mv² levels off below ½mc² ≈ 44.9 PJ, so by 0.99 c it accounts for only 40 of the 543 PJ the force has delivered (F·x); their ratio 2γ²/(γ+1) climbs from 1.07 to 12.4. The bottom strip shows the inertia of energy: the same 1 MJ absorbed raises the energy by γ·E₀, 1.05 MJ at the start and 7.1 MJ at the stop, as if the mass were m + E₀/c². Event markers show the moments v passes 0.5 c, 0.9 c and 0.99 c, after which the run stops. Panel B: the chain reaction after the force is raised by 50 %: the acceleration rises at once, so the point gets faster and p, ½mv², E − mc² and x climb faster; the larger Lorentz factor then throttles dv/dt = F/(mγ³), the small red return on v (loop B1) that trims p, ½mv², E − mc² and x again."
+  - type: scene3d
+    title: "The same run in 3D: lanes for each variable, depth for time"
+    caption: "Lanes along x are the variables, depth is time and height is magnitude. Scrub the time slider to watch the velocity lane flatten while the momentum and energy lanes keep rising; replay the cascade to follow the +50 % force shock from lane to lane."
+  - type: tree
+    caption: "The argument of the section as a tree in which every arrow down means 'leads to': the two postulates give the Lorentz transformation and with it the covariance requirement, which forces three results: the new energy expression and its series, the inertia of energy (via energy conservation in every K′ plus Maxwell–Lorentz electrodynamics) and the end of instantaneous action at a distance. Pre-order reads it in Einstein's order; breadth-first shows how many steps each result is from the postulates."

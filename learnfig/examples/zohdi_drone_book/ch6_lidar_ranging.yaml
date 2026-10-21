@@ -1,0 +1,78 @@
+id: ch6_lidar_ranging
+title: "LiDAR from a drone: time of flight, footprint and point density"
+domain: engineering
+level: ME 244
+chapter: "6"
+summary: >
+  A LiDAR fires light pulses and times the echo; half the round-trip time times the speed of light is the range.
+  Flying height, field of view, pulse rate and speed then decide how densely the ground is sampled and how
+  much signal comes back, which is what limits mapping from altitude.
+notes:
+  - Range error is set by timing jitter, not by altitude: 1 ns of jitter is 15 cm of range.
+  - Point density falls as 1/(speed × swath), and swath grows with altitude, so flying higher trades density for coverage.
+  - Return signal fades with both attenuation e^(−2αd) and spreading 1/d², so range is the first thing that saturates a sensor budget.
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems, Ch. 6 (LiDAR, propagation of electromagnetic energy) — geometric and timing relations."
+variables:
+  - {id: c, name: Speed of light, symbol: c, unit: m/s, kind: constant, default: 2.998e8}
+  - {id: dt, name: Round-trip time, symbol: Δt, unit: ns, kind: parameter, default: 800, range: [10, 10000]}
+  - {id: sigma_t, name: Timing jitter, symbol: σ_t, unit: ns, kind: parameter, default: 1.0}
+  - {id: h, name: Flying height, symbol: h, unit: m, kind: parameter, default: 120, range: [10, 500]}
+  - {id: fov, name: Scan field of view, symbol: θ, unit: deg, kind: parameter, default: 60}
+  - {id: v, name: Ground speed, symbol: v, unit: m/s, kind: parameter, default: 8}
+  - {id: f, name: Pulse rate, symbol: f, unit: kHz, kind: parameter, default: 300}
+  - {id: div, name: Beam divergence, symbol: φ, unit: mrad, kind: parameter, default: 0.5}
+  - {id: alpha, name: Atmospheric attenuation, symbol: α, unit: 1/km, kind: external, default: 0.2, description: Clear air ≈ 0.1–0.3 per km; smoke much higher.}
+  - {id: A_site, name: Survey area, symbol: A_s, unit: m^2, kind: parameter, default: 200000, range: [10000, 2000000], description: "About 20 ha of farmland or forest."}
+  - {id: A_cov, name: Area covered, symbol: A_c, unit: m^2, kind: state, default: 0, description: "Constructed: one straight pass after another, no overlap."}
+  - {id: d_ref, name: Reference range, symbol: d_ref, unit: m, kind: constant, default: 100}
+  - {id: d, name: Measured range, symbol: d, unit: m, kind: derived, equation: c*dt*1e-9/2, description: Half the round trip.}
+  - {id: range_err, name: Range error, symbol: σ_d, unit: m, kind: derived, equation: c*sigma_t*1e-9/2}
+  - {id: swath, name: Swath width, symbol: w, unit: m, kind: derived, equation: 2*h*tan(fov*pi/180/2)}
+  - {id: density, name: Point density, symbol: n, unit: 1/m^2, kind: derived, equation: f*1000/(v*swath), description: Pulses per square metre of ground.}
+  - {id: footprint, name: Beam footprint, symbol: D, unit: m, kind: derived, equation: h*div/1000}
+  - {id: return_rel, name: Relative return signal, symbol: I/I_ref, unit: "1", kind: derived, equation: exp(-2*alpha/1000*d)*(d_ref/d)**2, description: "Attenuation on the way out and back, times 1/d² spreading."}
+relations:
+  - {from: h, to: density, sign: "-", mechanism: "Higher flight widens the swath, spreading the same pulses over more ground."}
+dynamics:
+  time: {unit: s, start: 0, end: 600, step: 0.5}
+  rates:
+    A_cov: swath*v
+events:
+  - {id: half, label: Half the site covered, when: "A_cov >= 0.5*A_site", once: true}
+  - {id: done, label: Site covered, when: "A_cov >= A_site", once: true, stop: true}
+cascade:
+  shock: {h: 0.5}
+  default_delay: 1
+  time_unit: step
+figures:
+  - type: variable_graph
+  - type: influence_matrix
+  - {type: timeline, series: [A_cov]}
+  - type: scene3d
+  - type: tree
+tree:
+  kind: decision
+  title: Is a LiDAR return usable? (Ch. 6)
+  root:
+    label: "Echo above the detector threshold?"
+    branches:
+      - label: "no"
+        child: {label: "Lost: attenuation e^(−2αd) and 1/d² too strong"}
+      - label: "yes"
+        child:
+          label: "Range error σ_d below the tolerance?"
+          branches:
+            - label: "no"
+              child: {label: "Reduce timing jitter σ_t"}
+            - label: "yes"
+              child:
+                label: "Point density n high enough?"
+                branches:
+                  - label: "no"
+                    child: {label: "Fly lower or slower, or narrow θ"}
+                  - label: "yes"
+                    child: {label: "Usable point for the map"}
+  algorithms:
+    - {name: decision, path: ["yes", "yes", "yes"], intro: "At 120 m the return is strong, σ_d is 15 cm and the density is about 270 points per m²."}
+    - {name: bfs, intro: "Every way a pulse can fail or succeed, level by level."}

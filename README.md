@@ -198,6 +198,37 @@ URLs that son's `/spark` VR room hot-loads, with optional auto-post to
 `/api/quest-asset-scan`. Step-by-step:
 **[docs/QUEST3_TEST_PLAN.md](docs/QUEST3_TEST_PLAN.md)**.
 
+## Spatial learning room (WebXR) — `learnfig/`
+
+[`learnfig/`](learnfig/README.md) turns a topic spec (variables, units,
+equations, events) into checked learning figures, and into a **room you can
+stand in on the Quest**:
+
+- every variable is a city on a globe you turn by hand; pulses run along the
+  arcs from cause to effect;
+- tap a city and its tower rises and a card unfolds on the table: value, unit,
+  equation, what pushes it and why, and its curve over time;
+- the 2D figures (variable graph, influence matrix, timeline, tree) stand on an
+  arc around you; tap one to bring it close;
+- the simulation traces its path on a plate; "unroll time" lifts it into a
+  helix with time as height;
+- optional live feeds sit beside the model value they test, after a unit
+  check: the orbit chapter puts the real ISS speed next to the model's
+  circular speed.
+
+The patterns come from agent-built XR Earth globes (Bilawal Sidhu's God's Eye
+View on CesiumJS, and a PICO headset app inspired by it). The write-up, spec
+format and headset steps are in
+**[learnfig/docs/SPATIAL_VR.md](learnfig/docs/SPATIAL_VR.md)**.
+
+```bash
+cd learnfig && make setup && make examples && make serve   # http://localhost:8731 (PyYAML only)
+adb reverse tcp:8731 tcp:8731                              # then open the same URL in the Quest browser
+```
+
+Desktop interaction is tested. The headset input paths (pinch, hand grab,
+two-hand resize, AR passthrough) have not been run on a Quest yet.
+
 ## Layout
 
 ```
@@ -213,6 +244,7 @@ assetpipe/
   cli.py        demo | scan | rgbd | clean | run | list | viewer | export-son
 docs/           ARCHITECTURE · QUEST3_CAPTURE · GPU_SETUP · ROADMAP · SON_INTEGRATION
 tests/          box-test + gpu-glue + son-bridge (zero deps to run)
+learnfig/       topic spec → checked learning figures + WebXR spatial room (own README, tests)
 ```
 
 ## Fits the existing LifeTwin platform (`son`)
