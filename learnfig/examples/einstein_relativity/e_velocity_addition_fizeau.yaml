@@ -1,0 +1,103 @@
+id: e_velocity_addition_fizeau
+title: "Addition of velocities and Fizeau's flowing water"
+domain: physics
+level: "undergraduate"
+chapter: "VI–XIII"
+summary: >
+  Converting the same motion x′ = wt′ from the moving system to the embankment with the Galilei transformation
+  gives the classical sum W = v + w (§VI, eq. A), which clashes with the law of propagation of light (§VII), while
+  the Lorentz transformation gives W = (v + w)/(1 + vw/c²) (§XIII, eq. B), which never exceeds c and reduces to
+  v + w when vw/c² is negligible. For light in water flowing at v, where w = c/n, (B) predicts Fizeau's result
+  W ≈ c/n + v(1 − 1/n²): the flowing water adds only the fraction 1 − 1/n² ≈ 0.44 of its own speed to the light.
+notes:
+  - "Both theorems start from the same statement x′ = wt′ in the moving system K′; (A) and (B) differ only in whether (x′, t′) are converted to (x, t) by the Galilei or the Lorentz transformation, and the whole difference is the denominator 1 + vw/c². In §VII the same classical reasoning makes light move at c − v relative to the carriage, which is the apparent conflict with the principle of relativity."
+  - "Rearranging (B) gives c − W = c(c − v)(c − w)/(c² + vw), which is ≥ 0 whenever v, w ≤ c and is exactly 0 as soon as either speed equals c: compounding c with any v returns c, so the law of propagation of light and the principle of relativity (§VII) are compatible after all. For light in water at the defaults c − W_B ≈ 7.49×10⁷ m/s."
+  - "With w = c/n and ε = vw/c² = v/(nc) ≈ 1.8×10⁻⁸ for water at 7 m/s, footnote 10 first replaces (B) by (w + v)(1 − vw/c²) and then, dropping the second-order term v²w/c² as well, by W = c/n + v(1 − 1/n²). The flowing liquid therefore carries the light along with only the fraction 1 − 1/n² ≈ 0.44 of its own speed (the drag W_B − w ≈ 3.06 m/s at 7 m/s), whereas (A) would carry it with the full v."
+  - "W itself differs from v + w by under two parts in 10⁸, so a time-of-flight measurement would have to resolve about 0.12 fs out of 6.6 ns. Fizeau's interferometer instead compares beams sent with and against the flow, so the difference shows up in the drag, the part of W the flow adds: (B) gives ≈ 3.06 m/s, (A) the full 7 m/s. The classical over-count W_A − W_B = (v + w)·ε/(1 + ε) ≈ v/n² ≈ 3.94 m/s is 56 % of v and larger than the whole drag, so (A) predicts 2.3 times the drag that (B) predicts. This is why the chain reaction after a faster flow runs through the drag and through ε, the over-count and the lead, while W_A and W_B barely move."
+  - "Along the whole run the pulse obeys x′ − wt′ = 0 in the liquid frame when (x, t) are converted with the Lorentz transformation (first invariant), and the classical pulse x_A = x_B + lead obeys x_A − (v + w)t = 0 (second invariant). Both laws keep Einstein's premise that light propagates at w relative to the liquid. In the ratio x′/t′ the factor γ cancels, so the two laws differ only through the simultaneity term vx/c² in t′."
+  - "At x = L the classical pulse arrives early by (Lv/c²)·w/(v + w) ≈ 1.2×10⁻¹⁶ s, which is the relativity-of-simultaneity offset vx/c² that the Galilei transformation omits, nearly the same for any liquid. Its lead when the (B) pulse leaves is exactly L·ε = Lvw/c² ≈ 26 nm, and in fringes of optical path n·lead/λ = vL/(cλ) ≈ 0.059, independent of n."
+  - "The time evolution shown here is a constructed race, not in Einstein's text: a light pulse enters the flowing water at t = 0, its position is integrated under law (B), and alongside it we integrate the lead that law (A) would give it. Fizeau's own apparatus compared a beam sent with the flow with one sent against it, each through both tubes, so the difference between the two laws there is four times this single-pass value, about 4 × 0.059 ≈ 0.24 fringe."
+sources:
+  - "Einstein, Relativity: The Special and General Theory (1920, R. W. Lawson transl.; Project Gutenberg #30155): §VI (W = v + w, the classical theorem), §VII (w = c − v for the carriage and the apparent incompatibility with the principle of relativity), §XIII eqs. (A) W = v + w and (B) W = (v + w)/(1 + vw/c²), with Zeeman's confirmation that formula (B) represents the influence of the flow velocity v to within one per cent (main text of §XIII), and footnote 10 (Fizeau's W = c/n + v(1 − 1/n²), reached from (B) by way of (w + v)(1 − vw/c²))."
+  - "Fizeau, Comptes Rendus 33, 349 (1851): water at about 7 m/s in two tubes 1.487 m long, each of the two interfering beams traversing both tubes, one with and one against the flow; Michelson & Morley, Am. J. Sci. 31, 377 (1886) repeated it with the same first-order result."
+variables:
+  - {id: c, name: Speed of light in vacuum, symbol: c, unit: m/s, kind: constant, default: 2.99792458e8, description: "Einstein quotes 300,000 km/sec (§VII); the same for every colour and independent of the motion of the source (de Sitter's double stars)."}
+  - {id: n, name: Refractive index of the liquid, symbol: n, unit: "1", kind: parameter, default: 1.333, range: [1.0, 2.5], description: "Water, as in Fizeau's tube; the liquid at rest propagates light at w = c/n (footnote 10 to §XIII)."}
+  - {id: v, name: Flow speed of the liquid, symbol: v, unit: m/s, kind: parameter, default: 7.0, range: [0, 30], description: "Speed of the liquid relative to the tube T — the carriage relative to the embankment in §VI; Fizeau drove water at about 7 m/s."}
+  - {id: L, name: Tube length, symbol: L, unit: m, kind: parameter, default: 1.487, range: [0.1, 10], description: "Length of the flow tube; the race ends when the pulse reaches x = L. Fizeau's tubes were 1.487 m long, and each of his two beams traversed both tubes (2 × 1.487 m), one with and one against the flow; this race models a single pass through one tube."}
+  - {id: lam, name: Wavelength of the light, symbol: λ, unit: nm, kind: parameter, default: 589, range: [400, 700], description: "Sodium D light, the vacuum wavelength; an interferometer reads optical path differences (n × the geometric path in the liquid) as fractions of this length."}
+  - {id: w, name: Light speed in the liquid at rest, symbol: w, unit: m/s, kind: derived, equation: c/n, description: "w = c/n (footnote 10). By the principle of relativity light propagates at this speed with respect to the liquid whether the liquid flows or not; it plays the part of the man walking in the carriage."}
+  - {id: eps, name: Smallness parameter, symbol: "vw/c²", unit: "1", kind: derived, equation: v*w/c**2, description: "The quantity Einstein calls small compared with 1 in §XIII; 1 + vw/c² is the denominator that separates (B) from (A). About 1.8×10⁻⁸ at the defaults."}
+  - {id: W_cl, name: "Classical theorem (A)", symbol: W_A, unit: m/s, kind: derived, equation: v + w, description: "§VI: in one second the carriage advances v and the man a further w, so W = v + w; §XIII derives it from x′ = wt′ with the Galilei transformation, x = (v + w)t."}
+  - {id: W_rel, name: "Relativistic theorem (B)", symbol: W_B, unit: m/s, kind: derived, equation: (v + w)/(1 + eps), description: "§XIII: the same x′ = wt′ expressed in (x, t) through the first and fourth Lorentz equations gives W = (v + w)/(1 + vw/c²). Rearranged, c − W = c(c − v)(c − w)/(c² + vw) ≥ 0."}
+  - id: drag
+    name: "Speed the flow adds to the light (B)"
+    symbol: "W_B − w"
+    unit: m/s
+    kind: derived
+    equation: v*(1 - w**2/c**2)/(1 + eps)
+    description: "Exact rearrangement of (B), W_B − w = v(1 − w²/c²)/(1 + ε), which for light (w = c/n) is v(1 − 1/n²)/(1 + ε) ≈ 3.06 m/s for water at 7 m/s against the full 7 m/s of (A). Footnote 10: since vw/c² ≪ 1, (B) ≈ (w + v)(1 − vw/c²), and dropping the second-order term v²w/c² as well gives W = c/n + v(1 − 1/n²). Zeeman's measurements confirm this flow-velocity term to within one per cent (§XIII main text) once n is taken at the frequency the light has in the liquid's own frame, which adds Lorentz's dispersion term −(λ/n)dn/dλ ≈ +0.016 for water, left out of this non-dispersive model; Fizeau's 1851 result was considerably cruder."
+  - {id: dW_err, name: Classical over-count, symbol: "W_A − W_B", unit: m/s, kind: derived, equation: (v + w)*eps/(1 + eps), description: "Exact difference (A) − (B) = (v + w)·ε/(1 + ε) with ε = vw/c²; to first order it is v/n², i.e. 56 % of v for water and more than the whole drag of 0.44 v. It vanishes as ε → 0, which is how (B) reduces to the classical law."}
+  - {id: x_rel, name: "Pulse position by law (B)", symbol: x_B, unit: m, kind: state, default: 0, description: "Constructed race: a light pulse enters the flowing water at x = 0, t = 0 and advances at W_B relative to the tube (the factor 1e-9 converts m/s to m/ns)."}
+  - {id: lead, name: "Lead of the classical pulse", symbol: "x_A − x_B", unit: nm, kind: state, default: 0, description: "How far ahead a pulse obeying (A) would be; it grows at W_A − W_B (1 m/s is exactly 1 nm/ns, so no conversion factor is needed) and reaches L·ε = Lvw/c² ≈ 26 nm when the pulse obeying (B) leaves the tube."}
+  - id: frac
+    name: Optical-path lead in fringes
+    symbol: "n(x_A − x_B)/λ"
+    unit: "1"
+    kind: derived
+    equation: n*lead/lam
+    description: "Inside the liquid the wavelength is λ/n, so a gap Δx there is nΔx/λ wavelengths of optical path, the same as c × (arrival-time lag)/λ; about 0.059 when the pulse leaves the tube, equal to vL/(cλ) and independent of n."
+relations:
+  - {from: L, to: lead, sign: "+", gain: 1.0, delay: 1, mechanism: "The exit event, not a rate law, ends the race: a longer tube lets the classical pulse pull ahead for longer, so the lead at the exit grows in proportion to L."}
+  - {from: c, to: eps, sign: "-", mechanism: "ε is the simultaneity shift v·x′/c² of the fourth Lorentz equation per unit of liquid-frame time, so at fixed v and w it falls as 1/c² (partial elasticity −2), and because w = c/n also grows with c, ε = v/(nc) and its total elasticity in the influence matrix is −1."}
+  - {from: w, to: eps, sign: "+", mechanism: "The faster the light runs relative to the liquid, the farther it gets (x′ = wt′) per unit of liquid-frame time and the larger the simultaneity shift v·x′/c² that the Lorentz transformation charges it, so ε = vw/c² grows in proportion to w."}
+dynamics:
+  time: {unit: ns, start: 0, end: 90, step: 0.004}
+  rates:
+    x_rel: W_rel*1e-9
+    lead: dW_err
+  integrator: rk4
+events:
+  - {id: resolvable, label: "Laws differ by 1/50 fringe", when: "frac >= 0.02", once: true, description: "The classical and relativistic predictions now differ by a fiftieth of a fringe of optical path, a reference threshold chosen for this constructed race rather than a historical instrument sensitivity."}
+  - {id: exit, label: "Pulse leaves the tube", when: "x_rel >= L", once: true, stop: true, description: "x_B = L after L/W_B ≈ 6.6 ns; the classical pulse is ahead by about 26 nm (L·ε), which is 0.059 of a fringe of optical path."}
+  - {id: faster_flow, label: "Flow 50 % faster (shock)", shock: {v: 0.5}}
+invariants:
+  - {label: "Lorentz: x′ − wt′ = 0 in the liquid frame", expr: "1 + (x_rel - v*t*1e-9 - w*(t*1e-9 - v*x_rel/c**2))/L", tolerance: 1e-10}
+  - {label: "Galilei: x_A − (v + w)t = 0", expr: "1 + (x_rel + lead*1e-9 - (v + w)*t*1e-9)/L", tolerance: 1e-10}
+cascade:
+  shock: {v: 0.5}
+  default_delay: 1
+  damping: 1.0
+  threshold: 0.02
+  max_depth: 6
+  time_unit: step
+tree:
+  kind: decision
+  title: "Which addition theorem applies? (§VI, §VII, §XIII)"
+  root:
+    label: "Is one of the two speeds exactly c?"
+    branches:
+      - label: "yes"
+        child: {label: "W = c whatever the other speed"}
+      - label: "no"
+        child:
+          label: "Is v·w/c² ≪ 1?"
+          branches:
+            - label: "no"
+              child: {label: "Use W = (v+w)/(1+vw/c²), still < c"}
+            - label: "yes"
+              child:
+                label: "Need the part v adds, with w/c appreciable?"
+                branches:
+                  - label: "no"
+                    child: {label: "Galilean W = v + w (A) suffices, error ≈ εW"}
+                  - label: "yes"
+                    child: {label: "W ≈ w + v(1 − w²/c²); w = c/n: Fizeau's c/n + v(1 − 1/n²)"}
+  algorithms:
+    - {name: decision, path: ["no", "yes", "yes"], intro: "Follow Fizeau's tube through the checks: neither speed is c and vw/c² ≈ 1.8×10⁻⁸ is tiny, but the interferometer responds to the part of W the flow adds, and w = c/n is comparable to c, so that part is v(1 − w²/c²) = v(1 − 1/n²), not the full v."}
+figures:
+  - {type: variable_graph, title: "What sets the speed of light in flowing water", caption: "c and n set w = c/n; v and w set the smallness parameter ε = vw/c². (A), (B) and the drag W_B − w = v(1 − w²/c²)/(1 + ε), the part of W the flow adds, follow from them. The over-count (A) − (B) = (v + w)·ε/(1 + ε) drives the lead of the classical pulse, the lead counted in fringes of optical path is n·lead/λ, and the tube length L only enters through the exit event.", show_values: true}
+  - {type: influence_matrix, title: "A 1 % change in each input, felt where?", caption: "W_A and W_B respond to v with elasticities of only 3×10⁻⁸ and 1.4×10⁻⁸ (the sum is dominated by w), while ε, the drag and the over-count respond one-for-one. A denser liquid slows the light (n → w, −1) but drags it harder (n → drag, +2.6, the elasticity 2/(n² − 1)) and shrinks the over-count as v/n² (−2). The fringe-fraction column reads zero for c, n and v only because the matrix is evaluated at t = 0, when the lead is still zero, which is also why the tube length L and the wavelength λ have no row; at the exit n·lead/λ ≈ vL/(cλ) responds +1 to v and L, −1 to c and λ, and not at all to n."}
+  - {type: timeline, series: [x_rel, frac], title: "Two pulses racing down Fizeau's tube", caption: "Panel A: the pulse crosses the 1.487 m tube in 6.6 ns under law (B), while the lead a classical pulse would have grows at W_A − W_B ≈ v/n² ≈ 3.9 nm/ns; counted in fringes of optical path, n·lead/λ passes a fiftieth of a fringe at 2.2 ns and reaches 0.059 at the exit (a lead of 26 nm). Panel B: a 50 % faster flow adds 50 % more drag (3.06 → 4.59 m/s, against 7 → 10.5 m/s under (A)) and passes the same +50 % through ε, the over-count and the lead to the fringe fraction, while W_B itself changes by only 0.7 parts in 10⁸ (W_A by 1.6 parts in 10⁸), far below the 2 % threshold."}
+  - {type: scene3d, title: "The race and the chain reaction in 3D", caption: "The same lanes in three dimensions: scrub time to watch the lead accumulate, then replay the shock to see why a faster flow is invisible in W_A and W_B but passes one-for-one into the drag and the fringe fraction."}
+  - {type: tree, algorithm: decision, title: "Choosing the addition theorem", caption: "Einstein's point first: if either speed is c the sum is c. Otherwise ask whether vw/c² is negligible; if it is, the Galilean sum gives W to a part in 10⁸, but the share of v that is added is 1 − w²/c², which is far from 1 whenever w is comparable to c — Fizeau's light in water is the classic case."}

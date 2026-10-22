@@ -1,0 +1,108 @@
+id: ch4_voxel_drone_frame
+title: A drone frame as voxels — bond stiffness, time step and the preflight stress test
+domain: engineering
+level: ME 244
+chapter: "4"
+summary: >
+  Chapter 4 skips meshing: the chassis envelope of eq. 4.1 is intersected with a regular grid, and the active
+  voxels carry the preflight stress test of §4.3, ρü = ∇·σ + f (eq. 4.3) marched with the φ-scheme of
+  eqs. 4.6–4.12. Along one direction, the half-step stencil of eqs. 4.14–4.16 multiplied by the voxel volume is
+  equivalent to nodes of mass m_v = ρ*Δx³ joined by springs k = E*Δx (derived here; the chapter's flight DEM
+  itself uses rigid clusters with no bonding laws, Remark 14). That chain's top frequency 2√(k/m_v) sets a 1D
+  bar-chain estimate of the central-difference limit, Δt_crit = Δx√(ρ*/E*) ≈ 1.6 µs. A step of 50 µs, the one
+  the chapter uses for the rigid-body flight simulation of §4.6.5, would be 31 Δt_crit if applied to the voxel
+  stress test: the φ = ½ update would be stable only if eq. 4.12 were solved exactly, but the chapter iterates it
+  (eq. 4.34), and that recursion's contraction constant (Δt/Δt_crit)² ≈ 980 makes it diverge, so the Δt
+  adaptivity of eq. 4.43 would cut the step below Δt_crit. The material is a tailored mixture: Hashin–Shtrikman
+  averages (eqs. 4.49–4.52) give E* = 43 GPa for ABS with v₂ = 0.5 steel particles, and the rule of mixtures
+  gives ρ* = 4427 kg/m³. The time evolution shown is a constructed one, not a trajectory printed in the chapter:
+  one voxel node pulled against a fixed neighbour by a suddenly applied traction, m_vΔü + cΔu̇ + kΔu = F with an
+  assumed damping ratio ζ — the dynamic biaxial pull of Fig. 4.6 reduced to one bond.
+notes:
+  - "m_v = ρ*Δx³ but k = E*Δx, so the chain's top frequency 2√(k/m_v) = (2/Δx)√(E*/ρ*) grows as the grid is refined; the 1D bar-chain estimate of the central-difference limit, Δt_crit = √(m_v/k) = Δx√(ρ*/E*), is 1.6 µs at Δx = 5 mm. It is an upper bound: the 3D stencil with the P-wave modulus κ*+4μ*/3 and its √3 factor gives ≈ 0.8 µs, and the 1 mm thickness direction of the 100³ grid over (±0.25, ±0.25, ±0.05) m gives 0.3 µs."
+  - "φ = ½ (the chapter's 'marginally stable' midpoint/trapezoidal rule) is unconditionally stable only if eq. 4.12 is solved exactly. The chapter iterates it (eq. 4.34), and that fixed-point recursion contracts only if η ≈ (φΔt·ω_max)² < 1, i.e. Δt < Δt_crit at φ = ½ — the chapter's own η ∝ (Δt)^p with p ≈ 2 (eqs. 4.39–4.40). At a trial step of 50 µs = 31 Δt_crit, η ≈ 980, the recursion diverges and eq. 4.43 would shrink Δt by about 30×. Iteration buys error control, not a bigger step."
+  - "A pull applied in ≪ 10 µs (the bond period 2π√(m_v/k)) overshoots: with the assumed ζ = 0.05 the stretch peaks at (1 + e^(−πζ/√(1−ζ²)))·F/k ≈ 1.85 F/k, so σ reaches ≈ 44.5 MPa although the static value F/Δx² = p_app is 24 MPa — the dynamic test flags a voxel that the static check passes. With ζ = 0 (eq. 4.3 has no damping and φ = ½ adds none) the factor is 2 (48 MPa); a pull ramped over more than a few periods is quasi-static and barely overshoots."
+  - "Resolving that transient is an accuracy limit, not a stability one (Δt_lim, Remark 5): the whole 150 µs panel is 3 steps of 50 µs, and even an exactly solved trapezoidal step maps the 10 µs oscillation onto an alias of ≈ 104 µs. To time the 5 µs peak, Δt must be ≲ T/10 ≈ 1 µs, whatever the scheme."
+  - "Grid refinement as elasticities: m_v ∝ Δx³, F ∝ Δx² (fixed traction) and k ∝ Δx, so Δt_crit ∝ Δx while the number of voxels grows as Δx⁻³ — an explicit run's cost scales as Δx⁻⁴ — and the stress F/Δx² = p_app does not change. Exactly, a 25 % finer grid leaves 0.75³ = 42 % of m_v and raises Δt/Δt_crit by 1/0.75 = +33 %."
+  - "With v₂ = 0.5 steel in ABS the Hashin–Shtrikman averages (bound-average parameter φ_HS = ½, not the time-stepping φ) give μ* = 17.25 GPa and κ* = 29.55 GPa, i.e. E* = 9κ*μ*/(3κ*+μ*) = 43.3 GPa (8.5× the chapter's hypothetical ABS); the rule of mixtures gives ρ* = 4427 kg/m³ (4.4× ABS), so the bar wave speed √(E*/ρ*) rises only 1.4×. The particles carry 91 % of the deviatoric stress (v₂C^σ_μ,2 = 0.907, eqs. 4.56–4.60): at the 44.5 MPa peak the matrix sees C^σ_μ,1·σ ≈ 8 MPa and the steel ≈ 81 MPa, so the flag on the homogenised stress is conservative. In this force-controlled test σ does not depend on E*: raising v₂ only shifts load from matrix to particles."
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems (ME 244 primer, 2026 draft), §4.2 (eqs. 4.1–4.2, voxel generation; Fig. 4.3, grid over the box ±R₁, ±R₂, ±R₃), §4.3 (eqs. 4.3–4.12 φ-scheme; eqs. 4.14–4.16 half-step stencils; eqs. 4.34–4.43 iterative solve, contraction constant and Δt adaptivity; Remark 5; §4.3.5 and Fig. 4.6 stress test, no load or threshold value given), §4.4 (eqs. 4.45–4.60, Hashin–Shtrikman bounds, load sharing and the ABS–steel example), §4.5 (Fig. 4.8, voxels → DEM; Remark 14, no bonding laws) and §4.6.5 (rigid-body flight run: 100³ grid, 1651 particles, (R₁, R₂, R₃) = (0.25, 0.25, 0.05) m, ρ = 1000 kg/m³, Δt = 0.00005 s, φ = 0.5)."
+  - "Central-difference (leapfrog) stability limit Δt ≤ 2/ω_max with ω_max = 2√(k/m) for a chain of identical springs (e.g. Belytschko, Liu & Moran, Nonlinear Finite Elements for Continua and Structures, ch. 6). The chapter only calls φ = 0 'conditionally stable' and gives no number; the 1D estimate, the forward-Euler caveat for φ = 0 and the contraction estimate η ≈ (φΔt·ω_max)² for eq. 4.34 are derived here."
+variables:
+  - {id: E_star, name: Effective Young's modulus, symbol: E*, unit: GPa, kind: parameter, default: 43.3, range: [5, 120], description: "E* = 2μ*(1+ν*) = 9κ*μ*/(3κ*+μ*) (Remark 11) from the Hashin–Shtrikman averages μ* = 17.25 GPa and κ* = 29.55 GPa (eqs. 4.49–4.52 with v₂ = 0.5 steel particles and μ₁ = 2, κ₁ = 3.8, μ₂ = 79, κ₂ = 160 GPa); the chapter's hypothetical ABS alone gives E ≈ 5.1 GPa (real ABS ≈ 2.3 GPa)."}
+  - {id: rho_star, name: Effective density, symbol: ρ*, unit: kg/m^3, kind: parameter, default: 4427, range: [1000, 7850], description: "Rule of mixtures (an exact volume average, not a Hashin–Shtrikman result): ρ* = v₂ρ₂ + (1−v₂)ρ₁ with v₂ = 0.5, ρ₁ = 1005 (ABS) and ρ₂ = 7850 kg/m³ (steel), the chapter's 'predicted overall density'."}
+  - {id: dx, name: Voxel size, symbol: Δx, unit: m, kind: parameter, default: 0.005, range: [0.001, 0.02], description: "Assumed cubic voxel of 5 mm, consistent with 0.5 m/100 in-plane; the 100³ grid of §4.6.5 over (±0.25, ±0.25, ±0.05) m actually gives 5 × 5 × 1 mm voxels. Also the length over which the half-step stencil of eqs. 4.14–4.16 measures the bond strain Δu/Δx."}
+  - {id: m_v, name: Voxel (nodal) mass, symbol: m_v, unit: kg, kind: derived, equation: rho_star*dx**3, description: "The mass placed at the voxel centre (§4.5, 'the mass is proportional to the mass in the voxel'); 0.55 g at the defaults."}
+  - {id: k, name: Bond stiffness, symbol: k, unit: N/m, kind: derived, equation: E_star*1e9*dx, description: "The 1D half-step stencil (eqs. 4.14–4.16) times the voxel volume Δx³ gives m_vü_i = E*Δx(u_{i+1} − 2u_i + u_{i−1}), i.e. springs k = E*Δx (GPa → Pa with the factor 10⁹); derived here, not stated in the chapter. A 1D bar idealisation: under lateral constraint use κ*+4μ*/3 instead of E*."}
+  - {id: zeta, name: Damping ratio, symbol: ζ, unit: "1", kind: parameter, default: 0.05, range: [0, 1], description: "c = 2ζ√(k·m_v); an assumed illustrative material damping that the chapter does not have (eq. 4.3 has no damping term). φ = ½ adds no numerical damping (spectral radius 1; the chapter's 'very stable (very dissipative)' refers to φ = 1). ζ = 0 gives the upper bound 2·F/k and the bond never settles."}
+  - {id: dt, name: Trial time step, symbol: Δt, unit: µs, kind: parameter, default: 50, range: [0.1, 1000], description: "A step one might take for the voxel stress test. 50 µs is the rigid-body DEM flight step of §4.6.5 (Δt = 0.00005 s with φ = 0.5), where the particles move as one rigid cluster and no bonds exist (Remark 14); the chapter gives no step for the §4.3.5 stress test, so it is reused here as a hypothetical trial step."}
+  - {id: dt_crit, name: Central-difference stability limit, symbol: Δt_crit, unit: µs, kind: derived, equation: 1e6*sqrt(m_v/k), description: "1D bar-chain estimate of the central-difference (leapfrog) limit Δt_crit = 2/ω_max with ω_max = 2√(k/m_v), equal to Δx√(ρ*/E*), the time a bar wave needs to cross one voxel (s → µs with 10⁶). It is not the limit of the chapter's φ = 0: that literal update (eqs. 4.8–4.10) is forward Euler, unstable at any step for an undamped lattice and needing Δt < 2ζ/ω_n ≈ 0.16 µs with this ζ. The 3D lattice limit is about half as large (≈ 0.8 µs with the P-wave modulus and the √3 stencil factor)."}
+  - {id: ratio, name: Step ratio, symbol: Δt/Δt_crit, unit: "1", kind: derived, equation: dt/dt_crit, description: "Above 1 even a central-difference explicit update is unstable. At φ = ½ its square is the contraction constant of the chapter's recursion, η ≈ (φΔt·ω_max)² = (Δt/Δt_crit)² (eqs. 4.34–4.40), so above 1 that iteration diverges too and eq. 4.43 must cut Δt."}
+  - {id: p_app, name: Applied traction, symbol: p_app, unit: MPa, kind: parameter, default: 24, range: [0, 80], description: "Assumed traction of the pull test on a voxel face (Fig. 4.6 gives no magnitude); 24 MPa is chosen so that the static stress sits below σ* = 40 MPa while the 1.85× dynamic peak (44.5 MPa) exceeds it."}
+  - {id: F, name: Test pull on the bond, symbol: F, unit: N, kind: derived, equation: p_app*1e6*dx**2, description: "Proof load per bond: the traction spread over one Δx² face (MPa → Pa with 10⁶), so a fixed load on the arm gives a grid-independent stress. 600 N at the defaults is ≈ 130× one motor's 4.55 N hover thrust of §4.6.5."}
+  - {id: x, name: Bond stretch, symbol: Δu, unit: m, kind: state, default: 0, description: "Relative displacement u_{i+1} − u_i of one voxel node pulled against a fixed neighbour (strain Δu/Δx by the half-step stencil of eqs. 4.14–4.16); starts from rest when the test pull is applied."}
+  - {id: v, name: Stretch rate, symbol: Δu̇, unit: m/s, kind: state, default: 0, description: "Rate of the bond stretch, the velocity field v of eq. 4.6 differenced across one voxel; its reversal marks the stress peak."}
+  - {id: sigma, name: Voxel stress, symbol: σ, unit: MPa, kind: derived, equation: E_star*1e3*x/dx, description: "σ = E*·Δu/Δx, the axial stress of the bond (eq. 4.4 with the half-step stencil). Fig. 4.6 flags the L2 norm of the deviatoric stress; for a uniaxial bond ‖σ′‖ = √(2/3)σ, so its von Mises equivalent √(3/2)‖σ′‖ equals σ and is what is compared with σ* = 40 MPa (‖σ′‖ > 32.7 MPa). σ* is an assumed allowable for the homogenised stress, not a phase yield stress (Fig. 4.6 gives no value)."}
+dynamics:
+  time: {unit: s, start: 0, end: 1.5e-4, step: 5.0e-8}
+  rates:
+    x: v
+    v: "(F - k*x - 2*zeta*sqrt(k*m_v)*v)/m_v"
+  integrator: rk4
+events:
+  - {id: flagged, label: "Equivalent stress ≥ σ* = 40 MPa: voxel flagged", when: "sigma >= 40", once: true, description: "The von Mises equivalent of the uniaxial bond (equal to σ) crosses the assumed allowable σ* during the dynamic overshoot, although the static stress F/Δx² = 24 MPa does not; phase-wise the ABS matrix would see only ≈ 0.19σ."}
+  - {id: peak, label: First peak of the stretch, when: "v < 0", once: true, description: "Velocity reverses about 5 µs after the pull: the bond has overshot its static stretch F/k by the factor 1 + exp(−πζ/√(1−ζ²)) ≈ 1.85, which holds only for a pull applied in much less than the 10 µs bond period."}
+  - {id: settled, label: Settled within 5 % of F/k, when: "sqrt((x - F/k)**2 + m_v*v**2/k) <= 0.05*F/k", once: true, description: "The oscillation envelope √((Δu−F/k)² + m_vΔu̇²/k) has decayed to 5 % under the assumed damping; what remains is the quasi-static stress F/Δx² = p_app."}
+cascade:
+  shock: {dx: -0.05}
+  default_delay: 1
+  damping: 0.05
+  threshold: 0.01
+  max_depth: 3
+  time_unit: step
+tree:
+  kind: decision
+  title: Preflight stress test of a voxel frame (§4.3.4–4.3.5, with added checks)
+  root:
+    label: "Static F/Δx² > σ*?"
+    branches:
+      - label: "yes"
+        child: {label: "Fail at rest: thicken arm or use stronger matrix"}
+      - label: "no"
+        child:
+          label: "Explicit leapfrog with Δt > Δt_crit?"
+          branches:
+            - label: "yes"
+              child: {label: "Unstable: shrink Δt below Δt_crit"}
+            - label: "no"
+              child:
+                label: "Iterate eq. 4.34: E_K ≤ 1 within K_d?"
+                branches:
+                  - label: "no"
+                    child:
+                      label: "η too large: Δt ← Λ_K Δt (eq. 4.43)"
+                      branches:
+                        - label: "restart"
+                          child:
+                            label: "Peak equivalent stress > σ*?"
+                            branches:
+                              - label: "yes"
+                                child: {label: "Fail: thicken arm, ramp load or add damping"}
+                              - label: "no"
+                                child: {label: "Pass: voxels → DEM cluster (§4.5)"}
+                  - label: "yes"
+                    child:
+                      label: "Peak equivalent stress > σ*?"
+                      branches:
+                        - label: "yes"
+                          child: {label: "Fail: thicken arm, ramp load or add damping"}
+                        - label: "no"
+                          child: {label: "Pass: voxels → DEM cluster (§4.5)"}
+  algorithms:
+    - {name: decision, path: ["no", "no", "no", "restart", "yes"], intro: "Follow the default numbers: the static check passes (24 < 40 MPa) and the solver is the implicit φ = ½ update; at the 50 µs trial step its recursion diverges (η ≈ 980), so eq. 4.43 cuts Δt below Δt_crit ≈ 1.6 µs; at that step the march converges and the 44.5 MPa dynamic peak flags the voxel."}
+figures:
+  - {type: variable_graph, title: "What sets a voxel bond's mass, stiffness and time step", caption: "Voxel size Δx enters the nodal mass as Δx³, the bond force (fixed traction p_app) as Δx² and the bond stiffness only as Δx, so the 1D central-difference limit √(m_v/k) = Δx√(ρ*/E*) shrinks with the grid while the static stress stays at p_app. A trial step of 50 µs, borrowed from the rigid-body flight run of §4.6.5, would be 31 times that limit; at φ = ½ the square of that ratio is the contraction constant of the chapter's iteration (eq. 4.34), so eq. 4.43 would cut the step."}
+  - {type: influence_matrix, title: "Elasticities at the defaults", caption: "Rows are causes, columns effects: a 1 % finer voxel removes 3 % of nodal mass, 2 % of bond force but only 1 % of stiffness, and the step ratio Δt/Δt_crit follows Δt one-for-one. The σ column is evaluated at rest (Δu = 0), so it reads 0; σ's static value p_app and its 1.85·p_app peak come from the timeline."}
+  - {type: timeline, series: [sigma, v], title: "One voxel node under a sudden 600 N pull, then a 5 % finer grid", caption: "A. The constructed spring–mass–damper for one voxel node pulled against a fixed neighbour, m_vΔü + 2ζ√(k m_v)Δu̇ + kΔu = F with an assumed ζ: σ overshoots its static 24 MPa by 85 %, crosses the assumed 40 MPa allowable at ≈ 44.5 MPa, then settles; the reversal of Δu̇ marks the peak. B. Linearised response to a 5 % finer grid (elasticities 3, 2 and 1 for m_v, F and k): Δt_crit is hit twice (−7.5 % via m_v, +2.5 % via k; net −5 %), so Δt/Δt_crit rises by ≈ 5 % while the stress F/Δx² = p_app is unchanged. The rate-law hops into Δu, Δu̇ and σ, all zero at rest, are not quantitative and are suppressed."}
+  - {type: scene3d, title: "The pull test and the grid-refinement cascade in 3D", caption: "The same trajectory and chain reaction laid out in space and time; hover a node for its value and the mechanism that moved it."}
+  - {type: tree, title: "Preflight stress test as a decision tree", caption: "Steps 5–7 of §4.3.4 (convergence and eq. 4.43) and the §4.3.5 stress map, with an added static check and stability check (not in the chapter). At the defaults the 50 µs trial step makes the eq. 4.34 recursion diverge (η ≈ 980), eq. 4.43 cuts Δt below Δt_crit, and the converged march then flags the voxel at its 44.5 MPa peak; the remedies are a thicker arm, a slower load or more damping, since σ = F/Δx² times the overshoot does not depend on E*."}

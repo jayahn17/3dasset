@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "learnfig topic spec",
+  "type": "object",
+  "required": ["title"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "title": {"type": "string"},
+    "domain": {"type": "string"},
+    "level": {"type": "string"},
+    "chapter": {"type": ["string", "number"]},
+    "summary": {"type": "string"},
+    "notes": {"type": "array", "items": {"type": "string"}},
+    "sources": {"type": "array", "items": {"type": "string"}},
+    "variables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+          "name": {"type": "string"},
+          "symbol": {"type": "string"},
+          "unit": {"type": "string"},
+          "kind": {"enum": ["parameter", "state", "derived", "constant", "external"]},
+          "default": {"type": ["number", "string", "null"]},
+          "range": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+          "equation": {"type": "string"},
+          "description": {"type": "string"},
+          "group": {"type": "string"}
+        }
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": {"type": "string"}, "to": {"type": "string"},
+          "sign": {"enum": ["+", "-", "?", "±"]},
+          "gain": {"type": "number"}, "delay": {"type": "number"},
+          "mechanism": {"type": "string"},
+          "kind": {"enum": ["causal", "derived", "dynamic", "constraint"]}
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": {"type": "string"}, "label": {"type": "string"},
+          "t": {"type": "number"}, "when": {"type": "string"}, "once": {"type": "boolean"},
+          "sets": {"type": "object"}, "shock": {"type": "object", "additionalProperties": {"type": "number"}},
+          "stop": {"type": "boolean"}, "description": {"type": "string"}
+        }
+      }
+    },
+    "dynamics": {
+      "type": "object",
+      "required": ["rates"],
+      "properties": {
+        "time": {"type": "object", "properties": {"unit": {"type": "string"}, "start": {"type": "number"}, "end": {"type": "number"}, "step": {"type": "number"}}},
+        "rates": {"type": "object", "additionalProperties": {"type": "string"}},
+        "integrator": {"enum": ["rk4", "euler"]}
+      }
+    },
+    "invariants": {"type": "array", "items": {"type": "object", "required": ["expr"], "properties": {"label": {"type": "string"}, "expr": {"type": "string"}, "tolerance": {"type": "number"}}}},
+    "cascade": {
+      "type": "object",
+      "properties": {
+        "shock": {"type": "object", "additionalProperties": {"type": "number"}},
+        "default_delay": {"type": "number"}, "damping": {"type": "number"}, "threshold": {"type": "number"},
+        "max_depth": {"type": "integer"}, "horizon": {"type": "number"}, "max_events": {"type": "integer"}, "time_unit": {"type": "string"}
+      }
+    },
+    "tree": {
+      "type": "object",
+      "properties": {
+        "kind": {"enum": ["binary", "general", "decision"]},
+        "title": {"type": "string"},
+        "root": {"type": "object"},
+        "generate": {"type": "object", "required": ["name"], "properties": {"name": {"enum": ["bst", "bst_from_keys", "fibonacci", "fib", "complete", "complete_binary", "minimax", "game"]}}},
+        "algorithms": {"type": "array", "items": {"oneOf": [{"type": "string"}, {"type": "object", "required": ["name"]}]}}
+      }
+    },
+    "figures": {"type": "array", "items": {"oneOf": [{"type": "string"}, {"type": "object", "required": ["type"]}]}},
+    "meta": {"type": "object"}
+  }
+}

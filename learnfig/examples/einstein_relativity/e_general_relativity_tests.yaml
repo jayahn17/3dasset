@@ -1,0 +1,258 @@
+id: e_general_relativity_tests
+title: "The general principle of relativity and its three classical tests"
+domain: physics
+level: "undergraduate"
+chapter: "XVIII–XXIII, App. III"
+summary: >
+  The special principle of relativity treats only uniformly moving reference-bodies as equivalent; Einstein
+  extends it to every state of motion by taking seriously one fact of experience — a body's acceleration in a
+  gravitational field does not depend on its material, so its gravitational mass equals its inertial mass
+  (§XIX) — which lets the man in the accelerated chest regard himself and the chest as at rest in a
+  gravitational field constant in time (§XX). The same equivalence predicts that a ray of light is bent in a
+  field (§XXII; the full theory doubles the amount through the curvature of space) and that a clock's rate
+  depends on the potential φ at its position (§XXIII), and Appendix III turns the theory into three numbers:
+  the perihelion of Mercury advances by 24π³a²/(T²c²(1 − e²)) per revolution (43″ per century), a ray passing
+  the Sun at Δ Sun-radii is deflected by α = 1.7″/Δ, and a spectral line formed at the Sun's surface is shifted
+  toward the red by KM/(c²r) ≈ 2 × 10⁻⁶. The time evolution shown here is constructed from Appendix III(a),
+  not a worked example of the book: the accumulated advance φ_adv of Mercury's major axis grows at the steady
+  rate Δφ/T from one revolution (0.10″) to one century (43″), where it is compared with the residual that
+  Leverrier and Newcomb could not explain with Newton's law.
+notes:
+  - "The equality of inertial and gravitational mass is the hinge of everything that follows. From (Force) = (inertial mass) × (acceleration) and (Force) = (gravitational mass) × (intensity of the field), an acceleration that is the same for lead and wood forces the ratio of the two masses to be the same for all bodies, and a choice of units makes it 1 (§XIX). Only then can the man in the chest regard himself and the chest as at rest in a gravitational field that is constant in time (§XX), and only then must light rays and clocks respond to that field (§XXII–XXIII)."
+  - "Mercury: Δφ = 24π³a²/(T²c²(1 − e²)) = 5.02 × 10⁻⁷ rad = 0.1035″ per revolution at a = 5.79 × 10¹⁰ m, T = 87.97 d, e = 0.2056; with 415.2 revolutions in a century the major axis turns 42.98″ per century, 'in the same sense as the orbital motion'. This is Einstein's 43″. The observed 43″ is what remained of the motion of Mercury's perihelion after Leverrier (1859) and Newcomb (1895) had taken account of all the disturbing influences of the other planets, and its uncertainty, 'a few seconds only', is an uncertainty in that rate — a few ″ per century, some 5–10 % of 43″ — so the theory's 42.98″ per century lies inside the error bar. Outside the book: the residual is less than a tenth of the planetary perturbations it is left over from, which is why it took long runs of observations of Mercury, including transits across the Sun timed since the seventeenth century, to isolate it."
+  - "Einstein's T conceals the Sun's mass. Here T is computed from Kepler's third law T² = 4π²a³/(KM), which gives 87.967 d against the observed 87.969 d, and the advance per revolution becomes 6πKM/(c²a(1 − e²)). It falls as 1/a per revolution (a^−5/2 per century; the same formula gives 8.6″ per century for Venus and 3.8″ for the Earth), which makes Mercury, the nearest planet, the largest case; its eccentricity changes the size only by 1/(1 − e²) = 1.04, but it makes the perihelion well defined, whereas Venus's orbit is 'almost an exact circle' (footnote 26). In the linearised cascade a 10 % wider orbit raises Δφ by 20 % through a², and the 15 % longer planet-year cuts it by 30 % through T²: net −10 % per revolution and, with 15 % fewer revolutions, −25 % per century (exactly 1.1⁻¹ − 1 = −9.1 % and 1.1^−2.5 − 1 = −21 %, since Δφ ∝ 1/a and Δφ/T ∝ a^−5/2). The hops are bookkeeping of the two factors a² and 1/T², not a sequence in time: Kepler's law ties a and T at once, so physically Δφ ∝ 1/a immediately."
+  - "Deflection: α = 1.7″/Δ with Δ in Sun-radii (App. III(b)). The closed form behind that number, 4KM/(c²rΔ), is not written out in the book but gives 1.75″ for a ray grazing the limb (Δ = 1). Einstein says in words that half of the deflection is produced by the Newtonian field of attraction of the Sun and the other half by the curvature of space; in modern terms the first half is 2KM/(c²r) = 0.88″, the value an equivalence argument alone gives, and both halves belong to the general theory. The Sobral and Principe photographs of 29 May 1919 showed star displacements of the predicted size, confirming the theory 'in a thoroughly satisfactory manner' (App. III(b), footnote 16). Outside the book: the expeditions were planned to tell the full 1.75″ from the 0.88″ of the equivalence argument alone."
+  - "Red shift: on the rotating disk a clock at distance r moves at v = ωr, so by §XII its rate is ν = ν₀√(1 − ω²r²/c²) ≈ ν₀(1 − ω²r²/2c²) = ν₀(1 + φ/c²), where φ = −ω²r²/2 is the potential of the centrifugal force; the general principle lets the same law hold in any gravitational field, and with φ = −K(M/r) at the Sun's surface the shift is (ν₀ − ν)/ν₀ = KM/(c²r) = 2.12 × 10⁻⁶, 'about two millionths of the wave-length'. In 1920 this was the one test still undecided (Grebe and Bachem for, St. John against); the translator's footnote 27 records its confirmation by Adams in 1924 on the companion of Sirius, where the effect was then put at about thirty times the solar one. Outside the book: Adams' value is now regarded as unreliable — it agreed with a prediction built on too large a radius for the star, and the modern shift of Sirius B is about four times what he measured; the gravitational red shift was measured securely only by Pound and Rebka in the laboratory in 1960 and in the solar spectrum in the 1960s."
+sources:
+  - "Einstein, Relativity: The Special and General Theory (1920, R. W. Lawson translation; Project Gutenberg #30155), §XVIII Special and general principle of relativity; §XIX The gravitational field: (Force) = (inertial mass) × (acceleration) = (gravitational mass) × (intensity of the gravitational field), hence gravitational mass = inertial mass; §XX the accelerated chest as an argument for the general postulate: the man concludes that the chest is suspended at rest in a gravitational field constant with regard to time."
+  - "Ibid., §XXII A few inferences from the general principle of relativity: light rays are propagated curvilinearly in gravitational fields, 1.7 seconds of arc at grazing incidence, footnote 16 on the eclipse of 29 May 1919; §XXIII Behaviour of clocks and measuring-rods on a rotating body of reference: the clock at the edge of the disc goes permanently slower than the clock at the centre; circumference/diameter > π."
+  - "Ibid., Appendix III The experimental confirmation of the general theory of relativity: (a) Motion of the perihelion of Mercury — advance per revolution 24π³a²/(T²c²(1 − e²)), 43 seconds of arc per century, Leverrier 1859 and Newcomb 1895, uncertainty of the empirical result 'a few seconds only', footnote 26; (b) Deflection of light by a gravitational field — α = 1.7″/Δ, half Newtonian and half curvature, the Sobral and Principe expeditions; (c) Displacement of spectral lines towards the red — v = ωr, ν = ν₀√(1 − v²/c²) ≈ ν₀(1 − ω²r²/2c²) = ν₀(1 + φ/c²), φ = −K(M/r), about two millionths for the Sun, Grebe and Bachem vs St. John, Freundlich 1919; translator's footnote 27 (Adams 1924)."
+  - "Outside the book (later history only): R. V. Pound and G. A. Rebka, Apparent weight of photons, Phys. Rev. Lett. 4, 337 (1960); J. B. Holberg, Sirius B and the measurement of the gravitational redshift, J. Hist. Astron. 41, 41 (2010)."
+variables:
+  - id: c
+    name: Velocity of light in vacuo
+    symbol: c
+    unit: m/s
+    kind: constant
+    default: 299792458
+    description: "Enters each test as c²: the advance 24π³a²/(T²c²(1 − e²)), the deflection, and the red shift KM/(c²r). Every relativistic correction is a small quantity over c²."
+  - id: K
+    name: Newton's constant of gravitation
+    symbol: K
+    unit: m^3/(kg*s^2)
+    kind: constant
+    default: 6.6743e-11
+    description: "Einstein's K in φ = −K(M/r) (App. III(c)); together with M it fixes the strength of the Sun's field. It enters the deflection and the red shift directly and Mercury's advance through Kepler's T."
+  - id: M
+    name: Mass of the Sun
+    symbol: M
+    unit: kg
+    kind: constant
+    default: 1.9885e+30
+    description: "The mass of the heavenly body in φ = −K(M/r). Einstein remarks that once the red shift is traced to the potential, its study 'will furnish us with important information as to the mass of the heavenly bodies'."
+  - id: r_sun
+    name: Radius of the Sun
+    symbol: r
+    unit: m
+    kind: constant
+    default: 6.957e+8
+    description: "Distance from the Sun's centre at which the spectral line is formed (App. III(c)), and the distance a grazing ray passes at Δ = 1 (App. III(b))."
+  - id: a
+    name: Semi-major axis of Mercury's orbit
+    symbol: a
+    unit: m
+    kind: parameter
+    default: 5.7909e+10
+    range: [1.0e+10, 1.0e+12]
+    description: "Einstein's a, 'the major semi-axis of the ellipse'; 0.387 astronomical units for Mercury. Enters the advance as a², but through Kepler's law also lengthens T, so that on balance Δφ ∝ 1/a."
+  - id: ecc
+    name: Eccentricity of Mercury's orbit
+    symbol: e
+    unit: "1"
+    kind: parameter
+    default: 0.20563
+    range: [0, 0.9]
+    description: "Einstein's e; the sun-planet distance swings between a(1 − e) and a(1 + e). It enlarges the advance only by 1/(1 − e²) = 1.04 for Mercury, but it gives the perihelion a sharp direction to measure — Venus's orbit is 'almost an exact circle' (footnote 26), which makes its perihelion hard to locate."
+  - id: T
+    name: Period of revolution of Mercury
+    symbol: T
+    unit: day
+    kind: derived
+    equation: "2*pi*sqrt(a**3/(K*M))/86400"
+    description: "The planet-year from Kepler's third law T² = 4π²a³/(KM), evaluated in seconds and converted to days: 87.967 d, against the observed 87.969 d (a difference of 2 × 10⁻⁵). In the formula for Δφ it is converted back to seconds (T·86400 = 7.60 × 10⁶ s): Einstein's T silently carries the Sun's mass."
+  - id: t_cent
+    name: One century
+    symbol: τ_c
+    unit: yr
+    kind: constant
+    default: 100
+    description: "The interval over which astronomers quote the residual advance ('43 seconds of arc per century') and over which the constructed time evolution runs."
+  - id: dphi_orbit
+    name: Perihelion advance per revolution
+    symbol: Δφ
+    unit: deg/3600
+    kind: derived
+    equation: "24*pi**3*a**2/((T*86400)**2*c**2*(1 - ecc**2))*(180/pi)*3600"
+    description: "In seconds of arc (″ = °/3600). App. III(a): the angle described by the radius sun-planet from one perihelion to the next exceeds 2π by 24π³a²/(T²c²(1 − e²)). Evaluated in SI (a in m, T in s, c in m/s) and converted from radians to seconds of arc: 5.02 × 10⁻⁷ rad = 0.1035″ for Mercury."
+  - id: dphi_century
+    name: Perihelion advance per century
+    symbol: Δφ·τ_c/T
+    unit: deg/3600
+    kind: derived
+    equation: "dphi_orbit*t_cent*365.25/T"
+    description: "In seconds of arc (″ = °/3600). The per-revolution advance times the 415.2 revolutions Mercury completes in a century (τ_c × 365.25 d/yr ÷ T): 42.98″, Einstein's 'rotation ... of 43 seconds of arc per century', to be compared with the 43″ per century, uncertain by a few ″ per century, that Leverrier (1859) and Newcomb (1895) found left over after every planetary perturbation was accounted for."
+  - id: phi_adv
+    name: Accumulated perihelion advance
+    symbol: φ_adv
+    unit: deg/3600
+    kind: state
+    default: 0
+    description: "In seconds of arc (″ = °/3600). Constructed state: the total angle by which the major axis of Mercury's ellipse has turned since t = 0, growing by Δφ every revolution, i.e. at the rate Δφ/T, 'in the same sense as the orbital motion of the planet'."
+  - id: Delta
+    name: Distance of the ray from the Sun's centre
+    symbol: Δ
+    unit: "1"
+    kind: parameter
+    default: 1
+    range: [1, 10]
+    description: "In Sun-radii (App. III(b)); Δ = 1 is a ray grazing the limb. The eclipse stars lay farther out and were displaced less, as 1/Δ."
+  - id: alpha
+    name: Deflection of the ray
+    symbol: α
+    unit: deg/3600
+    kind: derived
+    equation: "4*K*M/(c**2*r_sun*Delta)*(180/pi)*3600"
+    description: "In seconds of arc (″ = °/3600). App. III(b) gives α = 1.7″/Δ, a star being displaced radially outwards from the Sun by α. The closed form 4KM/(c²rΔ) that produces this number is not written out in the book but evaluates to 1.75″ at Δ = 1; according to the book, half of it 'is produced by the Newtonian field of attraction of the sun, and the other half by the geometrical modification (curvature) of space'."
+  - id: z
+    name: Red shift of a solar spectral line
+    symbol: (ν₀ − ν)/ν₀
+    unit: ppm
+    kind: derived
+    equation: "K*M/(c**2*r_sun)*1e6"
+    description: "App. III(c): an emitting atom is a clock whose rate is ν = ν₀(1 + φ/c²); with φ = −K(M/r) at the surface of the body its frequency is lower than that of the same atom on Earth by (ν₀ − ν)/ν₀ = KM/(c²r), here expressed in parts per million: 2.12 ppm = 2.12 × 10⁻⁶ for the Sun, 'about two millionths of the wave-length' (for so small a shift Δλ/λ ≈ (ν₀ − ν)/ν₀)."
+relations:
+  - from: a
+    to: T
+    sign: "+"
+    delay: 0.5
+    mechanism: "Kepler's third law T² = 4π²a³/(KM): a wider orbit takes longer, T ∝ a^(3/2), so a 10 % larger semi-major axis lengthens the planet-year by 15 %."
+  - from: K
+    to: T
+    sign: "-"
+    delay: 0.5
+    mechanism: "By Kepler's third law a stronger constant of gravitation pulls the planet round faster, T ∝ K^(−1/2)."
+  - from: M
+    to: T
+    sign: "-"
+    delay: 0.5
+    mechanism: "By the same law a heavier Sun pulls the planet round faster, T ∝ M^(−1/2); Einstein's T therefore carries the Sun's mass that his formula never names."
+  - from: dphi_orbit
+    to: phi_adv
+    sign: "+"
+    gain: 1
+    mechanism: "The axis turns Δφ every revolution, so the accumulated angle at a given time scales with Δφ."
+  - from: T
+    to: phi_adv
+    sign: "-"
+    gain: 1
+    mechanism: "A longer planet-year means fewer revolutions, and so less accumulated advance, by a given time."
+  - from: M
+    to: alpha
+    sign: "+"
+    mechanism: "A heavier Sun bends the passing ray more, α ∝ KM."
+  - from: M
+    to: z
+    sign: "+"
+    mechanism: "A heavier Sun deepens the potential φ = −KM/r at its surface, so its atom-clocks run slower and the line shifts further red."
+  - from: c
+    to: z
+    sign: "-"
+    mechanism: "The shift is −φ/c², so the faster light, the smaller this relativistic correction."
+  - from: r_sun
+    to: z
+    sign: "-"
+    mechanism: "A larger Sun of the same mass has a shallower surface potential KM/r, so its lines are shifted less."
+dynamics:
+  time: {unit: yr, start: 0, end: 101, step: 0.01}
+  rates:
+    phi_adv: dphi_orbit*365.25/T
+  integrator: rk4
+events:
+  - id: century
+    label: "One century: 42.98″ against the observed 43″ ± a few ″"
+    when: "t >= t_cent"
+    once: true
+    stop: true
+    description: "At t = 100 yr the major axis has turned 42.98″. Einstein quotes the residual that Leverrier and Newcomb found after subtracting the perturbations of the other planets as +43″ per century, with an uncertainty of 'a few seconds only' in that rate, so the theory's 42.98″ per century lies inside the error bar."
+  - id: wider_orbit
+    label: "Orbit 10 % wider (shock)"
+    shock: {a: 0.1}
+cascade:
+  shock: {a: 0.1}
+  default_delay: 1
+  damping: 0.6
+  threshold: 0.02
+  max_depth: 6
+  time_unit: step
+tree:
+  kind: general
+  title: "From the equality of the two masses to the three tests of 1920 (§XIX–XXIII, Appendix III)"
+  root:
+    label: "m_grav = m_inert for every body (§XIX)"
+    children:
+      - label: "Equivalence: chest and rotating disc (§XX, §XXIII)"
+        children:
+          - label: "Chest at rest in a uniform field (§XX)"
+            children:
+              - {label: "Light bends (§XXII): the Newtonian half of (b), 0.88″"}
+          - label: "Rim clock on the disc: v = ωr (§XXIII)"
+            children:
+              - label: "ν = ν₀√(1−ω²r²/c²) ≈ ν₀(1−ω²r²/2c²)"
+                children:
+                  - label: "φ = −ω²r²/2 ⇒ ν = ν₀(1 + φ/c²)"
+                    children:
+                      - label: "Atom = clock: φ = −K(M/r) at a star"
+                        children:
+                          - label: "(c) Red shift KM/(c²r) ≈ 2×10⁻⁶ for the Sun"
+                            children:
+                              - {label: "1920: open; Adams 1924 (later doubted); Pound–Rebka 1960"}
+      - label: "Full theory: new law of gravitation, curved space (App. III)"
+        children:
+          - label: "(a) Perihelion of Mercury"
+            children:
+              - label: "Δφ = 24π³a²/(T²c²(1−e²)) per orbit"
+                children:
+                  - label: "0.1035″ per orbit, 415 orbits a century"
+                    children:
+                      - label: "Matches the 43″/century residual"
+                        children:
+                          - {label: "Observed: Leverrier 1859, Newcomb 1895"}
+                          - {label: "1920 status: agrees within a few ″/century"}
+          - label: "(b) Deflection: Newtonian half + curvature half"
+            children:
+              - label: "α = 1.7″/Δ, Δ in Sun-radii"
+                children:
+                  - label: "Eclipse 29 May 1919: Sobral, Principe"
+                    children:
+                      - {label: "1920 status: confirmed (1919 eclipse)"}
+  algorithms:
+    - name: preorder
+      intro: "Read the argument top-down as Einstein builds it: the equality of the two masses, the equivalence argument with the bending of light and the slow rim clock that becomes the red shift, then the full theory with the perihelion of Mercury and the whole deflection, each test from its formula to its number and its standing in 1920."
+    - name: bfs
+      intro: "Read it by depth instead: the principle, then its two branches (equivalence and the full law of gravitation), then the tests and their formulas, their numbers, and finally what the observations of 1859–1919 had settled."
+figures:
+  - type: variable_graph
+    title: "One field, three numbers: how a, e, K, M and c set Mercury's advance, the bending of light and the red shift"
+    caption: "Arrows run from cause to effect; blue + means the effect rises with the cause, red − that it falls; numbered arrows are written by hand and explained in the key. T is computed from Kepler's third law T² = 4π²a³/(KM), which Einstein's formula hides (87.967 d against the observed 87.969 d): a wider orbit lengthens T, a heavier Sun or a larger K shortens it. Mercury's advance per revolution Δφ = 24π³a²/(T²c²(1 − e²)) rises with a and e and falls with T and c; multiplied by the 415 revolutions in a century (τ_c/T) it gives 42.98″, and it feeds the accumulating state φ_adv at the rate Δφ/T. The same K, M and r_sun fix the deflection 4KM/(c²rΔ) = 1.75″ at grazing incidence and the red shift KM/(c²r) = 2.12 ppm; the four arrows from M, c and r into α and z are declared by hand with their mechanisms, the two from M because in SI units their partial derivatives are too small for the automatic sign test."
+  - type: influence_matrix
+    title: "Who moves whom: percentage sensitivities at Mercury's orbit"
+    caption: "Each cell is the percentage change of the column variable per 1 % increase of the row variable, following every path, Kepler's law for T included. A 1 % wider orbit lengthens T by 1.5 % and so lowers the advance per revolution by 1 % (Δφ ∝ 1/a) and per century by 2.5 % (∝ a^−5/2): the nearer the planet, the faster its perihelion turns. A 1 % heavier Sun, or a 1 % larger K, raises the deflection, the red shift and Δφ by 1 % each and the advance per century by 1.5 %, because it also shortens T: one field strength moves all three tests together. The eccentricity contributes only +0.09 % per 1 % (the elasticity 2e²/(1 − e²) at e = 0.2056); c enters every effect as 1/c², −2 % per 1 %; the deflection falls 1 % per 1 % of Δ or r, and the red shift 1 % per 1 % of r."
+  - type: timeline
+    series: [phi_adv]
+    title: "A century of Mercury: the accumulated perihelion advance, from 0.10″ after one revolution to 43″ after 100 years"
+    caption: "Panel A is constructed from Appendix III(a), not a worked example of the book, and is a bookkeeping ramp rather than an observation: the major axis of Mercury's ellipse turns at the constant rate Δφ/T = 0.43″ per year, gaining 0.1035″ at each return to perihelion, and stands at 42.98″ when the run stops at one century — to be compared with the residual of Leverrier and Newcomb, 43″ per century with an uncertainty of a few ″ per century. Panel B follows the linearised chain reaction set off by a 10 % wider orbit: Kepler's law lengthens T by 15 % (step 0.5); Δφ gains 20 % through a² (step 1) and loses 30 % through T² (step 1.5), net −10 % per revolution; the advance per century and the accumulated φ_adv each receive −15 % for the fewer revolutions (step 1.5), +20 % (step 2) and −30 % (step 2.5), net −25 % (exactly −9.1 % and −21 %). The steps are bookkeeping of the factors a² and 1/T², not a sequence in time: Kepler's law ties a and T at once, so a wider orbit precesses more slowly."
+  - type: scene3d
+    title: "The same century and chain reaction in 3D / VR"
+    caption: "Lanes along x are the variables, depth is time and height is magnitude: watch φ_adv climb linearly to its one-century marker, then scrub to replay how a 10 % change of a propagates through a² and through Kepler's T to the advance per revolution, per century and the accumulated angle. The heights are the linearised cascade: net −10 % per revolution and −25 % per century and for φ_adv (exactly −9.1 % and −21 %). Drag to orbit; press Enter VR on a headset."
+  - type: tree
+    caption: "The root is the fact of experience on which the general principle rests, the equality of inertial and gravitational mass. The first branch is the equivalence argument, the chest of §XX and the rotating disc of §XXIII: it predicts that light bends — in modern terms only the half of the 1.75″ that Einstein attributes to the Newtonian field — and, through the slow rim clock, gives the red shift in full. The second branch is the full theory, with its new law of gravitation and the curvature of space, which the perihelion advance and the other half of the bending need. Under each test the nodes run from the formula in Einstein's symbols to its number for the Sun or for Mercury and to its standing in 1920: Mercury and the eclipse confirmed, the red shift still open (the later history on that last node, Adams 1924 later doubted and Pound–Rebka 1960, is outside the book). Numbers on the nodes give the order in which the traversal records them; open the step-by-step view to follow one branch at a time."

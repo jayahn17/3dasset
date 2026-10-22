@@ -1,0 +1,48 @@
+id: binary_search_tree
+title: Binary search trees
+domain: cs
+level: introductory
+chapter: "2"
+summary: >
+  A binary search tree keeps every key to the left of its parent smaller and every key to the right larger.
+  That one rule makes searching, inserting and sorted listing all follow the same short path from the root.
+notes:
+  - In-order traversal (left, node, right) prints the keys in sorted order; this is the easiest way to check a tree is a BST.
+  - A search compares against one key per level, so a balanced tree of n keys needs about log₂(n) comparisons.
+  - Insertion is a failed search: follow the comparisons to an empty slot and attach the new key there.
+  - "Doubling the keys adds only one level to a balanced tree, but doubles the height of a tree built from sorted keys: at a million keys that is 20 comparisons against a million."
+
+variables:
+  - {id: rate, name: Insertion rate, symbol: r, unit: 1/s, kind: parameter, default: 1000, description: Keys inserted per second.}
+  - {id: n, name: Keys in the tree, symbol: n, unit: "1", kind: state, default: 7, description: "Starts with the seven keys drawn below."}
+  - {id: h_min, name: Height if perfectly balanced, symbol: ⌈log₂(n+1)⌉, unit: "1", kind: derived, equation: log2(n + 1), description: "Levels needed to hold n keys; 3 for the drawn tree."}
+  - {id: h_avg, name: Average search depth (random keys), symbol: "≈ 2 ln n", unit: "1", kind: derived, equation: 2*log(n), description: "Expected comparisons for a tree built from keys in random order."}
+  - {id: h_worst, name: Height if keys arrive sorted, symbol: n, unit: "1", kind: derived, equation: n, description: "Every key goes right: the tree is a linked list."}
+  - {id: speedup, name: Balanced vs list search, symbol: n/log₂(n+1), unit: "1", kind: derived, equation: n/log2(n + 1), description: How many times fewer comparisons balance buys.}
+dynamics:
+  time: {unit: s, start: 0, end: 1000, step: 1}
+  rates:
+    n: rate
+events:
+  - {id: k1, label: "1,000 keys", when: "n >= 1000", once: true}
+  - {id: m1, label: "1,000,000 keys", when: "n >= 1000000", once: true, stop: true}
+cascade:
+  shock: {n: 1.0}
+  default_delay: 1
+  time_unit: step
+figures:
+  - type: variable_graph
+  - type: influence_matrix
+  - {type: timeline, series: [n, h_min, h_avg, speedup]}
+  - type: scene3d
+  - type: tree
+tree:
+  kind: binary
+  title: Binary search tree
+  generate: {name: bst, keys: [50, 30, 70, 20, 40, 60, 80]}
+  algorithms:
+    - {name: inorder, intro: "Left subtree, then the node, then the right subtree — for a BST this emits the keys in sorted order."}
+    - {name: bst_search, key: 40, intro: "Compare with the current key and go left if smaller, right if larger."}
+    - {name: bst_insert, keys: [35, 65], intro: "Search until an empty slot is reached, then attach the key there."}
+    - {name: bfs, intro: "Visit level by level using a queue."}
+    - {name: height, intro: "Height is one more than the taller child, computed bottom-up."}

@@ -1,0 +1,76 @@
+id: predator_prey
+title: Predator–prey cycles (Lotka–Volterra)
+domain: biology
+level: introductory
+chapter: "1"
+summary: >
+  Rabbits multiply, foxes eat rabbits and multiply in turn, then starve when rabbits become scarce.
+  Two coupled rates produce endless cycles, and the figures show why the cycle never damps out.
+notes:
+  - Each population drives the other's growth rate, so the system has two feedback loops; the cross loop is balancing and produces the oscillation.
+  - Foxes peak about a quarter of a cycle after rabbits do; the lag is the signature of a predator–prey system.
+  - A conserved quantity V exists, which is why the orbit closes on itself instead of spiralling in or out.
+sources:
+  - "Lotka (1925), Volterra (1926); any introductory ecology text."
+variables:
+  - {id: x, name: Rabbits, symbol: x, unit: rabbits, kind: state, default: 10, description: Prey population (thousands).}
+  - {id: y, name: Foxes, symbol: y, unit: foxes, kind: state, default: 2, description: Predator population (hundreds).}
+  - {id: alpha, name: Rabbit birth rate, symbol: α, unit: 1/yr, kind: parameter, default: 1.1, description: Per-capita growth of rabbits with no foxes.}
+  - {id: beta, name: Predation rate, symbol: β, unit: 1/(foxes*yr), kind: parameter, default: 0.4, description: Rabbits lost per fox per year.}
+  - {id: delta, name: Fox conversion rate, symbol: δ, unit: 1/(rabbits*yr), kind: parameter, default: 0.1, description: Foxes gained per rabbit eaten.}
+  - {id: gamma, name: Fox death rate, symbol: γ, unit: 1/yr, kind: parameter, default: 0.4, description: Per-capita fox mortality without food.}
+  - {id: x_eq, name: Rabbit equilibrium, symbol: x*, unit: rabbits, kind: derived, equation: gamma / delta, description: Rabbit level that exactly feeds a steady fox population.}
+  - {id: y_eq, name: Fox equilibrium, symbol: y*, unit: foxes, kind: derived, equation: alpha / beta, description: Fox level that exactly cancels rabbit growth.}
+  - {id: period, name: Cycle period (small swings), symbol: T, unit: yr, kind: derived, equation: 2*pi/sqrt(alpha*gamma), description: Period of small oscillations around the equilibrium.}
+  - {id: x_ref, name: Reference count, symbol: x_ref, unit: rabbits, kind: constant, default: 1}
+  - {id: y_ref, name: Reference count (foxes), symbol: y_ref, unit: foxes, kind: constant, default: 1}
+relations:
+  - {from: x, to: y, sign: "+", delay: 1, mechanism: "More rabbits means more food, so foxes breed faster."}
+  - {from: y, to: x, sign: "-", delay: 1, mechanism: "More foxes means more predation, so rabbits decline."}
+dynamics:
+  time: {unit: yr, start: 0, end: 30, step: 0.005}
+  rates:
+    x: alpha*x - beta*x*y
+    y: delta*x*y - gamma*y
+events:
+  - {id: rabbitpeak, label: Rabbit peak, when: "alpha*x - beta*x*y <= 0 and t > 0.2", once: true, description: Rabbit growth turns negative; foxes have caught up.}
+  - {id: foxpeak, label: Fox peak, when: "delta*x*y - gamma*y <= 0 and t > 1", once: true, description: Fox growth turns negative; the fox population has peaked.}
+invariants:
+  - {label: Lotka–Volterra constant V, expr: "delta*x - gamma*log(x/x_ref) + beta*y - alpha*log(y/y_ref)", tolerance: 1e-3}
+cascade:
+  shock: {alpha: 0.2}
+  default_delay: 1
+  damping: 0.6
+  time_unit: season
+figures:
+  - type: variable_graph
+  - type: influence_matrix
+  - {type: timeline, series: [x, y]}
+  - type: scene3d
+  - type: tree
+  - type: spatial
+tree:
+  kind: decision
+  title: Which phase of the cycle are we in?
+  root:
+    label: "Rabbits above x* = γ/δ?"
+    branches:
+      - label: "yes"
+        child:
+          label: "Foxes above y* = α/β?"
+          branches:
+            - label: "yes"
+              child: {label: "Foxes rise, rabbits fall"}
+            - label: "no"
+              child: {label: "Both rise"}
+      - label: "no"
+        child:
+          label: "Foxes above y* = α/β?"
+          branches:
+            - label: "yes"
+              child: {label: "Both fall"}
+            - label: "no"
+              child: {label: "Rabbits rise, foxes fall"}
+  algorithms:
+    - {name: decision, path: ["yes", "no"], intro: "At the start x = 10 > x* = 4 and y = 2 < y* = 2.75: both populations grow."}
+    - {name: bfs, intro: "The four quadrants around the equilibrium, which the orbit visits in turn."}

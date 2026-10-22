@@ -1,0 +1,73 @@
+id: ch3_genetic_algorithm
+title: The genetic machine-learning loop that tunes the swarm
+domain: cs
+level: ME 244
+chapter: "3b"
+summary: >
+  The swarm's twelve interaction weights live in a nonconvex, nonsmooth cost landscape, so the book tunes them
+  with a genetic algorithm: generate a population of parameter strings, score each by simulating the swarm,
+  keep the best, mate them, and refill with random strings. The figures show the recipe and what the knobs cost.
+notes:
+  - Every generation costs S swarm simulations, so wall time is set by population size × generations × one simulation.
+  - Keeping more parents (P) exploits what already works; the random refill (S − 2P strings) keeps exploring; the balance is the only real design choice.
+  - Offspring are convex blends of two parents (λ = Φ∘Λⁱ + (1−Φ)∘Λⁱ⁺¹), so children stay inside the box bounds Λ⁻ ≤ Λ ≤ Λ⁺.
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems, §1.4 and §3.4.2 (eqs. 3.32–3.34)."
+variables:
+  - {id: S, name: Population size, symbol: S, unit: strings, kind: parameter, default: 24, range: [4, 200], description: Genetic strings scored per generation.}
+  - {id: P, name: Parents kept, symbol: P, unit: strings, kind: parameter, default: 6, range: [1, 100], description: Top-ranked strings that survive and mate.}
+  - {id: G, name: Generations, symbol: G, unit: "1", kind: parameter, default: 50, range: [1, 500], description: How many times the loop runs.}
+  - {id: Nd, name: Design variables, symbol: N_d, unit: "1", kind: parameter, default: 12, description: Length of each string Λ (the swarm weights and decays).}
+  - {id: box_volume, name: Search-space corners, symbol: 2^N_d, unit: "1", kind: derived, equation: 2**Nd, description: Corners of the box Λ⁻ ≤ Λ ≤ Λ⁺; why a grid search is hopeless.}
+  - {id: T_sim, name: One swarm simulation, symbol: T_sim, unit: s/strings, kind: parameter, default: 3.0, description: Wall time to evaluate Π(Λ) for one string.}
+  - {id: cores, name: Parallel cores, symbol: n_c, unit: "1", kind: parameter, default: 8}
+  - {id: offspring, name: Offspring per generation, symbol: O, unit: strings, kind: derived, equation: P, description: P parents in P/2 pairs produce two children each.}
+  - {id: refill, name: Random refill, symbol: R, unit: strings, kind: derived, equation: S - 2*P, description: New random strings that keep the search exploring.}
+  - {id: explore, name: Exploration fraction, symbol: R/S, unit: "1", kind: derived, equation: (S - 2*P)/S}
+  - {id: evals, name: Total cost evaluations, symbol: N_eval, unit: strings, kind: derived, equation: S*G, description: Every string of every generation is simulated once.}
+  - {id: wall, name: Wall time, symbol: T_wall, unit: s, kind: derived, equation: S*G*T_sim/cores}
+  - {id: gen, name: Generations completed, symbol: g, unit: "1", kind: state, default: 0, description: "Constructed: strings evaluated in parallel batches of n_c."}
+  - {id: evals_done, name: Evaluations so far, symbol: g·S, unit: strings, kind: derived, equation: gen*S}
+  - {id: wall_h, name: Wall time (hours), symbol: T_wall, unit: h, kind: derived, equation: S*G*T_sim/cores/3600}
+relations:
+  - {from: P, to: explore, sign: "-", mechanism: Every extra parent pair displaces two random strings.}
+dynamics:
+  time: {unit: s, start: 0, end: 500, step: 0.5}
+  rates:
+    gen: cores/(S*T_sim)
+events:
+  - {id: half, label: Half the generations done, when: "gen >= 0.5*G", once: true}
+  - {id: done, label: All G generations done, when: "gen >= G", once: true, stop: true}
+cascade:
+  shock: {S: 0.5}
+  default_delay: 1
+  time_unit: step
+tree:
+  kind: general
+  title: One generation of the genetic algorithm (§3.4.2)
+  root:
+    label: "Generation g"
+    children:
+      - label: "1 Generate S strings Λⁱ"
+        children:
+          - {label: "Λ⁻ ≤ Λⁱⱼ ≤ Λ⁺ (box bounds)"}
+      - label: "2 Evaluate Π(Λⁱ)"
+        children:
+          - {label: "simulate the swarm"}
+          - {label: "count unmapped targets"}
+      - label: "3 Rank strings"
+      - label: "4 Mate top pairs"
+        children:
+          - {label: "λⁱ = Φ∘Λⁱ + (1−Φ)∘Λⁱ⁺¹"}
+          - {label: "λⁱ⁺¹ = Γ∘Λⁱ + (1−Γ)∘Λⁱ⁺¹"}
+      - label: "5 Eliminate the worst"
+      - label: "6 Refill with S − 2P random strings"
+  algorithms:
+    - {name: preorder, intro: "Read the recipe top-down: this is the order the algorithm executes."}
+    - {name: postorder, intro: "Children before parents: the order in which sub-results are available."}
+figures:
+  - type: variable_graph
+  - type: influence_matrix
+  - {type: timeline, series: [gen, evals_done]}
+  - type: scene3d
+  - type: tree

@@ -1,0 +1,231 @@
+id: e_lorentz_clocks_rods
+title: "The Lorentz transformation: why moving rods shrink and moving clocks run slow"
+domain: physics
+level: "undergraduate"
+chapter: "XI–XII, App. I"
+summary: >
+  Demanding that light has the velocity c relative to the embankment K and to the train K′, and that the
+  principle of relativity holds, leads (with Einstein's linear ansatz, Appendix I eqs. 3–4) to the Lorentz
+  transformation between (x, t) and (x′, t′), and with it to one factor, √(1 − v²/c²), that governs
+  everything a moving ruler or clock does: a metre-rod at rest in K′ measures √(1 − v²/c²) metres in K, and
+  a seconds-clock at rest in K′ ticks once every 1/√(1 − v²/c²) seconds of K. The time evolution shown here
+  is constructed from §XII, not taken from a worked example in the book: the seconds-clock at the origin of
+  K′ passes the origin of K at t = 0 and accumulates its own reading t′ at the rate dt′/dt = √(1 − v²/c²); at
+  t = t_turn it steps over onto a second train K″ moving at −v with the same speed (K″ is inertial too; the
+  instantaneous switch is an idealisation outside §XII), and it is compared with K's clocks when it is back
+  at the origin. Only K is inertial for the whole trip, so t′ is computed in K, leg by leg.
+notes:
+  - "One factor does both jobs. A rod at rest in K′ with Δx′ = 1 metre, located in K at a single K-time t, has Δx = √(1 − v²/c²) (§XII); a clock at x′ = 0 whose ticks are Δt′ = 1 s is judged from K to tick every Δt = 1/√(1 − v²/c²) s. At v = 0.6c these are 0.8 m and 1.25 s: the rod follows from the first Lorentz equation at Δt = 0, the clock from the first and fourth together at x′ = 0, where the first gives x = vt (§XII)."
+  - "The factor is fixed, not assumed. Einstein satisfies 'x − ct = 0 ⇒ x′ − ct′ = 0' (and likewise for a ray along −x) with the linear relations (3) and (4), which give x′ = ax − bct, ct′ = act − bx (Appendix I, eq. 5); linearity is his ansatz, a sufficient choice rather than a consequence of the light postulate. Once it is adopted, the velocity of the origin of K′ gives v = bc/a (eq. 6), and the principle of relativity (K′'s unit rod judged from K must be as long as K's unit rod judged from K′, eqs. 7 and 7a) fixes a = 1/√(1 − v²/c²) (eq. 7b) with no further freedom."
+  - "Length is a question about simultaneity. K locates both ends of the rod at the same K-time t, but by the fourth Lorentz equation those two events are separated in K′ time by vΔx′/c², about 2 ns for a metre-rod at 0.6c (the variable dt_sync; this offset is worked out here from the fourth equation, not quoted from §XI–§XII, and the relativity of simultaneity itself is the subject of §IX). K′ therefore does not regard K's measurement as a simultaneous one, which is why K's and K′'s reciprocal verdicts (each finds the other's rod contracted) do not contradict each other; the reciprocity itself is required by the principle of relativity (§XII)."
+  - "c is a limit, not merely a large speed. As v → c the rod length L0·√(1 − v²/c²) → 0 and the tick interval T0/√(1 − v²/c²) → ∞ (the clock stops); for v > c the root is imaginary and the transformation meaningless, so c cannot be exceeded, and since at v = c the rod would have zero length and the clock would stop, it cannot be reached either (§XII). Letting c → ∞ instead returns the Galilei transformation x′ = x − vt, t′ = t (§XI), in which rods and clocks are unaffected by motion."
+  - "Proper time is what the moving clock actually accumulates: dt′/dt = √(1 − v²/c²) on each leg of the journey, so after 2·t_turn = 10 s of K-time the travelling clock reads 2·t_turn·√(1 − v²/c²) = 8 s, a lag of 2 s. Only v² enters the rate, so the direction of motion does not change it. A 10 % faster train (0.66c) lowers the root from 0.80 to 0.75 and raises the lag from 2.00 s to 2.49 s (+24 %), since lag = 2·t_turn·(1 − √(1 − v²/c²)); the chain reaction in Panel B is a first-order estimate and shows +23 %. The result is not symmetric, although time dilation is reciprocal, because only the travelling clock changes inertial frame at the turnaround: K stays inertial throughout, so integrating dt′/dt in K is legitimate, while neither K′ (outbound) nor K″ (inbound) covers the whole trip, and the two disagree about which K-time is 'now' at the turnaround."
+sources:
+  - "Einstein, Relativity: The Special and General Theory (1920, Lawson translation; Project Gutenberg #30155), §XI The Lorentz transformation (the four equations; the Galilei transformation as the limit c → ∞; the check x = ct ⇒ x′ = ct′)."
+  - "Ibid., §XII The behaviour of measuring-rods and clocks in motion: a rod of length 1 at rest in K′ has length √(1 − v²/c²) in K, and a rod at rest in K is likewise contracted as judged from K′ (the principle of relativity); a seconds-clock at x′ = 0 ticks every 1/√(1 − v²/c²) seconds of K; v = c is a limiting velocity that can neither be reached nor exceeded."
+  - "Ibid., Appendix I Simple derivation of the Lorentz transformation, eqs. (1)–(8a): light signals along ±x, the linear relations (3)–(5), v = bc/a (6), the two snapshots (7), (7a), a = 1/√(1 − v²/c²) (7b), the transformation (8) and the invariant x′² − c²t′² = x² − c²t² (8a)."
+  - "Ibid., §IX The relativity of simultaneity (background only: the K′-time offset vΔx′/c² of the rod's two ends is derived here from the fourth Lorentz equation, not quoted from the book)."
+variables:
+  - id: c
+    name: Velocity of light in vacuo
+    symbol: c
+    unit: m/s
+    kind: constant
+    default: 299792458
+    description: "The same for every ray of light relative to K and relative to K′ (§VII, §XI); in Appendix I this postulate, Einstein's linear ansatz and the principle of relativity together fix the transformation."
+  - id: v
+    name: Velocity of K′ relative to K
+    symbol: v
+    unit: m/s
+    kind: parameter
+    default: 179875474.8
+    range: [-299792457, 299792457]
+    description: "Velocity of the train carrying the clock along the common x-axis of the embankment K, signed (positive toward +x); v = bc/a is the velocity of the origin of K′ (Appendix I, eq. 6). Default 0.6c, so that √(1 − v²/c²) = 0.8 exactly; |v| must stay below c. The turnaround replaces v by −v: from then on it is the velocity of the second train K″."
+  - id: L0
+    name: Rest length of the metre-rod
+    symbol: Δx′
+    unit: m
+    kind: parameter
+    default: 1
+    range: [0.1, 10]
+    description: "The rod lies along the x′-axis of K′ with its beginning at x′ = 0 and its end at x′ = Δx′ (§XII uses Δx′ = 1)."
+  - id: T0
+    name: Tick interval of the clock at rest
+    symbol: Δt′
+    unit: s
+    kind: parameter
+    default: 1
+    range: [0.1, 10]
+    description: "Time between two successive ticks t′ = 0 and t′ = Δt′ of the seconds-clock permanently situated at the origin x′ = 0 of K′ (§XII uses Δt′ = 1)."
+  - id: t_turn
+    name: K-time of the turnaround
+    symbol: t_turn
+    unit: s
+    kind: parameter
+    default: 5
+    range: [0.5, 50]
+    description: "Embankment time at which the travelling clock steps over onto a second train K″ moving at −v (speed unchanged); the whole journey lasts 2·t_turn of K-time. A constructed journey, not a worked example of the book."
+  - id: root
+    name: The factor √(1 − v²/c²)
+    symbol: "√(1−v²/c²)"
+    unit: "1"
+    kind: derived
+    equation: sqrt(1 - v**2/c**2)
+    description: "The denominator of the first and fourth Lorentz equations and the reciprocal of Appendix I's constant a (eq. 7b, a = 1/√(1 − v²/c²)). Real for |v| ≤ c; it is 1 at rest, 0 at v = c (so c cannot be reached) and imaginary beyond (so c cannot be exceeded)."
+  - id: L
+    name: Length of the moving rod in K
+    symbol: Δx
+    unit: m
+    kind: derived
+    equation: L0*root
+    description: "Distance in K between the two ends of the rod when both are located at the same K-time t: from x′ = (x − vt)/√(1 − v²/c²) with Δt = 0, Δx = Δx′·√(1 − v²/c²) (§XII). The rod is shorter the faster it moves and vanishes as v → c."
+  - id: T
+    name: Tick interval of the moving clock in K
+    symbol: Δt
+    unit: s
+    kind: derived
+    equation: T0/root
+    description: "K-time elapsing between two ticks of the clock at rest at x′ = 0 of K′ (two events at the same K′ place): the first Lorentz equation gives x = vt for the clock, and the fourth then gives Δt = Δt′/√(1 − v²/c²) = a·Δt′ (§XII), 1.25 s at v = 0.6c. As judged from K the moving clock goes more slowly, and it stops in the limit v → c."
+  - id: dt_sync
+    name: K′-time offset of the rod's two ends
+    symbol: "|Δt′| at fixed t"
+    unit: ns
+    kind: derived
+    equation: abs(v)*L0/c**2*1e9
+    description: "When K locates both ends of the rod at one K-time t, the fourth Lorentz equation assigns those two events K′-times that differ by |v|Δx′/c² (in nanoseconds, hence the explicit ×1e9; |v| because the turnaround reverses the sign of v), so K's simultaneous snapshot is not simultaneous for K′. This is why K's and K′'s reciprocal length verdicts do not contradict each other; the reciprocity itself is required by the principle of relativity (§XII). Worked out here from the fourth equation, not quoted."
+  - id: t_prime_end
+    name: Travelling clock's reading at reunion
+    symbol: "t′(2t_turn)"
+    unit: s
+    kind: derived
+    equation: 2*t_turn*root
+    description: "What the clock shows when it is back beside K's origin clock, which then shows 2·t_turn: the §XII rate applied to each leg of the journey and computed in K, the one frame that is inertial for the whole trip."
+  - id: lag
+    name: Lag of the travelling clock at reunion
+    symbol: "2t_turn − t′"
+    unit: s
+    kind: derived
+    equation: 2*t_turn - t_prime_end
+    description: "By how much the travelling clock has fallen behind K's clock when the two are compared side by side: 2·t_turn·(1 − √(1 − v²/c²)), 2 s for a 10 s journey at 0.6c."
+  - id: x
+    name: Position of the clock in K
+    symbol: x
+    unit: Mm
+    kind: state
+    default: 0
+    description: "Embankment coordinate of the travelling clock in megametres (10⁶ m, hence v/1e6 in its rate): x = vt on the outward leg, where the clock sits at the origin of K′ (Appendix I, eq. 6), then back toward 0 aboard K″ after the turnaround. Constructed journey."
+  - id: t_prime
+    name: Reading of the travelling clock
+    symbol: t′
+    unit: s
+    kind: state
+    default: 0
+    description: "Proper time shown by the seconds-clock, synchronised to t′ = 0 as it passes K's origin at t = 0; it advances by √(1 − v²/c²) seconds per second of K-time on both legs (§XII). Equivalently, each tick occupies Δt = Δt′/√(1 − v²/c²) of K-time, so in a fixed K-interval the clock completes fewer ticks; the reading in seconds does not depend on the tick length Δt′ itself."
+relations:
+  - from: root
+    to: t_prime
+    sign: "+"
+    gain: 1
+    delay: 1
+    mechanism: "t′ accumulates at dt′/dt = √(1 − v²/c²) on both legs, so at any K-time the reading is proportional to the root."
+  - from: v
+    to: x
+    sign: "+"
+    gain: 1
+    delay: 1
+    mechanism: "On the outward leg x = vt, so at a given K-time the clock is farther out in proportion to v."
+  - from: t_prime_end
+    to: lag
+    sign: "-"
+    gain: 4
+    mechanism: "lag = 2·t_turn − t′ and at 0.6c the reading t′ is four times the lag, so a 1 % drop in t′ raises the lag by 4 %."
+  - from: t_turn
+    to: x
+    sign: "+"
+    delay: 1
+    mechanism: "The clock steps onto the returning train at K-time t_turn, so its farthest excursion from K's origin is v·t_turn: a later turnaround sends it farther out before it comes back."
+dynamics:
+  # end is long enough for t_turn up to 50 s; the reunion event stops the run at 2·t_turn
+  time: {unit: s, start: 0, end: 101, step: 0.01}
+  rates:
+    x: v/1e6
+    t_prime: root
+  integrator: rk4
+events:
+  - id: first_tick
+    label: "First tick (t′ = Δt′)"
+    when: "t_prime >= T0"
+    once: true
+    description: "The travelling clock completes its first second when K's clocks already read Δt′/√(1 − v²/c²) = 1.25 s: §XII's statement that between two strokes of the moving clock 'not one second, but 1/√(1 − v²/c²) seconds' elapse."
+  - id: turnaround
+    label: "Turnaround"
+    when: "t >= t_turn - 1e-9"
+    once: true
+    sets: {v: "-v"}
+    description: "At t = t_turn the clock steps over onto a second train K″ moving at −v (|v| unchanged; the instantaneous switch is an idealisation outside §XII, which treats uniform motion only). The rate dt′/dt = √(1 − v²/c²) depends on v² only, so the clock keeps running slow at the same rate on the way back; what the switch changes is the symmetry, because from here on the travelling clock is no longer at rest in one inertial frame, while K still is."
+  - id: reunion
+    label: "Reunion"
+    when: "t >= 2*t_turn - 1e-9"
+    once: true
+    stop: true
+    description: "Out and back at the same speed, the clock is back at x = 0, beside K's origin clock, when that clock reads 2·t_turn = 10 s (to within one time step if t_turn is not a whole number of steps); the travelling clock reads 2·t_turn·√(1 − v²/c²) = 8 s, so the lag 2·t_turn·(1 − √(1 − v²/c²)) depends on the speed only through v², not on the direction."
+invariants:
+  - label: "Rate of the moving clock t′/t = √(1 − v²/c²) (§XII)"
+    expr: "t_prime/t"
+    tolerance: 1e-6
+cascade:
+  shock: {v: 0.1}
+  default_delay: 1
+  damping: 0.6
+  threshold: 0.02
+  max_depth: 6
+  time_unit: step
+tree:
+  kind: general
+  title: "From the constancy of c to contracted rods and slow clocks (Appendix I, §XI, §XII)"
+  root:
+    label: "Light has velocity c in K and in K′"
+    children:
+      - label: "Ray along +x: satisfied if x′−ct′ = λ(x−ct) (1–3)"
+      - label: "Ray along −x: x′+ct′ = μ(x+ct) (4)"
+      - label: "Add/subtract: x′=ax−bct, ct′=act−bx (5)"
+        children:
+          - label: "Origin of K′ (x′=0) moves at v=bc/a (6)"
+          - label: "K′'s unit rod judged from K (t=0): Δx=1/a (7)"
+          - label: "K's unit rod judged from K′ (t′=0): Δx′=a(1−v²/c²) (7a)"
+          - label: "Relativity: (7)=(7a) ⇒ a=1/√(1−v²/c²) (7b)"
+            children:
+              - label: "x′ = (x−vt)/√(1−v²/c²) (8)"
+                children:
+                  - label: "Rod Δx′=1 at one t: Δx=√(1−v²/c²) (§XII)"
+                    children:
+                      - label: "v→c: Δx→0; v>c: imaginary"
+              - label: "t′ = (t−vx/c²)/√(1−v²/c²) (8)"
+                children:
+                  - label: "Clock at x′=0 (x=vt): Δt=1/√(1−v²/c²) (§XII)"
+                    children:
+                      - label: "v→c: Δt→∞, the clock stops"
+                  - label: "Rod ends at one t: Δt′=vΔx′/c² (derived here)"
+              - label: "Invariant x′²−c²t′² = x²−c²t² (8a)"
+              - label: "c→∞: x′=x−vt, t′=t (Galilei, §XI)"
+  algorithms:
+    - name: preorder
+      intro: "Read the derivation top-down as Einstein wrote it: each node is recorded before the consequences that hang below it."
+    - name: bfs
+      intro: "Read it by depth instead: depth 1 holds the two light conditions and their combination (5), depth 2 what fixes a and b, depth 3 the transformation, its invariant and the Galilei limit, depth 4 the rod, the clock and the simultaneity offset, and depth 5 the limits v → c."
+figures:
+  - type: variable_graph
+    title: "One factor, two consequences: how v and c set the moving rod's length and the moving clock's rate"
+    caption: "Arrows run from cause to effect; blue + means the effect rises with the cause, red − that it falls. v and c set the rod and the clock only through √(1 − v²/c²), which shortens the rod (L = Δx′·√(1 − v²/c²)) and stretches the tick (Δt = Δt′/√(1 − v²/c²)); the clock's own reading t′ accumulates at that same rate, so after the journey it lags K's clock by 2·t_turn·(1 − √(1 − v²/c²)). v also moves the clock (x) directly, and the simultaneity offset vΔx′/c² depends on v and c separately; that disagreement about simultaneity is what lets K's and K′'s reciprocal length verdicts coexist. Numbered arrows are explained in the key."
+  - type: influence_matrix
+    title: "Who moves whom: percentage sensitivities at v = 0.6c"
+    caption: "Each cell is the percentage change of the column variable per 1 % increase of the row variable, with the other inputs fixed. A 1 % increase of v lowers √(1 − v²/c²) by 0.56 % at v = 0.6c (the elasticity v²/(c² − v²)), and that same −0.56 % is passed unchanged to the rod length and the clock's reading at reunion while the tick interval rises by +0.56 %; the lag responds four times as strongly. A 1 % increase of c has exactly the opposite effect, so for the root and everything built on it only the ratio v/c matters; the simultaneity offset vΔx′/c² is the exception (+1 for v, −2 for c), because it scales as v/c². Blue cells rise with the cause and red cells fall, the same colours as the arrows in the variable graph."
+  - type: timeline
+    series: [x, t_prime]
+    title: "A seconds-clock rides the train out and back: proper time t′ against embankment time t"
+    caption: "Panel A (constructed from §XII, not a worked example of the book): the clock at the origin of K′ passes K's origin at t = 0, moves out at v = 0.6c, steps onto a train moving at −v at t = t_turn = 5 s, and is back at t = 10 s. Its reading t′ grows at √(1 − v²/c²) = 0.8 per unit of K-time on both legs, so it completes its first second only when K reads 1.25 s and shows 8 s at the reunion. Panel B follows the chain reaction set off by a 10 % faster train: the root falls, the rod shortens, the tick lengthens, the clock accumulates less time, and the lag at reunion grows. Panel B is a first-order, hop-by-hop estimate (lag +23 %); the exact change for 0.6c → 0.66c is +24 % (2.00 s → 2.49 s)."
+  - type: scene3d
+    title: "The same journey and chain reaction in 3D / VR"
+    caption: "Lanes along x are the variables, depth is time and height is magnitude: watch x go out and come back while t′ climbs at 0.8 of K's rate, then scrub to replay how a 10 % change of v propagates through √(1 − v²/c²) to the rod, the clock and the lag. Drag to orbit; press Enter VR on a headset."
+  - type: tree
+    caption: "Each node is one step of Appendix I's derivation or of §XI–§XII, written in Einstein's own symbols. The rod result of §XII hangs below the first Lorentz equation and the clock result below the fourth (with x = vt from the first); their leaves are the limiting case v → c that Einstein stresses, and the K′-time offset of the rod's two ends is worked out here from the fourth equation rather than quoted. Numbers on the nodes give the order in which the traversal records them; open the step-by-step view to follow the derivation one node at a time."

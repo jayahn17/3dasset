@@ -1,0 +1,237 @@
+id: e_universe_structure
+title: "A finite yet unbounded universe: how the mean density fixes the radius of Einstein's spherical world"
+domain: physics
+level: "undergraduate"
+chapter: "XXX–XXXII"
+summary: >
+  An infinite Euclidean universe filled uniformly with stars is incompatible with Newton's theory, because the
+  field at the surface of a sphere of radius r grows like ρ₀r without limit (§XXX); under the static hypothesis
+  the general theory of relativity instead lets matter curve space into Riemann's spherical space, finite in
+  volume (2π²R³) yet without bounds, whose radius is fixed by the mean density through R² = 2/(κρ) (§XXXII,
+  footnote 25), where κ = 8πG/c² (Einstein 1916), consistent with the footnote's 2/κ = 1.08×10²⁷.
+  The time evolution shown here is constructed from §XXXI, not taken from a worked example in the book: rays of
+  light leave one point in all directions at c through Einstein's static world, their spherical front reaches its
+  largest area 4πR² at the distance πR/2, collapses onto the counter-point at πR, and closes again on the source
+  after the full circuit 2πR — while Newton's field at the same radius, in an infinite world of the same density,
+  has no limit.
+notes:
+  - "The radius is set by the density alone. R² = 2/(κρ) (§XXXII, footnote 25), where κ = 8πG/c² (Einstein 1916), consistent with the footnote's 2/κ = 1.08×10²⁷, gives R = 1.04×10²⁸ cm, about 1.1×10¹⁰ light-years, at the order-of-magnitude default ρ = 10⁻²⁹ g/cm³. Because R ∝ ρ^(−1/2), a static world 10 % denser is exactly 4.7 % smaller (elasticity −0.5), and as ρ → 0 the radius grows without bound: the quasi-Euclidean world of §XXXII is the empty limit, not a possible home for matter of non-zero mean density."
+  - "More matter per cm³ means less matter in all. The volume of spherical space is V = 2π²R³ = 2.2×10⁸⁵ cm³ and the total mass M = ρ·2π²R³ = 2.2×10⁵⁶ g; substituting R² = 2/(κρ) gives M = 4π²R/κ, so M is proportional to R. Comparing two static worlds, a 10 % larger ρ therefore means exactly 13 % less V and 4.7 % less M (elasticities −1.5 and −0.5), even though every cubic centimetre holds 10 % more."
+  - "A ray sent round the world along a great circle reaches the counter-point after πR/c and is back at its source after 2πR/c = 68.8 Gyr. Since R² = c²/(4πGρ), this circuit time equals √(π/(Gρ)) and does not contain c at all: in the influence matrix the c → circuit-time cell is zero, while G and ρ each enter with elasticity −0.5. √(π/(Gρ)) is about 3.3 times the free-fall time √(3π/(32Gρ)) of the same matter (a modern comparison, not in the book), so light circles the static world in a few of the times its matter would need to collapse if nothing held it up; in Einstein's static solution that support is what the cosmological term supplies."
+  - "Light is not lost in a closed world. The front of rays leaving a point is a sphere of area F = 4πR²·sin²(s/R) (geometry of Riemann's spherical space; §XXXI states only that F is always less than the Euclidean 4πr², rises to a maximum fixed by the world radius and falls to zero at the counter-point). It reaches its maximum 4πR² = 1.35×10⁵⁷ cm² at s = πR/2 (17.2 Gyr), where it is only (2/π)² = 41 % of the Euclidean 4πs², shrinks to zero at the counter-point (34.4 Gyr) and closes on the source after 68.8 Gyr — unlike the starlight of Newton's island universe, which passes 'out into infinite space, never to return' (§XXX). Newton's field at the same radius in an infinite uniform world, g = (4/3)πGρs, grows in proportion to s instead, to 1.8×10⁻⁷ cm/s² at the radius the ray has reached when it is home, and has no limit."
+  - "The static world needs the cosmological term. A static world of density ρ needs exactly λ = κρ/2 = 1/R² = 9.3×10⁻⁵⁷ cm⁻² (Einstein 1917); a static world 10 % denser would need a 10 % larger λ. But λ is a constant of the field equations, not something that adjusts to the matter: if λ is fixed, ρ and R are fixed with it, so the static solution balances λ against one particular density. Appendix IV explains that both hypotheses — non-zero uniform mean density and a radius independent of time — required this term, which 'did not seem natural'; Friedman's solution drops it by letting the radius change, and with the static hypothesis goes the conclusion that space must be closed."
+sources:
+  - "Einstein, Relativity: The Special and General Theory (1920, Lawson translation; Project Gutenberg #30155), §XXX Cosmological difficulties of Newton's theory, with footnote [24]: lines of force entering a sphere ∝ ρ₀V, per unit area ∝ ρ₀V/F ∝ ρ₀R, so the field at its surface grows without limit with the radius; Seeliger's modified law as an ad hoc escape."
+  - "Ibid., §XXXI The possibility of a 'finite' and yet 'unbounded' universe: sphere-beings find circumference/diameter = π·sin(r/R)/(r/R) < π; of all closed surfaces only the sphere has all points equivalent; Riemann's spherical space of volume 2π²R³; the area F of a sphere of radius r is less than 4πr², rises to a maximum fixed by the world radius and falls to zero at the counter-point; elliptical space identifies the two counter-points."
+  - "Ibid., §XXXII The structure of space according to the general theory of relativity, with footnote [25]: R² = 2/(κρ), with 2/κ = 1.08×10²⁷ in the C.G.S. system; a quasi-Euclidean universe has mean density nil; uniformly distributed matter makes the universe spherical (or elliptical) and finite."
+  - "Ibid., Appendix IV The structure of space according to the general theory of relativity (supplementary to §XXXII): hypotheses (1) uniform non-zero mean density and (2) radius independent of time; the cosmological term of the field equations; Friedman's expanding solution; Hubble's red shift; an origin of the expansion about 10⁹ years ago; finiteness of space left undecided by the expanding theory."
+  - "Ibid., §VII: c = 300,000 km/sec, the value used here (3×10¹⁰ cm/s)."
+  - "Einstein, Die Grundlage der allgemeinen Relativitätstheorie, Annalen der Physik 49 (1916) 769–822, §21: the Newtonian limit gives κ = 8πK/c² = 1.87×10⁻²⁷ (used here for κ = 8πG/c²)."
+  - "Einstein, Kosmologische Betrachtungen zur allgemeinen Relativitätstheorie, Sitzungsber. Preuss. Akad. Wiss. (1917) 142–152: the static spherical world with λ = κρ/2 = 1/R², the source of footnote 25 (used here for λ)."
+  - "C. V. Boys, On the Newtonian constant of gravitation, Phil. Trans. R. Soc. A 186 (1895) 1–72: G = 6.658×10⁻⁸ C.G.S., the laboratory value behind the default G."
+variables:
+  - id: G
+    name: Newtonian constant of gravitation
+    symbol: G
+    unit: cm^3/(g*s^2)
+    kind: constant
+    default: 6.66e-8
+    description: "C.G.S. value 6.66×10⁻⁸, close to the then-current laboratory value (Boys 1895: 6.658×10⁻⁸); with c = 3×10¹⁰ cm/s it gives 2/κ = c²/(4πG) = 1.075×10²⁷ g/cm, which rounds to footnote 25's 1.08×10²⁷ (the modern 6.674×10⁻⁸ gives 1.07×10²⁷)."
+  - id: c
+    name: Velocity of light
+    symbol: c
+    unit: km/s
+    kind: constant
+    default: 300000
+    description: "300,000 km/sec as in §VII (3×10¹⁰ cm/s; the formulas multiply by 10⁵ to work in C.G.S. units). It enters κ = 8πG/c² and sets the pace at which a ray covers proper distance in the static world, where matter is at rest and the radius does not change with time (§XXXII; Appendix IV hypothesis 2)."
+  - id: rho
+    name: Mean density of matter
+    symbol: ρ
+    unit: g/cm^3
+    kind: parameter
+    default: 1.0e-29
+    range: [1.0e-31, 1.0e-26]
+    description: "Average density of the matter, treated as at rest and uniformly spread (§XXXII; Appendix IV hypothesis 1). The book gives no value: the default is a modern order-of-magnitude figure (today's critical density is about 10⁻²⁹ g/cm³, matter alone about 3×10⁻³⁰ g/cm³)."
+  - id: s
+    name: Distance travelled by the ray
+    symbol: s
+    unit: 10^28 cm
+    kind: state
+    default: 0
+    description: "Proper distance covered by a ray (or by the whole front of rays) since it left the starting point at t = 0, measured with rods along its path; in the static world it grows at the constant rate c whatever the radius of the world. Constructed journey: §XXXI describes the rays, not their timing."
+  - id: F
+    name: Area of the light front
+    symbol: F
+    unit: 10^56 cm^2
+    kind: derived
+    equation: 4*pi*R**2*sin(s/R)**2
+    description: "Area of the sphere of radius s round the starting point, measured with a square of rods: F = 4πR²·sin²(s/R) (geometry of Riemann's spherical space; §XXXI states only that F < 4πr², peaks at a maximum fixed by the world radius, and falls to zero at the counter-point). It rises to its maximum 4πR² at s = πR/2, shrinks to zero at the counter-point s = πR and, as the rays run on, swells and closes again on the source at s = 2πR."
+  - id: F_E
+    name: Euclidean area of the same sphere
+    symbol: 4πs²
+    unit: 10^56 cm^2
+    kind: derived
+    equation: 4*pi*s**2
+    description: "The area F = 4πr² that a sphere of rod-radius s would have if the universe were Euclidean (§XXXI); the spherical front F is always smaller, by the factor sin²(s/R)/(s/R)², which is (2/π)² = 41 % at the equator s = πR/2."
+  - id: g_N
+    name: Newton's field at the same radius
+    symbol: g
+    unit: 10^-7 cm/s^2
+    kind: derived
+    equation: 4/3*pi*G*rho*s*1e28*1e7
+    description: "The field Newton's theory would give at the surface of a sphere of radius s in an infinite Euclidean universe of the same uniform density, g = (4/3)πGρs, evaluated at the distance the ray has reached (s converted from 10²⁸ cm to cm, the result shown in 10⁻⁷ cm/s²): lines of force ∝ ρ₀V, per unit area ∝ ρ₀V/F ∝ ρ₀s (§XXX, footnote 24). It is a function of radius, not something that evolves in time, and it grows without limit as the radius grows."
+  - id: kappa
+    name: Einstein's gravitational constant
+    symbol: κ
+    unit: 10^-27 cm/g
+    kind: derived
+    equation: 8*pi*G/(c*1e5)**2*1e27
+    description: "κ = 8πG/c² (Einstein 1916, §21), 'a constant connected with the Newtonian constant of gravitation' (footnote 25), computed in C.G.S. units (c in cm/s) and shown in units of 10⁻²⁷ cm/g: κ = 1.86×10⁻²⁷ cm/g, so that 2/κ = 1.075×10²⁷ g/cm, the footnote's 1.08×10²⁷."
+  - id: R
+    name: Radius of the world-sphere
+    symbol: R
+    unit: 10^28 cm
+    kind: derived
+    equation: sqrt(2/(kappa*1e-27*rho))/1e28
+    description: "From R² = 2/(κρ) (§XXXII, footnote 25), computed in cm (κ restored to cm/g) and divided by 10²⁸ for display. A denser static world is more strongly curved and smaller; for ρ → 0 the radius becomes infinite (the quasi-Euclidean case)."
+  - id: L
+    name: Great-circle length
+    symbol: 2πR
+    unit: 10^28 cm
+    kind: derived
+    equation: 2*pi*R
+    description: "Length of a 'straight line' of the spherical world, a great circle that closes on itself (§XXXI): the distance a ray runs before it is back at its source. It scales with R, whereas the distance s a ray has covered after a given time does not."
+  - id: lam
+    name: Cosmological term a static world requires
+    symbol: λ
+    unit: 10^-56 cm^-2
+    kind: derived
+    equation: kappa*1e-27*rho/2*1e56
+    description: "The 'hypothetical term added to the field equations' of Appendix IV, a constant of the law that the static hypothesis (2) requires. Each static world of density ρ needs λ = κρ/2 = 1/R² (Einstein 1917), here in units of 10⁻⁵⁶ cm⁻²: a denser static world needs a larger λ; matter does not raise it."
+  - id: V
+    name: Volume of spherical space
+    symbol: 2π²R³
+    unit: 10^84 cm^3
+    kind: derived
+    equation: 2*pi**2*R**3
+    description: "Riemann's spherical space has the finite volume 2π²R³ determined by its radius (§XXXI), yet no boundary anywhere: every point is equivalent to every other."
+  - id: M
+    name: Total mass of the universe
+    symbol: M
+    unit: 10^56 g
+    kind: derived
+    equation: rho*V*1e28
+    description: "Mean density times the volume of the closed world (ρ in g/cm³ times V in 10⁸⁴ cm³ gives 10⁸⁴ g, hence ×10²⁸ for 10⁵⁶ g). With R² = 2/(κρ) this is M = 4π²R/κ: the total mass is proportional to the radius."
+  - id: t_circ
+    name: Light-travel time round the universe
+    symbol: 2πR/c
+    unit: Gyr
+    kind: derived
+    equation: L*1e28/(c*1e5)/3.15576e16
+    description: "Time for a ray to run once round a great circle of length L = 2πR at the speed c (L converted from 10²⁸ cm to cm, c from km/s to cm/s, seconds to Gyr). Equal to √(π/(Gρ)), so it depends on the density and G but not on c."
+relations:
+  - from: s
+    to: F
+    sign: "±"
+    mechanism: "The front grows while the rays diverge (s < πR/2) and shrinks as they converge on the counter-point (πR/2 < s < πR), then repeats on the way home."
+  - from: R
+    to: F
+    sign: "±"
+    mechanism: "At a fixed distance s a larger world bends the rays together less, so its front is larger before the counter-point; between s = πR and about 4.49R the order reverses."
+dynamics:
+  time: {unit: Gyr, start: 0, end: 80, step: 0.02}
+  rates:
+    s: "c*1e5*3.15576e16/1e28"
+  integrator: rk4
+events:
+  - id: equator
+    label: "Front largest (s = πR/2)"
+    when: "s >= pi*R/2"
+    once: true
+    description: "The spherical front of rays has reached the 'equator' of the world: its area F = 4πR² is the largest a sphere can have in this space, yet only 41 % of the Euclidean 4πs². From here on the rays, which have diverged until now, begin to approach one another (§XXXI)."
+  - id: counterpoint
+    label: "Counter-point (s = πR)"
+    when: "s >= pi*R"
+    once: true
+    description: "All rays from the starting point 'run together again at a counter-point' (§XXXI): F has shrunk to zero and the rays have traversed the whole spherical space. In elliptical space the counter-point is the starting point itself."
+  - id: home
+    label: "Back at the source (s = 2πR)"
+    when: "s >= L"
+    once: true
+    stop: true
+    description: "Each ray has run once round a great circle of length L = 2πR and is back where it started, after 2πR/c of time: light emitted in a finite unbounded world is never lost to infinity."
+invariants:
+  - label: "Integrator check: ray speed s/t held at c (restates the rate law; not a conservation law)"
+    expr: "s/t"
+    tolerance: 1e-6
+cascade:
+  shock: {rho: 0.1}
+  default_delay: 1
+  damping: 1.0
+  threshold: 0.02
+  max_depth: 6
+  time_unit: step
+tree:
+  kind: decision
+  title: "Einstein's dichotomy (§XXX–XXXII, App. IV)"
+  root:
+    label: "Radius independent of time? (App. IV, hyp. 2)"
+    branches:
+      - label: "no"
+        child: {label: "Friedman: R grows, no λ; finite or infinite undecided (App. IV)"}
+      - label: "yes"
+        child:
+          label: "Is space infinite?"
+          branches:
+            - label: "yes"
+              child:
+                label: "Mean density ρ > 0 everywhere?"
+                branches:
+                  - label: "yes"
+                    child:
+                      label: "Patch Newton's law ad hoc?"
+                      branches:
+                        - label: "yes"
+                          child: {label: "Seeliger: no empirical or theoretical foundation"}
+                        - label: "no"
+                          child: {label: "Field ∝ ρ₀r → ∞ (fn. 24); GR: cannot be quasi-Euclidean (§XXXII)"}
+                  - label: "no"
+                    child: {label: "Island or quasi-Euclidean, mean ρ = 0: light lost (§XXX, §XXXII)"}
+            - label: "no"
+              child:
+                label: "Which closed space? (§XXXI)"
+                branches:
+                  - label: "sphere"
+                    child:
+                      label: "Counter-points identified?"
+                      branches:
+                        - label: "no"
+                          child: {label: "Spherical: R² = 2/(κρ), V = 2π²R³, static with λ"}
+                        - label: "yes"
+                          child: {label: "Elliptical: centrally symmetric"}
+                  - label: "other"
+                    child: {label: "Another closed space: points not all equivalent"}
+  algorithms:
+    - name: decision
+      title: "Einstein's route to the spherical world"
+      path: ["yes", "no", "sphere", "no"]
+      intro: "Follow Einstein's route of the first edition: he kept the radius independent of time (hypothesis 2, which needs the cosmological term); under that static hypothesis an infinite world fails for any non-zero mean density, so space is closed; of the closed spaces the sphere alone has all points equivalent, and with the counter-points kept distinct the general theory gives Riemann's spherical space with R² = 2/(κρ)."
+    - name: bfs
+      title: "Every alternative, level by level (breadth-first)"
+      intro: "Every alternative the text weighs, level by level: a static or an expanding radius (Friedman); infinite or finite; uniform density or an island; Newton's law patched (Seeliger) or not; the sphere or another closed space; spherical or elliptical."
+figures:
+  - type: variable_graph
+    title: "How the mean density fixes the size, volume and mass of the closed world"
+    caption: "Arrows run from cause to effect; blue + means the effect rises with the cause, red − that it falls, and grey dashed arrows (?) change sign along the journey — the two numbered ones are explained in the key. G and c fix κ = 8πG/c²; κ and ρ fix the radius by R² = 2/(κρ), and R fixes the volume 2π²R³ and the great-circle length 2πR, which with c gives the light circuit 2πR/c. The area F of the front depends on R and on the distance s the ray has run, and is compared with the Euclidean 4πs². The arrow ρ → λ compares static worlds: a 10 % denser static world requires a 10 % larger λ; if λ is a fixed constant of the field equations, ρ and R are fixed with it. Density raises the mass per cm³ but lowers R, so the total mass M = ρ·2π²R³ = 4π²R/κ falls. The direct (red) effect of c on 2πR/c is exactly cancelled by its effect through κ and R. Newton's field g at the same radius grows with G, ρ and the distance s; c reaches it only through s."
+  - type: influence_matrix
+    title: "Who moves whom: percentage sensitivities at ρ = 10⁻²⁹ g/cm³"
+    caption: "Each cell is the percentage change of the column variable per 1 % increase of the row variable, with the other inputs fixed. Blue cells rise with the cause and red cells fall, the same colours as the arrows in the variable graph. A 1 % denser static world has a 0.5 % smaller radius and great circle, 1.5 % less volume, 0.5 % less total mass and a 0.5 % shorter light circuit, and it requires a 1 % larger cosmological term. A 1 % larger c raises R by 1 % but leaves the circuit time 2πR/c unchanged, because 2πR/c = √(π/(Gρ)). The matrix is evaluated where the ray starts, s = 0: there the light front and its Euclidean counterpart vanish, so they are followed in the timeline instead, and Newton's field g is zero too, so its G and ρ cells read 0 and its s cell shows only the sign (+1); at any radius the ray has reached, g ∝ Gρs, an elasticity of 1 for each of G, ρ and s. The rest of the s row is zero: how far a ray has run does not change the size of the world."
+  - type: timeline
+    series: [F, F_E, g_N]
+    title: "A light front circumnavigates the closed world, while Newton's field at the same radius in an infinite world has no limit"
+    caption: "Panel A (constructed from §XXXI, not a worked example of the book): rays leave a point at t = 0 and run at c. Their front has its largest area 4πR² at s = πR/2 after 17.2 Gyr, shrinks to nothing at the counter-point after 34.4 Gyr, and closes on the source after 2πR/c = 68.8 Gyr, while the Euclidean area 4πs² of a sphere of the same rod-radius only grows. At the equator the front has only (2/π)² = 41 % of the Euclidean area, and a circle drawn there has circumference/diameter = π·sin(r/R)/(r/R) = 2 instead of π. Newton's field g = (4/3)πGρs at the radius the ray has reached, in an infinite world of equal density, rises in proportion to s throughout. Panel B compares the static world with one 10 % denser — each step is a step of the argument, not of time. The total mass appears twice: +10 % directly (more matter per cm³) and −15 % through the smaller volume, a net −5 % to first order (exactly −4.7 %); R and V show the first-order −5 % and −15 % (exactly −4.7 % and −13 %). The great circle 2πR and the light circuit shorten by 5 %, the cosmological term a static world needs rises 10 %, and so does Newton's field at a given radius."
+  - type: scene3d
+    title: "The circuit and the comparison of static worlds in 3D / VR"
+    caption: "Lanes along x are the variables, depth is time and height is magnitude: watch the light front swell, vanish at the counter-point and swell again while the Euclidean area and Newton's field at the radius the ray has reached keep climbing, then scrub through the comparison of a static world 10 % denser, step by step of the argument, through R to the volume, the great circle, the light circuit and the mass. Drag to orbit; press Enter VR on a headset."
+  - type: tree
+    caption: "Each question is one alternative Einstein weighs in §XXX–XXXII and Appendix IV. Without hypothesis (2) the radius grows (Friedman), no cosmological term is needed, and the expanding theory leaves finiteness undecided (Appendix IV). Under the static hypothesis, an infinite world with non-zero mean density breaks Newton's law — Seeliger's modification has no foundation, and the general theory forbids a quasi-Euclidean world with matter (§XXXII) — while one with zero mean density is the island universe that loses its light (§XXX). The closed world is the sphere, whose points are all equivalent, or its elliptical variant with identified counter-points (§XXXI), and it is static only with the cosmological term."

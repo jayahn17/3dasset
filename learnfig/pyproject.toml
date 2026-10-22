@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learnfig"
+version = "0.1.0"
+description = "Template for generating textbook-quality learning figures: variable-interaction graphs, influence matrices, tree-algorithm steps, chain-reaction timelines and 3D/VR scenes, with a read-write-check multi-agent loop."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = ["pyyaml>=6.0"]
+
+[project.optional-dependencies]
+agents = ["anthropic>=0.50"]
+dev = ["pytest>=7", "anthropic>=0.50"]
+
+[project.scripts]
+learnfig = "learnfig.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["learnfig*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

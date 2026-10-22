@@ -1,0 +1,75 @@
+id: ch2_drone_vertical_climb
+title: "A drone climbing: thrust, weight and drag"
+domain: engineering
+level: ME 244
+chapter: "2"
+summary: >
+  A quadcopter is a point mass pushed up by thrust, pulled down by weight and slowed by air drag that grows
+  with the square of speed. Thrust-to-weight ratio decides whether it climbs at all; drag decides how fast.
+notes:
+  - Hover needs thrust equal to weight; everything above that is what accelerates the drone.
+  - Climb speed stops rising when drag balances the surplus thrust, at the terminal climb speed.
+  - Adding payload raises weight, which cuts the surplus thrust, which lowers the terminal climb speed and lengthens every mission; the timeline figure follows that chain.
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems, §2.2 kinetics of a particle and §3.3 drone-swarm actuation (m v̇ = Ψ, speed cap v_max)."
+variables:
+  - {id: F, name: Thrust, symbol: F, unit: N, kind: parameter, default: 30, range: [0, 60], description: Total upward force from the four rotors.}
+  - {id: m, name: Mass (with payload), symbol: m, unit: kg, kind: parameter, default: 2.0, range: [0.5, 5], description: Drone plus payload.}
+  - {id: g, name: Gravity, symbol: g, unit: m/s^2, kind: constant, default: 9.81}
+  - {id: rho, name: Air density, symbol: ρ, unit: kg/m^3, kind: constant, default: 1.2}
+  - {id: Cd, name: Drag coefficient, symbol: C_d, unit: "1", kind: parameter, default: 1.0, description: Shape factor for the airframe seen from below.}
+  - {id: A, name: Frontal area, symbol: A, unit: m^2, kind: parameter, default: 0.15}
+  - {id: y_target, name: Target altitude, symbol: y_t, unit: m, kind: parameter, default: 100, range: [10, 500]}
+  - {id: y, name: Altitude, symbol: y, unit: m, kind: state, default: 0}
+  - {id: v, name: Climb speed, symbol: v, unit: m/s, kind: state, default: 0}
+  - {id: weight, name: Weight, symbol: W, unit: N, kind: derived, equation: m*g}
+  - {id: twr, name: Thrust-to-weight ratio, symbol: F/W, unit: "1", kind: derived, equation: F/(m*g), description: Below 1 the drone cannot leave the ground.}
+  - {id: drag, name: Drag force, symbol: D, unit: N, kind: derived, equation: 0.5*rho*Cd*A*abs(v)*v, description: "Quadratic in speed, opposing motion."}
+  - {id: v_term, name: Terminal climb speed, symbol: v_∞, unit: m/s, kind: derived, equation: "sqrt(max(F - m*g, 0)/(0.5*rho*Cd*A))", description: Speed at which drag equals surplus thrust.}
+  - {id: t_climb, name: Time to target altitude (at v_∞), symbol: t_c, unit: s, kind: derived, equation: "y_target/max(v_term, 0.01)", description: Rough mission time once the drone is at terminal climb speed.}
+relations:
+  - {from: m, to: t_climb, sign: "+", delay: 2, mechanism: Heavier drone → less surplus thrust → slower climb → longer mission.}
+dynamics:
+  time: {unit: s, start: 0, end: 12, step: 0.005}
+  rates:
+    y: v
+    v: (F - m*g - 0.5*rho*Cd*A*abs(v)*v)/m
+events:
+  - {id: near_term, label: 95 % of terminal speed, when: "v >= 0.95*v_term", once: true}
+  - {id: alt_target, label: Reaches target altitude, when: "y >= y_target", once: true, stop: true}
+  - {id: payload, label: Payload +20 % (shock), shock: {m: 0.2}}
+cascade:
+  shock: {m: 0.2}
+  default_delay: 1
+  time_unit: step
+figures:
+  - type: variable_graph
+  - type: influence_matrix
+  - {type: timeline, series: [y, v, drag]}
+  - type: scene3d
+  - type: tree
+tree:
+  kind: decision
+  title: What the drone is doing (§2.2, §3.3)
+  root:
+    label: "Thrust-to-weight F/W > 1?"
+    branches:
+      - label: "no"
+        child: {label: "Stays on the ground: thrust ≤ weight"}
+      - label: "yes"
+        child:
+          label: "Climb speed v below v_∞?"
+          branches:
+            - label: "yes"
+              child: {label: "Accelerating: surplus F − W > drag"}
+            - label: "no"
+              child:
+                label: "Speed cap v_max reached first?"
+                branches:
+                  - label: "yes"
+                    child: {label: "Rescale v to v_max (eq. 3.28)"}
+                  - label: "no"
+                    child: {label: "Terminal climb: drag = F − W"}
+  algorithms:
+    - {name: decision, path: ["yes", "yes"], intro: "At lift-off the thrust-to-weight ratio is 1.53 and the drone is still slower than v_∞, so it is accelerating."}
+    - {name: bfs, intro: "Every state the climb can be in, level by level."}

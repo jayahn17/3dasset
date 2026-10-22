@@ -1,0 +1,72 @@
+id: ch8_water_drop_stokes
+title: A water droplet falling through air (aerial fire-fighting)
+domain: physics
+level: ME 244
+chapter: "8"
+summary: >
+  Water released from an aircraft breaks into droplets that fall under gravity while air drag, proportional
+  to speed for small drops, pulls them toward the wind. Drop size sets how fast they settle and therefore
+  how far the wind carries them before they reach the fire.
+notes:
+  - The decay rate c/m = 9μ/(2ρR²) means small droplets forget their initial velocity almost instantly and simply ride the wind.
+  - Terminal speed grows with R², so halving the radius quarters the settling speed and quadruples the airborne time.
+  - Wind drift equals wind speed times airborne time; the chain reaction figure shows how a finer spray turns into a miss.
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems, §8.3 (eqs. 8.3–8.13)."
+variables:
+  - {id: R, name: Droplet radius, symbol: R, unit: mm, kind: parameter, default: 0.1, range: [0.01, 0.3], description: "Stokes drag is accurate for Re ≲ 1, i.e. radii below about 40 µm. At the default 0.1 mm the terminal Re is about 16, so the true drag is larger and the true settling speed lower; §8.4 refines the drag for such drops. The book uses the Stokes form for its closed-form trends."}
+  - {id: rho_p, name: Water density, symbol: ρ_p, unit: kg/m^3, kind: constant, default: 1000}
+  - {id: mu, name: Air viscosity, symbol: μ_f, unit: Pa*s, kind: constant, default: 1.8e-5}
+  - {id: g, name: Gravity, symbol: g, unit: m/s^2, kind: constant, default: 9.81}
+  - {id: v_wind, name: Horizontal wind, symbol: v^f_x, unit: m/s, kind: external, default: 6, range: [0, 25]}
+  - {id: y0, name: Release height, symbol: y₀, unit: m, kind: parameter, default: 60, range: [10, 300]}
+  - {id: m, name: Droplet mass, symbol: m, unit: kg, kind: derived, equation: 4/3*pi*(R/1000)**3*rho_p}
+  - {id: c, name: Stokes drag coefficient, symbol: c, unit: kg/s, kind: derived, equation: 6*pi*mu*(R/1000), description: Drag force per unit relative speed (eq. 8.3).}
+  - {id: tau, name: Response time, symbol: m/c, unit: s, kind: derived, equation: m/c, description: Time to forget the initial velocity (eq. 8.5).}
+  - {id: v_term, name: Terminal settling speed, symbol: v_∞, unit: m/s, kind: derived, equation: g*m/c, description: Eq. 8.6 with no vertical wind.}
+  - {id: v, name: Downward speed, symbol: v_y, unit: m/s, kind: state, default: 0}
+  - {id: y, name: Height above ground, symbol: y, unit: m, kind: state, default: 60}
+  - {id: x, name: Downwind distance, symbol: x, unit: m, kind: state, default: 0}
+  - {id: t_fall, name: Airborne time (estimate), symbol: t_f, unit: s, kind: derived, equation: y0/v_term, description: Ignores the brief start-up transient.}
+  - {id: drift, name: Wind drift (estimate), symbol: Δx, unit: m, kind: derived, equation: v_wind*y0/v_term, description: How far downwind the droplet lands.}
+relations:
+  - {from: R, to: drift, sign: "-", delay: 2, mechanism: Bigger drops settle faster and are exposed to the wind for less time.}
+dynamics:
+  time: {unit: s, start: 0, end: 80, step: 0.01}
+  rates:
+    v: g - (c/m)*v
+    y: -v
+    x: v_wind*(1 - exp(-t/tau))
+events:
+  - {id: settled, label: 95 % of terminal speed, when: "v >= 0.95*v_term", once: true}
+  - {id: ground, label: Reaches the ground, when: "y <= 0", once: true, stop: true}
+  - {id: finer, label: Finer spray (shock), shock: {R: -0.5}}
+cascade:
+  shock: {R: -0.5}
+  default_delay: 1
+  time_unit: step
+figures:
+  - type: variable_graph
+  - type: influence_matrix
+  - {type: timeline, series: [v, y, x]}
+  - type: scene3d
+  - type: tree
+tree:
+  kind: decision
+  title: Which drag law applies to the droplet? (§8.3–8.4)
+  root:
+    label: "Reynolds number 2Rρ_a|v|/μ < 1?"
+    branches:
+      - label: "yes"
+        child: {label: "Stokes drag 6πμR: this model (§8.3)"}
+      - label: "no"
+        child:
+          label: "Re below about 1000?"
+          branches:
+            - label: "yes"
+              child: {label: "Corrected drag C_d(Re) (§8.4.1)"}
+            - label: "no"
+              child: {label: "Newton drag, C_d ≈ 0.44 (§8.4.1)"}
+  algorithms:
+    - {name: decision, path: ["no", "yes"], intro: "At R = 0.1 mm the Stokes terminal speed is 1.2 m/s, so Re ≈ 16: past the Stokes range (below about 40 µm). The corrected drag of §8.4.1 applies; this spec keeps the Stokes form to show the book's closed-form trends."}
+    - {name: bfs, intro: "The drag laws in order of droplet size."}

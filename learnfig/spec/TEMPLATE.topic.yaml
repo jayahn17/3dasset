@@ -1,0 +1,123 @@
+# =============================================================================
+# learnfig topic spec — copy this file, fill it in, then:
+#     learnfig check  topics/my_topic.yaml      # science checker
+#     learnfig render topics/my_topic.yaml      # figures + page in build/my_topic/
+# Delete any section you do not need. Everything after a `#` is a comment.
+# =============================================================================
+id: my_topic                      # snake_case; becomes the output folder name
+title: My topic                   # shown as the page title
+domain: physics                   # physics | biology | chemistry | cs | economics | engineering | ...
+level: undergraduate              # who the figures are for
+chapter: "1"                      # optional; figures are numbered 1.1, 1.2, ...
+summary: >
+  Two plain sentences: what the system is and what a reader should understand after the figures.
+
+notes:                            # "what to take away" bullets printed under the figures
+  - The first thing to notice.
+  - The second thing to notice.
+
+sources:                          # where the model came from (book section, paper, lecture)
+  - "Textbook §1.2"
+
+# -----------------------------------------------------------------------------
+# VARIABLES — every node in the interaction graph. 4–14 is the readable range.
+#   kind: parameter (you choose it) | state (evolves in time) | derived (has an equation)
+#         constant (fixed by nature) | external (comes from outside the system)
+#   unit: SI symbols (m, s, kg, N, J, W, Pa, K, rad, deg, %, 1) or a count noun (drones, USD)
+#   equation: Python syntax over other variable ids: + - * / ** sin cos tan exp log sqrt abs min max
+# -----------------------------------------------------------------------------
+variables:
+  - id: x0
+    name: Starting value
+    symbol: x₀
+    unit: m
+    kind: parameter
+    default: 10
+    range: [0, 100]
+    description: One sentence a student would understand.
+  - id: k
+    name: Rate constant
+    symbol: k
+    unit: 1/s
+    kind: parameter
+    default: 0.5
+  - id: x
+    name: Current value
+    symbol: x
+    unit: m
+    kind: state
+    default: 10
+  - id: half_life
+    name: Half-life
+    symbol: t½
+    unit: s
+    kind: derived
+    equation: log(2) / k
+    description: Time for x to halve.
+
+# -----------------------------------------------------------------------------
+# RELATIONS — only the influences that equations do not already imply.
+#   sign "+" : effect rises when the cause rises;  "-" : effect falls
+#   gain     : relative strength for the chain-reaction simulation (optional)
+#   delay    : how long the effect takes, in cascade time units (optional)
+#   mechanism: one sentence; it is printed in the figure key
+# -----------------------------------------------------------------------------
+relations:
+  - from: k
+    to: x
+    sign: "-"
+    mechanism: A larger rate constant drains x faster.
+
+# -----------------------------------------------------------------------------
+# DYNAMICS — optional ODEs. rates are d(var)/dt and must have units of (var unit)/(time unit).
+# -----------------------------------------------------------------------------
+dynamics:
+  time: {unit: s, start: 0, end: 10, step: 0.01}
+  rates:
+    x: -k * x
+
+# EVENTS — scheduled (t), conditional (when), or a shock that starts a chain reaction.
+events:
+  - id: halved
+    label: x has halved
+    when: "x <= 0.5 * x0"
+    once: true
+  - id: kick
+    label: Rate constant doubles (shock)
+    shock: {k: 1.0}               # +100 % relative change, propagated through the relations
+
+# INVARIANTS — quantities that must stay constant along the trajectory (conservation laws).
+# invariants:
+#   - {label: total energy, expr: "0.5*m*v**2 + m*g*y", tolerance: 1e-3}
+
+# CASCADE — how a shock propagates: delays, damping, stop thresholds.
+cascade:
+  shock: {k: 1.0}
+  default_delay: 1
+  damping: 0.6
+  threshold: 0.02
+  max_depth: 6
+  time_unit: step
+
+# -----------------------------------------------------------------------------
+# TREE — optional: an algorithm or decision procedure to animate step by step.
+#   kind: binary (left/right) | general (children) | decision (branches with labels)
+#   algorithms: preorder inorder postorder bfs dfs bst_search bst_insert minimax height decision
+# -----------------------------------------------------------------------------
+# tree:
+#   kind: binary
+#   title: Binary search tree
+#   generate: {name: bst, keys: [50, 30, 70, 20, 40, 60, 80]}
+#   algorithms:
+#     - {name: inorder}
+#     - {name: bst_search, key: 40}
+#     - {name: bst_insert, keys: [35, 65]}
+
+# FIGURES — optional. Omit to get the sensible default set for what the spec contains.
+# figures:
+#   - {type: variable_graph, title: "...", caption: "..."}
+#   - {type: influence_matrix}
+#   - {type: timeline, series: [x]}
+#   - {type: scene3d}
+#   - {type: tree}
+#   - {type: spatial, path: [x, y]}   # VR/AR room; optional live: feeds, see docs/SPATIAL_VR.md

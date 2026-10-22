@@ -1,0 +1,86 @@
+id: ch12_fragment_trajectories
+title: "Fragment trajectories with air drag (Appendix Ch. 12)"
+domain: physics
+level: ME 244
+chapter: "12"
+summary: >
+  A burst splits a mass M into N equal fragments that share a kinetic energy K and fly off through air. Every fragment
+  leaves with the same speed whatever N is, but smaller fragments carry less mass per unit of frontal area, so drag
+  stops them sooner: fragment size, not burst energy alone, decides how far the pieces travel.
+notes:
+  - "With equal masses m = M/N each fragment carries K/N, so the launch speed v₀ = √(2K/M) does not depend on N: splitting into more pieces makes them smaller, not faster."
+  - "Quadratic drag decelerates a fragment at v²/L_d, where the drag length L_d = 8Rρ_f/(3ρ_aC_d) is proportional to the radius; R scales as N^(−1/3), so doubling N shortens L_d by 21 %."
+  - "At the defaults (L_d ≈ 66 m against a drag-free range of 408 m) drag halves the speed within 0.84 s; the fragment peaks at 2.3 s but lands only at 5.4 s and 91 m, so the descent is slower and steeper than the climb and the parabola overestimates the distance 4.5-fold."
+  - "Re-simulating with the same burst energy: one 0.5 kg piece lands at 214 m, 200 fragments at 77 m, 1000 fragments at 53 m. Size, through L_d, decides the range; the cascade figure shows that path, as a first-order estimate."
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems (ME 244 primer, 2026 draft), Appendix Ch. 12: §12.3 simplifying assumptions (uniform fragment masses m_i = M/N), §12.4.1 trajectories, §12.5 more accurate resolution of drag."
+  - "Zohdi, T. I. (2016). A note on firework blasts and qualitative parameter dependency. Proc. R. Soc. A (cited in Ch. 12)."
+  - "Quadratic drag on a sphere, F = ½ρ_aC_dA v², C_d ≈ 0.47 — standard textbook value."
+variables:
+  - {id: K, name: Kinetic energy shared by the fragments, symbol: K, unit: J, kind: parameter, default: 1000, range: [100, 5000]}
+  - {id: M, name: Total fragment mass, symbol: M, unit: kg, kind: parameter, default: 0.5, range: [0.1, 5]}
+  - {id: N, name: Number of fragments, symbol: N, unit: "1", kind: parameter, default: 100, range: [1, 1000], description: "Equal masses m = M/N (§12.3)."}
+  - {id: rho_f, name: Fragment density, symbol: ρ_f, unit: kg/m^3, kind: parameter, default: 1500}
+  - {id: rho_a, name: Air density, symbol: ρ_a, unit: kg/m^3, kind: constant, default: 1.2}
+  - {id: Cd, name: Drag coefficient, symbol: C_d, unit: "1", kind: constant, default: 0.47, description: Sphere at high Reynolds number (textbook value).}
+  - {id: g, name: Gravity, symbol: g, unit: m/s^2, kind: constant, default: 9.81}
+  - {id: v0, name: Launch speed, symbol: v₀, unit: m/s, kind: derived, equation: sqrt(2*K/M), description: "From ½(M/N)v₀² = K/N; N cancels."}
+  - {id: R, name: Fragment radius, symbol: R, unit: m, kind: derived, equation: (3*M/(4*pi*rho_f*N))**(1/3), description: Sphere of mass M/N.}
+  - {id: L_d, name: Drag length, symbol: L_d, unit: m, kind: derived, equation: 8*R*rho_f/(3*rho_a*Cd), description: "m/(½ρ_aC_dπR²): distance over which drag removes most of the speed."}
+  - {id: range_vac, name: Drag-free range (45°), symbol: v₀²/g, unit: m, kind: derived, equation: v0**2/g, description: "The parabola's answer, for comparison."}
+  - {id: x, name: Horizontal distance, symbol: x, unit: m, kind: state, default: 0}
+  - {id: y, name: Height, symbol: y, unit: m, kind: state, default: 0}
+  - {id: vx, name: Horizontal velocity, symbol: v_x, unit: m/s, kind: state, equation: v0*cos(pi/4), description: "Initial condition, 45° launch."}
+  - {id: vy, name: Vertical velocity, symbol: v_y, unit: m/s, kind: state, equation: v0*sin(pi/4), description: "Initial condition, 45° launch."}
+relations:
+  - {from: L_d, to: x, sign: "+", gain: 0.7, delay: 2, mechanism: "A longer drag length means the fragment keeps its speed longer and lands farther away (re-simulation gives an elasticity of about 0.7 at the defaults)."}
+dynamics:
+  time: {unit: s, start: 0, end: 15, step: 0.002}
+  rates:
+    x: vx
+    y: vy
+    vx: -sqrt(vx**2 + vy**2)*vx/L_d
+    vy: -g - sqrt(vx**2 + vy**2)*vy/L_d
+events:
+  - {id: half_speed, label: Speed halved by drag, when: "sqrt(vx**2 + vy**2) <= 0.5*v0", once: true}
+  - {id: apex, label: Apex, when: "vy <= 0", once: true}
+  - {id: impact, label: Lands, when: "y <= 0 and t > 0.1", once: true, stop: true}
+  - {id: split_more, label: Twice as many fragments (shock), shock: {N: 1.0}}
+cascade:
+  shock: {N: 1.0}
+  default_delay: 1
+  damping: 0.6
+  threshold: 0.02
+  max_depth: 3
+  time_unit: step
+tree:
+  kind: decision
+  title: Which trajectory model? (§12.3–12.5)
+  root:
+    label: "Drag length L_d ≫ range v₀²/g?"
+    branches:
+      - label: "yes"
+        child: {label: "Drag-free parabola: range v₀²/g"}
+      - label: "no"
+        child:
+          label: "Reynolds number 2Rρ_a v/μ < 1?"
+          branches:
+            - label: "yes"
+              child: {label: "Linear (Stokes) drag, closed form"}
+            - label: "no"
+              child:
+                label: "Fragment heating matters?"
+                branches:
+                  - label: "yes"
+                    child: {label: "Couple an energy balance (§12.5)"}
+                  - label: "no"
+                    child: {label: "Quadratic drag, integrate in time"}
+  algorithms:
+    - {name: decision, path: ["no", "no", "no"], intro: "Follow the defaults through the choice of model: drag matters, the flow is not Stokesian, heating is ignored."}
+    - {name: bfs, intro: "Every model the hierarchy can end in, level by level."}
+figures:
+  - type: variable_graph
+  - type: influence_matrix
+  - {type: timeline, series: [x, y, vx, vy]}
+  - type: scene3d
+  - type: tree

@@ -1,0 +1,207 @@
+id: e_special_relativity_reasoning
+title: "Two postulates and one thought experiment: how Part I of Einstein's Relativity is built"
+domain: physics
+level: "undergraduate"
+chapter: "Part I"
+summary: >
+  Part I rests on two postulates, relativity (§V) and the constancy of the velocity of light c (§VII), which clash
+  only while velocities add classically (§VI–VII); Einstein removes the clash by defining simultaneity with light
+  signals (§VIII) and showing that a train observer M′, at rest midway between the strike points in his own frame,
+  receives B's light first and must therefore date stroke B earlier (§IX), after which relative distance, the
+  Lorentz transformation, rods, clocks, velocity addition, E = mc² and Minkowski's four-dimensional space follow
+  (§X–XV, XVII) and §XVI weighs them against experience. The time evolution shown here is the §IX race written out
+  in the embankment frame (L = 1 light-microsecond, v = 0.6c), a construction rather than a calculation printed in
+  the book: M′ starts at M as the lightning strikes (as judged from the embankment), the gap between him and B's
+  front closes at c + v, and his lead over A's front closes at only c − v.
+notes:
+  - "Simultaneity is a definition before it is a fact (§VIII). The embankment calls A and B simultaneous because the two fronts, each travelling at c, meet at the mid-point M; their separation d_A + d_B closes at exactly 2c (invariant d_A + d_B + 2ct = 2L), so they meet at t_M = L/c = 1.000 µs whatever the train does — v does not enter t_M at all."
+  - "The train observer cannot agree (§IX). M′ coincides with M at t = 0 (as judged from the embankment) but runs toward B's front and away from A's: the gap d_B closes at c + v and the lead d_A at only c − v, so B's front reaches him at L/(c + v) = 0.625 µs and A's at L/(c − v) = 2.500 µs, an arrival gap of 2Lv/(c² − v²) = 1.875 µs. (Worked by hand from the same formulas: the ratio (c + v)/(c − v) is 4, and a real train with v = 30 m/s and L = 300 m gives a gap of 2 × 10⁻¹³ s.) The gap itself is not relativistic: with Galilei's w = c − v (§VII) the train would blame it on unequal light speeds and keep the strokes simultaneous. Only because the train defines simultaneity as in §VIII, and light also moves at c relative to the train (§XI), must M′ conclude that B came first; before relativity, absolute time had always been tacitly assumed (§IX)."
+  - "Why the arrival order fixes the stroke order. In K′ the observer is at rest at the mid-point of A′B′ and, by the second postulate applied in K′, each front approaches him at c (the two light-cone invariants, x′ + ct′ for B's front and x′ − ct′ for A's, stay constant along the whole run), so equal paths mean the earlier arrival was the earlier stroke. His clock runs at √(1 − v²/c²) = 0.8 of embankment time (§XII), so the gap he records is 1.875 × 0.8 = 1.500 µs — exactly what the fourth Lorentz equation t′ = (t − vx/c²)/√(1 − v²/c²) gives for the two strokes at Δt = 0: t′_A − t′_B = v(x_B − x_A)/(c²√(1 − v²/c²)) = 2Lv/(c²√(1 − v²/c²)) = 1.500 µs > 0, so B comes first (§XI, §XVII)."
+  - "Distance is relative too (§X). The train points A′, B′ that coincide with A, B at the strokes (as judged from the embankment) are 2L apart for the embankment but 2L/√(1 − v²/c²) apart for the train (§XII), so in K′ each front has L′ = 374.7 m to cover and the two legs are equal, which is what makes the §IX argument clean. Worked by hand from the Lorentz transformation: on M′'s clock (set to 0 as he passes M), stroke B happens at −0.75 µs and stroke A at +0.75 µs; each light covers 374.7 m in L′/c = 1.25 µs and arrives at 0.50 and 2.00 µs (t_B and t_A times 0.8). The 1.50 µs between the arrivals is the 1.50 µs between the strokes, carried over unchanged by the equal legs."
+  - "What a faster train does (the chain reaction). Raise v by 10 % (0.6c → 0.66c). Exactly: B's light arrives 3.6 % sooner (0.625 → 0.602 µs) and A's 17.6 % later (2.500 → 2.941 µs); the gap grows from 1.875 to 2.34 µs (+24.7 %); M′'s clock factor falls from 0.800 to 0.751; and the K′ interval between the strokes rises from 1.50 to 1.76 µs (+17.1 %) by both routes. The cascade figure shows the first-order version, shock × elasticity, with its markers rounded to whole percent. Hop 1 hits everything v enters directly: B's arrival −3.8 % (elasticity −0.375), A's +15 % (elasticity 1.5), the clock factor −5.6 % and the Lorentz interval +10 %. Hop 2 carries A's delay into the gap (+20 %) and the clock factor into the clock reading (−5.6 %), the Lorentz interval (+5.6 %) and L′ (+5.6 %). Hop 3 carries the wider gap into the clock reading (+20 %). B's earlier arrival adds a further +1.3 % to the gap and to the clock reading, below the 2 % display threshold. The Lorentz route (+10 + 5.6 %) and the clock route (−5.6 + 20 + 1.3 %) both come to +15.6 %: one quantity reached two ways. Hops count steps of the formulas, not time; every value changes the moment v does."
+sources:
+  - "Einstein, Relativity: The Special and General Theory (1920, R. W. Lawson translation; Project Gutenberg #30155), Part I: §V The principle of relativity (in the restricted sense); §VI the classical theorem W = v + w; §VII the law of propagation of light (c = 300,000 km/sec, de Sitter's double stars) and the apparent conflict w = c − v."
+  - "Ibid., §VIII On the idea of time in physics (simultaneity defined by the meeting of the two flashes at the mid-point M; equal light-times A → M and B → M as a stipulation, not a hypothesis); §IX The relativity of simultaneity (Fig. 1: M′ hastens toward B's beam and rides ahead of A's, so B is judged earlier; absolute time had been tacitly assumed); §X On the relativity of the conception of distance."
+  - "Ibid., §XI The Lorentz transformation (the two classical hypotheses dropped; a ray of light has velocity c relative to the embankment and to the train; x′ = (x − vt)/√(1 − v²/c²), t′ = (t − vx/c²)/√(1 − v²/c²); Galilei's as the limit c → ∞; the check x = ct ⇒ x′ = ct′); §XII rods and clocks (factors √(1 − v²/c²) and 1/√(1 − v²/c²)); §XIII eqs. (A), (B) and Fizeau; §XIV the heuristic requirement of Lorentz covariance; §XV kinetic energy mc²/√(1 − v²/c²) and E = mc²; §XVI experience and the special theory (Fizeau, aberration, Doppler, electrons, Michelson–Morley); §XVII Minkowski's four-dimensional space (the \"world\"; Δt′ ≠ 0 although Δt = 0, by the fourth Lorentz equation)."
+variables:
+  - id: c
+    name: Velocity of light in vacuo
+    symbol: c
+    unit: m/s
+    kind: constant
+    default: 299792458
+    description: "Second postulate (§VII): the same for every colour, independent of the motion of the source (de Sitter), and — once the Lorentz transformation is adopted — the same relative to the embankment K and to the train K′ (§XI)."
+  - id: v
+    name: Velocity of the train
+    symbol: v
+    unit: m/s
+    kind: parameter
+    default: 179875474.8
+    range: [0, 269813212.2]
+    description: "Speed of the very long train K′ along the rails, toward B (§IX, Fig. 1). Default 0.6c so that √(1 − v²/c²) = 0.8 exactly; it must stay below c (§XII), and the range stops at 0.9c so that A's arrival always falls inside the 12 µs window."
+  - id: L
+    name: Half-distance between A and B
+    symbol: L
+    unit: m
+    kind: parameter
+    default: 299.792458
+    range: [1, 300]
+    description: "The lightning strikes the rails at A = −L and B = +L, with the mid-point M at the origin (§VIII). Default one light-microsecond (c × 1 µs), so that L/c = 1.000 µs exactly; the range stops at 300 m so that A's arrival always falls inside the 12 µs window."
+  - id: x_B
+    name: Light front from B
+    symbol: x_B
+    unit: m
+    kind: state
+    equation: L
+    description: "Embankment position of the front of the flash from B; it starts at +L when the lightning strikes (t = 0) and advances at −c, toward M (§VII). By symmetry the front from A is at x_A = −x_B, so x_B is also each front's distance from M and reaches 0 when the two meet there. Constructed kinematics of the §IX experiment."
+  - id: d_B
+    name: Gap between B's front and M′
+    symbol: d_B
+    unit: m
+    kind: state
+    equation: L
+    description: "x_B − x_M′: how far B's front still has to go to reach the train observer. It starts at L, because M′ coincides with M just when the flashes occur (as judged from the embankment), and closes at c + v because M′ hastens toward this beam (§IX); it reaches 0 when B's flash reaches M′."
+  - id: d_A
+    name: M′'s lead over A's front
+    symbol: d_A
+    unit: m
+    kind: state
+    equation: L
+    description: "x_M′ − x_A: how far ahead of the front from A the train observer still is. It starts at L and closes at only c − v, because M′ rides on ahead of this beam (§IX); it reaches 0 when A's flash catches M′."
+  - id: t_M
+    name: Both flashes reach M
+    symbol: t_M
+    unit: µs
+    kind: derived
+    equation: L/c*1e6
+    description: "Embankment time at which the two fronts meet at the mid-point M — the very fact that defines the strokes as simultaneous for the embankment (§VIII). Independent of v. Factor 1e6 converts s → µs; every other time here is built on this light time."
+  - id: t_B_Mp
+    name: B's flash reaches M′
+    symbol: t_B
+    unit: µs
+    kind: derived
+    equation: t_M/(1 + v/c)
+    description: "Embankment time at which the front from B (moving at −c from +L) meets the observer M′ (moving at +v from 0): the closing speed is c + v, so t_B = L/(c + v) = t_M/(1 + v/c), the moment the d_B line of the timeline reaches zero. Earlier than t_M because M′ hastens toward this beam (§IX)."
+  - id: t_A_Mp
+    name: A's flash reaches M′
+    symbol: t_A
+    unit: µs
+    kind: derived
+    equation: t_M/(1 - v/c)
+    description: "Embankment time at which the front from A (moving at +c from −L) catches the observer who rides ahead of it at v: the closing speed is only c − v, so t_A = L/(c − v) = t_M/(1 − v/c), the moment the d_A line of the timeline reaches zero. Later than t_M, and unbounded as v → c."
+  - id: dt_arr
+    name: Gap between the two arrivals at M′
+    symbol: "t_A − t_B"
+    unit: µs
+    kind: derived
+    equation: t_A_Mp - t_B_Mp
+    description: "Embankment-time interval between M′ seeing B's flash and seeing A's: L/(c − v) − L/(c + v) = 2Lv/(c² − v²), zero for a stationary observer and 2Lv/c² to first order in v/c. This arrival gap is ordinary kinematics that classical physics with a finite c predicts as well; what reduces to Galilei's t′ = t as c → ∞ (§XI) is the K′ interval between the strokes, Δt′."
+  - id: root
+    name: The factor √(1 − v²/c²)
+    symbol: "√(1−v²/c²)"
+    unit: "1"
+    kind: derived
+    equation: sqrt(1 - v**2/c**2)
+    description: "Denominator of the first and fourth Lorentz equations (§XI); the rate at which a clock carried by M′ runs relative to the embankment's clocks (§XII). Equal to 1 at rest and 0 at v = c, hence c is a limiting velocity."
+  - id: tau_Mp
+    name: Gap read on M′'s own clock
+    symbol: "τ_M′"
+    unit: µs
+    kind: derived
+    equation: dt_arr*root
+    description: "What the observer's own seconds-clock shows between the two arrivals: the embankment interval t_A − t_B shortened by the §XII rate √(1 − v²/c²). Since in K′ he sits at the mid-point and both fronts approach at c, this is also the K′ time between the two strokes — the clock route, computed independently of the Lorentz route t′_A − t′_B."
+  - id: dt_strokes_Kp
+    name: Time between the strokes in K′ (B first)
+    symbol: "t′_A − t′_B"
+    unit: µs
+    kind: derived
+    equation: 2*t_M*v/(c*root)
+    description: "The fourth Lorentz equation t′ = (t − vx/c²)/√(1 − v²/c²) applied to the strokes at (−L, 0) and (+L, 0): t′_A − t′_B = v(x_B − x_A)/(c²√(1 − v²/c²)) = 2Lv/(c²√(1 − v²/c²)) = 2·t_M·(v/c)/√(1 − v²/c²) > 0, so B precedes A for the train (§XI, §XVII). Numerically identical to the interval M′'s clock records — the two routes to the relativity of simultaneity agree."
+  - id: L_prime
+    name: Half-length of A′B′ measured in the train
+    symbol: L′
+    unit: m
+    kind: derived
+    equation: L/root
+    description: "The train points A′, B′ coinciding with A, B at the strokes are 2L apart for the embankment; the rest length that the train measures with its own rod is 2L/√(1 − v²/c²) (§X with §XII), so each front covers L′ in K′ and the two legs are equal."
+dynamics:
+  time: {unit: µs, start: 0, end: 12, step: 0.001}
+  rates:
+    x_B: -c*1e-6
+    d_B: -(c + v)*1e-6
+    d_A: -(c - v)*1e-6
+  integrator: rk4
+events:
+  - id: B_at_Mprime
+    label: "B's flash reaches the train observer M′"
+    when: "d_B <= 1e-6"
+    once: true
+    description: "At t = L/(c + v) = 0.625 µs, at x = vL/(c + v) = 112 m, the gap d_B has closed: M′ has run toward this beam, so he sees it before the embankment observer at M does."
+  - id: meet_M
+    label: "Both flashes meet at M: simultaneous for the embankment"
+    when: "x_B <= 1e-6"
+    once: true
+    description: "At t = L/c = 1.000 µs B's front reaches M, where A's front (x_A = −x_B) meets it — the §VIII definition of simultaneity, fulfilled for the embankment and unaffected by the train."
+  - id: A_at_Mprime
+    label: "A's flash finally catches M′"
+    when: "d_A <= 1e-6"
+    once: true
+    stop: true
+    description: "At t = L/(c − v) = 2.500 µs, at x = vL/(c − v) = 450 m, M′'s lead d_A is used up: the front from A closes on the observer at only c − v. The train has now seen B's flash 1.875 µs of embankment time (1.500 µs of its own) before A's, and must judge stroke B the earlier (§IX)."
+invariants:
+  - label: "Both fronts travel at c in K: their separation d_A + d_B = x_B − x_A closes at 2c, so d_A + d_B + 2ct = 2L (§VII)"
+    expr: "d_A + d_B + 2*c*t*1e-6"
+    tolerance: 1e-6
+  - label: "B's front keeps x′ + ct′ = (1 − v/c)L/√(1 − v²/c²) = 149.9 m under the Lorentz transformation: it moves at −c relative to the train too (§XI)"
+    expr: "((x_B - v*t*1e-6) + c*(t*1e-6 - v*x_B/c**2))/root"
+    tolerance: 1e-6
+  - label: "A's front (x_A = x_B − d_A − d_B) keeps x′ − ct′ = −(1 + v/c)L/√(1 − v²/c²) = −599.6 m: it moves at +c relative to the train (§XI)"
+    expr: "(((x_B - d_A - d_B) - v*t*1e-6) - c*(t*1e-6 - v*(x_B - d_A - d_B)/c**2))/root"
+    tolerance: 1e-6
+cascade:
+  shock: {v: 0.1}
+  default_delay: 1
+  damping: 0.1
+  threshold: 0.02
+  max_depth: 6
+  time_unit: step
+tree:
+  kind: general
+  title: "Proof tree of §V–XI: why the Lorentz transformation replaces Galilei's"
+  root:
+    label: "Lorentz transformation (XI)"
+    children:
+      - label: "c in K and in K′ (VII, XI)"
+        children:
+          - label: "Relativity principle (V)"
+          - label: "Constancy of c (VII)"
+      - label: "Train dates B first (IX)"
+        children:
+          - label: "M′ sees B first (IX)"
+            children:
+              - label: "Light at c in K (VII)"
+              - label: "M′ hastens toward B (IX)"
+          - label: "Mid-point M′ uses VIII's rule (IX)"
+      - label: "Distance may be relative (X)"
+  algorithms:
+    - name: postorder
+      intro: "Each premise is recorded before the conclusion it supports: the two postulates and the demand that light has velocity c in both frames, then the race that makes M′ see B first, then the train's verdict and the doubt about absolute distance, and the Lorentz transformation last."
+    - name: bfs
+      intro: "Read it as a chain of 'why?': the conclusion of §XI, then the three grounds it stands on, then what the first two rest on, then the two facts of the race that make M′ see B first."
+figures:
+  - type: variable_graph
+    title: "What the embankment and the train each measure, and why they differ"
+    caption: "Arrows run from cause to effect; blue + means the effect grows with the cause, red − that it shrinks. L and c fix the embankment light time t_M = L/c, and every train-side time is built on it: v pulls B's arrival earlier, t_M/(1 + v/c), and A's later, t_M/(1 − v/c); their difference is the gap, which M′'s slowed clock (the factor √(1 − v²/c²)) turns into τ_M′. τ_M′ (the clock route) and t′_A − t′_B = 2·t_M·(v/c)/√(1 − v²/c²) (the Lorentz route) are computed independently and both read 1.5 µs; no arrow joins them because they are one quantity reached two ways, not cause and effect. The race distances x_B, d_B and d_A feed nothing here: t_B and t_A are the moments the d_B and d_A lines of the timeline reach zero. The long arrow from √(1 − v²/c²) to τ_M′ runs behind the L′ box; L′ itself feeds nothing."
+    show_values: true
+  - type: influence_matrix
+    title: "A 1 % change in each input, felt where? (v = 0.6c)"
+    caption: "Each cell is the percentage change of the column variable per 1 % increase of the row variable, with the other inputs fixed. t_M ignores v entirely; B's arrival has elasticity −v/(c + v) = −0.375 and A's has v/(c − v) = 1.5, so the gap responds with 1 + 2v²/(c² − v²) = 2.125 and the K′ interval between the strokes with 1 + v²/(c² − v²) = 1.5625. L scales every time one-for-one. c enters twice, through the time scale L/c (elasticity −1 on every time) and through the ratio v/c (minus v's elasticity): for every time c's cell is −1 minus v's (t_M −1, t_B −0.625, t_A −2.5, gap −3.125, τ_M′ and the K′ interval −2.5625), and only √(1 − v²/c²) and L′ respond to c exactly opposite to v. The x_B, d_B and d_A columns are the starting distances (all L) only; c and v set their motion, which the timeline shows. Blue cells rise with the cause and red cells fall, the same colours as the arrows in the variable graph."
+  - type: timeline
+    series: [x_B, d_B, d_A]
+    title: "Two light fronts and a moving observer, in embankment time"
+    caption: "Panel A (the §IX experiment written out, not a calculation printed in the book): at t = 0 the fronts leave A = −L and B = +L at ±c while M′ leaves M at v = 0.6c. Each lane has its own scale, so read where its line reaches zero: d_B, the gap between B's front and M′, closes at c + v and reaches zero at 0.625 µs (x = 112 m); x_B reaches zero at 1.000 µs, when B's front arrives at M and meets A's front (x_A = −x_B) there — the embankment's simultaneity; d_A, M′'s lead over A's front, closes at only c − v and reaches zero, at the bottom of its lane where the run stops, at 2.500 µs (x = 450 m). Panel B follows a 10 % faster train as a first-order, hop-by-hop estimate: B arrives sooner (−3.8 %), A later (+15 %), the gap widens (+20 %), M′'s clock factor falls (−5.6 %), and the K′ time between the strokes grows (+10 % and +5.6 % by the Lorentz route; −5.6 % and +20 % by the clock route); the markers round to whole percent, so −3.8 % shows as −4 % and ±5.6 % as ±6 %, and the exact changes are given in the take-away 'What a faster train does'. The race distances are left out of Panel B: a faster train does not change them at t = 0 and changes them by an amount that grows along the run, so no single percentage describes them."
+  - type: scene3d
+    title: "The same race and chain reaction in 3D / VR"
+    caption: "Lanes along x are the variables, depth is time and height is magnitude. Each lane is scaled on its own: read when each line reaches its zero level and the event markers, not where lines meet; the flat lanes are the fixed times t_M, t_B, t_A and the gap. Scrub to replay how a faster train moves both arrivals, the gap, M′'s clock and the train's verdict on the strokes. Drag to orbit; press Enter VR on a headset."
+  - type: tree
+    caption: "Each node is a step of Einstein's argument, labelled with the section(s) it comes from, and every child is a premise of its parent. The root is §XI's conclusion: once the two classical hypotheses, absolute time (refuted by the train's verdict, §IX) and absolute distance (put in doubt in §X), are dropped, a transformation exists that gives every ray of light the velocity c relative to both the embankment and the train; §XIV sums the argument up the same way, uniting the two postulates. 'Mid-point M′ uses VIII's rule' means that M′ sits at the mid-point of A′B′ on the train and judges simultaneity there exactly as M does on the embankment. §I–IV (the classical groundwork) are left out, and so are the results that follow from the Lorentz transformation: rods and clocks (§XII), velocity addition (§XIII), E = mc² (§XV) and Minkowski's four-dimensional space (§XVII), with §XVI weighing them against experience. Postorder records every premise before the conclusion it supports; breadth-first asks 'why?' one level at a time. Open the stepper to walk it one node at a time."

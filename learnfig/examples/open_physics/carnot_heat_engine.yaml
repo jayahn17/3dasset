@@ -1,0 +1,220 @@
+id: carnot_heat_engine
+title: "The Carnot engine: why e = 1 − T_c/T_h is the ceiling for every heat engine"
+domain: physics
+level: "introductory"
+chapter: "4"
+summary: >
+  A Carnot engine takes heat Q_h from a reservoir at T_h, delivers work W = Q_h − Q_c and rejects Q_c to a
+  reservoir at T_c through four reversible strokes: isothermal expansion at T_h, adiabatic expansion,
+  isothermal compression at T_c and adiabatic compression. Because heat enters only at T_h and leaves only
+  at T_c, and the working substance ends each cycle with the entropy it started with, Q_h/T_h = Q_c/T_c,
+  which fixes Q_c = Q_h·T_c/T_h and the efficiency e_C = 1 − T_c/T_h; a real engine between the same
+  reservoirs falls short of e_C and generates entropy, and one that beat e_C would destroy entropy, which
+  the second law forbids.
+notes:
+  - "Reversibility fixes the heat budget. The working substance's entropy rises by Q_h/T_h in stroke 1, falls by Q_c/T_c in stroke 3 and does not change in the adiabatic strokes 2 and 4 (Q = 0), so closing the cycle requires Q_h/T_h = Q_c/T_c. At the defaults (T_h = 500 K, T_c = 300 K, Q_h = 1000 J) both ratios are 2 J/K, giving Q_c = 600 J, W_C = Q_h − Q_c = 400 J and e_C = 1 − T_c/T_h = 0.4; the hot reservoir loses exactly the 2 J/K the cold one gains."
+  - "Even the ideal engine must reject heat. Q_c = Q_h·T_c/T_h is positive for every T_c above absolute zero, so even the reversible engine rejects heat; this is the quantitative form of the Kelvin statement from which the Carnot result follows. e_C approaches 1 only as T_c → 0 or T_h → ∞, and since T_c = 0 K cannot be reached (third law), e_C < 1 for every real pair of reservoirs. The influence matrix gives the leverage at the defaults: a 1 % rise in T_h raises e_C and W_C by 1.5 % (the elasticity T_c/(T_h − T_c)) and lowers Q_c by 1 %; a 1 % rise in T_c does the reverse."
+  - "A real engine pays in entropy. At 75 % of the Carnot efficiency (e = 0.3) it delivers 300 J instead of W_C = 400 J; the missing W_C − eQ_h = 100 J is not destroyed but leaves as extra heat, so 700 J reaches the cold reservoir, which gains 700 J/300 K = 2.33 J/K while the hot reservoir loses only 2 J/K. The difference ΔS_univ = 0.333 J/K = (W_C − eQ_h)/T_c is the entropy generated; every J/K of it costs T_c = 300 J of work."
+  - "Why nothing beats e_C. Apply the same bookkeeping to a hypothetical engine with e = 0.5 between 500 K and 300 K. It would reject only 500 J, so the cold reservoir gains 500/300 = 1.67 J/K while the hot one loses 2 J/K: ΔS_univ = (e_C − e)·Q_h/T_c = −0.333 J/K < 0, which the second law forbids. ΔS_univ ≥ 0 and e ≤ e_C are the same statement, which is why the range of e/e_C stops at 1."
+  - "A hotter source helps, and a fixed-quality engine also forgoes more. Raising T_h by 10 % (500 → 550 K) raises e_C and W_C by 13.6 % (0.400 → 0.455; the linearised cascade shows 15 %) and lowers Q_c by 9.1 % (600 → 545 J; linearised 10 %). At fixed e/e_C the engine forgoes more work (W_C − eQ_h 100 → 114 J) even though it rejects less heat (700 → 659 J), and ΔS_univ rises 0.333 → 0.379 J/K."
+  - "Speed costs efficiency, but not in this model. Real engines at finite power need temperature drops across their heat exchangers, so e/e_C falls as the heat draw Q̇_h rises (the endoreversible picture of Curzon and Ahlborn). This model holds e/e_C fixed, so Q̇_h only sets how fast the run proceeds."
+  - "Draining a finite reservoir (a constructed illustration, not a worked example of the textbook): drawing 1000 W from C_h = 4000 J/K lowers T_h by 0.25 K/s into an engine that always reaches e/e_C = 0.75. e_C falls to 0.2, half its starting value, at t = 500 s (T_h = 375 K), and the run stops at t = 796 s with T_h = 301 K. The engine has delivered W_tot = 1.40 × 10⁵ J of the 7.96 × 10⁵ J it drew (17.6 %, below its initial 30 %); a reversible engine would have delivered C_h[(T_h,0 − T_h) − T_c ln(T_h,0/T_h)] = 1.87 × 10⁵ J. The entropy generated is S_run = 155.8 J/K, and T_c·S_run = 46,750 J is exactly the work forgone; the cold reservoir gained ΔS_c = 2186 J/K, the 2030 J/K the hot reservoir lost plus S_run. Energy and the entropy balance C_h ln(T_h/T_c) + ΔS_c − S_run are conserved along the run to round-off."
+  - "A hotter start pays off more than the rise in e_C suggests. Starting the same run at 550 K, it lasts 996 s, delivers W_tot = 2.05 × 10⁵ J (+46 %) and hands ΔS_c = 2638 J/K (+21 %) to the cold side, because the hotter reservoir holds 2.0 × 10⁵ J more heat above the 301 K stop. The cascade markers for W_tot and ΔS_c show only the direction of their initial growth rates, not these totals."
+sources:
+  - "OpenStax, University Physics Volume 2 (Ling, Sanny & Moebs; OpenStax 2016; CC BY 4.0), Chapter 4 The Second Law of Thermodynamics, §4.2 Heat Engines: W = Q_h − Q_c (eq. 4.1) and e = W/Q_h = 1 − Q_c/Q_h (eq. 4.2)."
+  - "Ibid., §4.4 Statements of the Second Law of Thermodynamics (Kelvin and Clausius statements and their equivalence) and §4.5 The Carnot Cycle: the two isothermal and two adiabatic reversible strokes, Q_c/Q_h = T_c/T_h and the Carnot efficiency e = 1 − T_c/T_h, the largest possible for any engine between T_h and T_c."
+  - "Ibid., §4.1 Reversible and Irreversible Processes and §4.6 Entropy: ΔS = Q/T for reversible heat transfer at constant T, zero entropy change around any reversible cycle, and ΔS ≥ 0 for the universe, with equality only for reversible processes."
+  - "Halliday, Resnick & Walker, Fundamentals of Physics (10th ed.), Ch. 20 Entropy and the Second Law of Thermodynamics: the Carnot engine, ε_C = 1 − T_L/T_H, and the entropy bookkeeping of real engines."
+  - "F. L. Curzon and B. Ahlborn, Efficiency of a Carnot engine at maximum power output, Am. J. Phys. 43, 22 (1975): heat flow across finite temperature differences makes an engine run at finite power fall short of e_C (cited only for the qualitative note on speed; not modelled here)."
+  - "The finite-reservoir run (dT_h/dt = −Q̇_h/C_h feeding an engine of fixed e/e_C) is a constructed illustration built from these relations; the reversible total work C_h[(T_h,0 − T_h) − T_c ln(T_h,0/T_h)] follows from integrating dW = (1 − T_c/T_h)·C_h(−dT_h), and the engine of fixed quality delivers e/e_C times that."
+variables:
+  - id: Th
+    name: Hot-reservoir temperature
+    symbol: T_h
+    unit: K
+    kind: state
+    default: 500
+    range: [301, 1000]
+    description: "Absolute (kelvin) temperature at which the working substance absorbs Q_h during the isothermal expansion. In the run it is a finite reservoir that cools as the engine draws heat from it."
+  - id: Tc
+    name: Cold-reservoir temperature
+    symbol: T_c
+    unit: K
+    kind: parameter
+    default: 300
+    range: [1, 300]
+    description: "Absolute temperature at which the working substance rejects Q_c during the isothermal compression; the cold reservoir is taken to be so large that T_c stays fixed. Its range (up to 300 K) stays below that of T_h (from 301 K), so T_h > T_c always holds at the start."
+  - id: Qh
+    name: Heat absorbed per cycle
+    symbol: Q_h
+    unit: J
+    kind: parameter
+    default: 1000
+    range: [100, 10000]
+    description: "Heat taken in from the hot reservoir during stroke 1 of one cycle (the only stroke in which heat enters)."
+  - id: eta_C
+    name: Carnot efficiency
+    symbol: "e_C = 1 − T_c/T_h"
+    unit: "1"
+    kind: derived
+    equation: 1 - Tc/Th
+    description: "Fraction of Q_h converted to work by a reversible engine: e = W/Q_h = 1 − Q_c/Q_h with Q_c/Q_h = T_c/T_h. It depends only on the two reservoir temperatures and would reach 1 only at T_c = 0 K — and absolute zero cannot be reached (third law), so e_C < 1 for every real pair of reservoirs."
+  - id: W
+    name: Carnot work per cycle (reversible)
+    symbol: "W_C = e_C Q_h"
+    unit: J
+    kind: derived
+    equation: eta_C*Qh
+    description: "Work a reversible engine extracts from Q_h, the area enclosed by the cycle on the pV diagram. Since ΔU = 0 for a complete cycle, the first law gives W_C = Q_h − Q_c for any working substance; the real engine delivers only eQ_h = (e/e_C)·W_C."
+  - id: Qc
+    name: Heat rejected per cycle (reversible)
+    symbol: "Q_c = Q_h T_c/T_h"
+    unit: J
+    kind: derived
+    equation: Qh*Tc/Th
+    description: "Heat a reversible engine gives the cold reservoir in stroke 3. It is forced by the reversibility condition Q_h/T_h = Q_c/T_c and is positive for every T_c > 0 K — this is the heat no engine can avoid rejecting. The real engine rejects more, Q_h(1 − e) = Q_c + (W_C − eQ_h)."
+  - id: frac_C
+    name: Fraction of Carnot achieved
+    symbol: e/e_C
+    unit: "1"
+    kind: parameter
+    default: 0.75
+    range: [0, 1]
+    description: "How close an irreversible engine working between the same two reservoirs comes to the Carnot limit (friction, heat flow across finite temperature differences, turbulence); held fixed in this model, including during the run. The range stops at 1 because an engine with e > e_C would destroy entropy (see the note on why nothing beats e_C); with e_C = 0.40 at the defaults, 0.75 means a real efficiency e = 0.30, so the engine rejects Q_h(1 − e) = 700 J instead of 600 J."
+  - id: W_lost
+    name: Work lost per cycle
+    symbol: "W_C − eQ_h"
+    unit: J
+    kind: derived
+    equation: W*(1 - frac_C)
+    description: "Work a Carnot engine would have extracted from the same Q_h but the real engine (efficiency e = (e/e_C)·e_C) does not, evaluated at the current T_h for an engine of fixed quality e/e_C. Energy is still conserved, so this work is not destroyed: it leaves as extra heat into the cold reservoir, Q_h(1 − e) − Q_c = (Q_h − eQ_h) − (Q_h − W_C) = W_C − eQ_h."
+  - id: S_gen
+    name: Entropy generated per cycle
+    symbol: ΔS_univ
+    unit: J/K
+    kind: derived
+    equation: W_lost/Tc
+    description: "Net entropy change of the two reservoirs per cycle of the real engine at the current T_h; the working substance returns to its initial state, so its own ΔS = 0. Because Q_h/T_h = Q_c/T_c, ΔS_univ = (extra heat rejected)/T_c = (e_C − e)·Q_h/T_c, so the work lost is T_c·ΔS_univ. It is zero only when e = e_C, positive whenever e < e_C, and negative, hence forbidden, if e > e_C."
+  - id: Qdot_h
+    name: Steady heat draw
+    symbol: Q̇_h
+    unit: W
+    kind: parameter
+    default: 1000
+    range: [100, 5000]
+    description: "Rate at which the engine takes heat from the hot reservoir in the constructed run (Q_h per cycle times cycles per second). The model holds e/e_C fixed as Q̇_h changes; a real engine driven faster falls further short of e_C."
+  - id: C_h
+    name: Heat capacity of the hot reservoir
+    symbol: C_h
+    unit: J/K
+    kind: parameter
+    default: 4000
+    range: [500, 100000]
+    description: "Energy the hot reservoir gives up per kelvin of cooling; 4000 J/K is about 9 kg of iron (c ≈ 450 J/(kg·K) at room temperature), a store that stays solid over the whole run. The model treats C_h as constant; a finite C_h is what makes T_h fall during the run."
+  - id: W_tot
+    name: Cumulative work delivered
+    symbol: W_tot
+    unit: J
+    kind: state
+    default: 0
+    description: "Total work the real engine has delivered since t = 0; dW_tot/dt = (e/e_C)(1 − T_c/T_h)·Q̇_h, the work rate eQ̇_h."
+  - id: dS_c
+    name: Entropy gained by the cold reservoir
+    symbol: ΔS_c
+    unit: J/K
+    kind: state
+    default: 0
+    description: "Rejected heat divided by T_c, accumulated over the run: dΔS_c/dt = Q̇_h(1 − e)/T_c = Q̇_h/T_h + dS_run/dt. It equals the entropy the hot reservoir loses, C_h ln(T_h,0/T_h), plus the entropy generated S_run."
+  - id: S_run
+    name: Entropy generated since t = 0
+    symbol: S_run
+    unit: J/K
+    kind: state
+    default: 0
+    description: "Running total of the entropy the real engine generates: dS_run/dt = (1 − e/e_C)·e_C·Q̇_h/T_c, the lost work rate divided by T_c. T_c·S_run equals the work forgone over the run compared with a reversible engine."
+relations: []
+dynamics:
+  time: {unit: s, start: 0, end: 3000, step: 1}
+  rates:
+    Th: -Qdot_h/C_h
+    W_tot: frac_C*eta_C*Qdot_h
+    dS_c: Qdot_h*(1 - frac_C*eta_C)/Tc
+    S_run: (1 - frac_C)*eta_C*Qdot_h/Tc
+  integrator: rk4
+events:
+  - id: half_efficiency
+    label: "e_C down to 0.2"
+    when: "eta_C <= 0.2"
+    once: true
+    description: "From the default 500 K start the reservoir has cooled to 375 K, so e_C = 1 − 300/375 = 0.2, half its starting value: each joule now drawn yields 0.75 × 0.2 = 0.15 J of work instead of 0.30 J, and 0.85 J passes on to the cold reservoir. The threshold is fixed at 0.2, so from another start it is not a halving."
+  - id: exhausted
+    label: "stop: T_h ≈ T_c"
+    when: "Th <= Tc + 1"
+    once: true
+    stop: true
+    description: "With T_h = T_c + 1 K the Carnot efficiency is ≈ 0.3 % — almost all heat drawn would simply pass to the cold side — so the run ends."
+invariants:
+  - label: "First law over the run: C_h(T_h − T_c) + W_tot + T_cΔS_c"
+    expr: "C_h*(Th - Tc) + W_tot + Tc*dS_c"
+    tolerance: 1e-6
+  - label: "Entropy balance: C_h ln(T_h/T_c) + ΔS_c − S_run (reservoir entropy change equals entropy generated)"
+    expr: "C_h*log(Th/Tc) + dS_c - S_run"
+    tolerance: 1e-6
+cascade:
+  shock: {Th: 0.1}
+  default_delay: 1
+  damping: 0.6
+  threshold: 0.02
+  max_depth: 6
+  time_unit: step
+tree:
+  kind: general
+  title: "One Carnot cycle: the four reversible strokes in order"
+  root:
+    label: "One cycle: ΔU = 0 and ΔS = 0 ⇒ Q_h/T_h = Q_c/T_c, W = Q_h − Q_c"
+    children:
+      - label: "1 Isothermal expansion at T_h (a → b)"
+        children:
+          - label: "V rises; T stays at T_h"
+          - label: "Absorbs Q_h; S rises by Q_h/T_h"
+            children:
+              - label: "ΔU = 0, so gas does work Q_h = nRT_h ln(V_b/V_a)"
+      - label: "2 Adiabatic expansion (b → c)"
+        children:
+          - label: "V rises; T falls T_h → T_c"
+          - label: "Q = 0, so S is unchanged"
+            children:
+              - label: "Gas does work nC_V(T_h − T_c), paid from U"
+      - label: "3 Isothermal compression at T_c (c → d)"
+        children:
+          - label: "V falls; T stays at T_c"
+          - label: "Rejects Q_c; S falls by Q_c/T_c"
+            children:
+              - label: "ΔU = 0, so work on gas is Q_c = nRT_c ln(V_c/V_d)"
+      - label: "4 Adiabatic compression (d → a)"
+        children:
+          - label: "V falls; T rises T_c → T_h"
+          - label: "Q = 0, so S is unchanged"
+            children:
+              - label: "Work on gas nC_V(T_h − T_c) goes into U"
+  algorithms:
+    - name: preorder
+      intro: "Run the cycle forward: each stroke is recorded, then what it does to the volume V, the temperature T and the entropy S of the working substance, and, below the heat entry, the work that the first law makes it exchange."
+    - name: postorder
+      intro: "Read it as a bookkeeping exercise: each stroke's changes are recorded before the stroke, and the cycle itself last — once every entry is in, the two adiabatic works cancel, the changes in U and S sum to zero, and the root's conclusion Q_h/T_h = Q_c/T_c and W = Q_h − Q_c is what remains."
+figures:
+  - type: variable_graph
+    title: "Two temperatures decide everything: how T_h and T_c set the work, the rejected heat and the entropy bill"
+    caption: "Arrows run from cause to effect; blue + means the effect rises with the cause, red − that it falls. T_h enters the per-cycle quantities only through e_C = 1 − T_c/T_h and Q_c = Q_h·T_c/T_h; T_c enters through both and also directly, because the entropy generated is the lost work divided by T_c, ΔS_univ = (W_C − eQ_h)/T_c. So a hotter source raises the Carnot work W_C = e_C·Q_h and a colder sink lowers Q_c. A real engine reaching only a fraction e/e_C of the Carnot efficiency turns the shortfall W_C − eQ_h into extra rejected heat, and that extra heat divided by T_c is ΔS_univ. In the constructed run, the steady draw Q̇_h cools a reservoir of heat capacity C_h; the falling T_h lowers e_C and with it the work rate (e/e_C)·e_C·Q̇_h that accumulates as W_tot, the heat not converted is banked as entropy ΔS_c in the cold reservoir, and the entropy generated accumulates as S_run. The net effect of T_c on the cold reservoir's intake Q̇_h/T_h + dS_run/dt comes only from the entropy generated: a reversible engine would hand the cold side Q̇_h/T_h per second whatever T_c is, because a warmer sink receives more heat at a higher temperature."
+  - type: influence_matrix
+    title: "Who moves whom: percentage sensitivities at T_h = 500 K, T_c = 300 K"
+    caption: "Each cell is the percentage change of the column variable per 1 % increase of the row variable, the other inputs held fixed. Q̇_h and C_h have no row because they act only on the run, and e/e_C is held fixed rather than tied to Q̇_h. T_h and T_c act with equal and opposite leverage on e_C and W_C (±1.5 % per %, i.e. T_c/(T_h − T_c) at these temperatures) and on Q_c (∓1 %); Q_h only scales the per-cycle energies and the entropy generated (each +1 %). Raising e/e_C by 1 % (its row) cuts the lost work and the entropy generated by 3 %, and T_c bears on the entropy generated more strongly than on the lost work (−2.5 % against −1.5 %) because ΔS_univ = (W_C − eQ_h)/T_c also divides by T_c. Blue cells rise with the cause and red cells fall, the same colours as the arrows in the variable graph."
+  - type: timeline
+    series: [Th, eta_C, W_tot, dS_c, S_run]
+    title: "Draining a finite hot reservoir: efficiency, work and the entropy handed to the cold side"
+    caption: "Panel A (a constructed run, not a worked example of the textbook): a steady draw of 1000 W lowers T_h linearly from 500 K at 0.25 K/s, feeding an engine that always reaches e/e_C = 0.75. The Carnot efficiency falls with T_h, reaching 0.2 (half its starting value) at t = 500 s, so W_tot grows ever more slowly and levels off near 1.40 × 10⁵ J when the run stops at T_h = 301 K (t = 796 s). ΔS_c accelerates because the cold side's entropy intake Q̇_h/T_h + dS_run/dt rises from 2.33 to about 3.3 J/(K·s) as less of each joule is converted, ending at 2186 J/K, while the entropy generated S_run grows ever more slowly to 156 J/K. Panel B follows the chain reaction set off by a 10 % hotter source: e_C rises ≈ 15 % and Q_c falls ≈ 10 % (linearised; the exact changes for 500 → 550 K are +13.6 % and −9.1 %), then W_C and, at fixed e/e_C, the lost work and the entropy generated per cycle rise ≈ 15 % (linearised) too. The W_tot, ΔS_c and S_run markers give only the direction of their growth rates (for 500 → 550 K the work rate and the entropy-generation rate rise 13.6 % and the cold side's intake falls 5.8 %), not the change in their totals. Steps mark the order of cause and effect, not elapsed time: every per-cycle quantity responds at once."
+  - type: scene3d
+    title: "The same run and chain reaction in 3D / VR"
+    caption: "Lanes along x are the variables, depth is time and height is magnitude: watch T_h and e_C fall while W_tot, ΔS_c and S_run climb. The W_C − eQ_h and ΔS_univ lanes are per-cycle values at the current T_h for the run's engine of fixed quality e/e_C = 0.75, so they shrink as the reservoir cools while their running total S_run grows. Scrub to replay how a 10 % hotter source propagates to e_C and directly to the rejected heat Q_c, and through e_C to the work, the work rate and the entropy generated. Drag to orbit; press Enter VR on a headset."
+  - type: tree
+    caption: "The four strokes of one Carnot cycle in order, each with what it does to the working substance's volume V, temperature T and entropy S; under each heat entry sits the work that the first law ΔU = Q − W then fixes for an ideal gas (n moles, molar heat capacity C_V, U depending on T alone). Heat crosses the boundary only in the isothermal strokes (Q_h in at T_h, Q_c out at T_c), and the adiabatic strokes change T at constant S. Since ΔU = 0 over the cycle, the net work is W = Q_h − Q_c for any working substance; for an ideal gas this is visible stroke by stroke: the isothermal works equal Q_h and −Q_c, and the two adiabatic works nC_V(T_h − T_c) cancel. Numbers on the nodes give the order in which the traversal records them; open the step-by-step view to follow it one node at a time."

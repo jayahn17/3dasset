@@ -1,0 +1,91 @@
+id: ch13_ballistic_shielding
+title: "Ballistic fabric shielding: stretching, rupture and the number of sheets"
+domain: engineering
+level: ME 244
+chapter: "13"
+summary: >
+  A blunt projectile pushes the centre of a clamped fabric sheet outward, the yarn in the contact zone stretches in a
+  linear mode until its stretch ratio reaches the critical value U*, and the sheet tears having stored a fixed energy
+  Y·w(U*) that the projectile must pay out of ½m_p(v_p^(0))². In the book's recursion (13.3) the projectile's
+  successive kinetic-energy losses shrink by the constant ratio α (eq. 13.11), which gives the logarithmic count of
+  eq. 13.17; in the limit α_e → 1 used here each sheet removes the same quantum and eq. 13.17 reduces to
+  i* = ½m_p(v_p^(0))²/(Y·w(U*)) − 1, and the stack is integrated in time, with the membrane's cubic restoring force,
+  to watch that balance happen.
+notes:
+  - "A sheet's capacity is set by its yarn and by the projectile's footprint (Y = 2·d·yarn/length), not by its speed or mass: Y·w(U*) = Y·(L_oA_o/2)·IE·(½(U*²−1))² ≈ 26 J for 35 Zylon yarn at U* = 1.034, so the 0.036 kg projectile arriving at 106.68 m/s (½m_p(v_p^(0))² ≈ 205 J) tears i* ≈ 6.8 → 7 sheets and is stopped by the 8th. That is the α_e → 1 limit used here; the book's eq. 13.19, which keeps fabric inertia, prints i* = 6.52, so both predict 7 torn and 8 to stop, one more than the 6 torn and 7 to stop measured in the gas gun (§13.3.4)."
+  - "The rupture strain enters squared through E* = ½(U*²−1): a fibre that has lost 20 % of its stretch (U*−1 from 3.4 % to 2.72 %) stores 16.7 J per sheet instead of 26.3 J (−36 %), so i* rises from 6.8 to 11.3 and the same projectile tears 12 sheets instead of 7, with 13 needed to stop it instead of 8; the cascade's first-order −41 %/+47 % understates this. §13.1 names environmental degradation of the fibre, and coatings that prevent it, as the reason this matters; that degradation acts by lowering U* is this figure's assumption, and the coating trade-off of §13.3.2 (eqs. 13.5–13.8, added mass against added absorbed energy) is not computed here."
+  - "The membrane pushes back with F = 8Y·A_o·IE·x³/L_o³, cubic in the deflection: at x*/2 a sheet pushes with 1/8 of its peak force Y·A_o·IE·(U*²−1)^(3/2) ≈ 3.15 kN (independent of L_o) and has stored only 1/16 (6 %) of Y·w(U*), and it absorbs about two-thirds of Y·w(U*) in the last quarter (≈ 8 mm) of its stroke to x* = (L_o/2)·√(U*²−1) ≈ 33 mm. The speed therefore falls in steps that grow from 7 m/s (sheet 1) to 17 m/s (sheet 7), because every sheet removes the same 26 J from a shrinking ½m_p v_p² (the sub-linear velocity–sheets curve of Fig. 13.5)."
+  - "½m_p v_p² + Σw is conserved along the whole trajectory: that is the energy balance (13.2) written continuously, with the fabric's own kinetic energy Y·ρ_oA_oL_o v_p²/6 neglected. With ρ_o = 1540 kg/m³ the effective fabric mass Yρ_oA_oL_o/3 ≈ 1.3e-4 kg is 0.35 % of m_p (α_e = 0.9965 in eq. 13.21) and shifts i* only from 6.79 to 6.70, but the error accumulates over the penetrated sheets and reaches 10 % at 300 m/s (60.6 against 54.9)."
+  - "A wider blunt projectile engages more load-sharing yarn (Y = 2·d·yarn-per-length, Fig. 13.4) and so meets a larger Y·w(U*) per sheet; a sharp fragment that severs yarn instead of stretching it bypasses this mechanism entirely, which is why coatings are meant to blunt sharp fragments (§13.1, qualitative context that this model does not compute)."
+sources:
+  - "Zohdi, Modeling, simulation and digital-twins of multi-drone systems (ME 244 primer, 2026 draft), Appendix Ch. 13: §13.1 motivation (degradation, sharp fragments, coatings), §13.2 gas-gun experiments, §13.3.1 stretching and rupture (eqs. 13.1–13.4, w(U*) defined after eq. 13.4, Remark 1, Fig. 13.3), §13.3.3 number of sheets (eqs. 13.9–13.17), §13.3.4 experiments and Zylon data (eqs. 13.18–13.21, Figs. 13.4–13.5)."
+variables:
+  - {id: m_p, name: Projectile mass, symbol: m_p, unit: kg, kind: parameter, default: 0.036, range: [0.005, 0.12], description: "Cylindrical projectile of the UC Berkeley gas-gun tests, diameter d ≈ 12.7 mm (§13.3.4)."}
+  - {id: v0, name: Impact speed, symbol: "v_p^(0)", unit: m/s, kind: parameter, default: 106.68, range: [20, 400], description: "350 ft/s in the gas-gun experiments (§13.3.4); Fig. 13.5 repeats the analysis at 300 m/s, about (300/106.68)² ≈ 8 times the kinetic energy (the book rounds this to 'nine'), i* ≈ 61 sheets in this limit."}
+  - {id: eps_star, name: Rupture strain, symbol: "U*−1", unit: "1", kind: parameter, default: 0.034, range: [0.02, 0.10], description: "Strain at failure as a fraction, from the critical stretch ratio U* = L/L_o: U* ≈ 1.034 for a Zylon microfibril (§13.3.4); structural fabrics rupture at 2–10 % axial strain (Remark 1). The book also writes '3 % strain'; U* = 1.034 (3.4 %) is the value that reproduces its i* ≈ 6.5 (3 % would give i* ≈ 9)."}
+  - {id: EA, name: Yarn axial stiffness, symbol: "IE·A_o", unit: N, kind: constant, default: 4948, description: "Fibril Young's modulus IE ≈ 180 GPa of the Kirchhoff–St. Venant law S = IE·E, E = ½(U²−1) (§13.3.1), times the yarn cross-section A_o = 350·π·r_f² = 2.749e-8 m² of 350 microfibrils of radius 5 µm (eq. 13.18); IE and A_o only ever appear as this product."}
+  - {id: L_o, name: Clamped yarn length, symbol: L_o, unit: m, kind: parameter, default: 0.254, range: [0.1, 1.0], description: "The 254 mm square window of the target frame (§13.2); the yarn deforms in the linear mode of Fig. 13.3 over this span, so a longer span stores more energy."}
+  - {id: Y, name: Load-sharing yarn, symbol: Y, unit: "1", kind: parameter, default: 35, range: [10, 200], description: "Yarn crossing the contact zone in both weave directions, 2·d·(35 yarn/inch) ≈ 35 for the 12.7 mm projectile (Fig. 13.4)."}
+  - {id: W_star, name: Energy one sheet absorbs, symbol: "Y·w(U*)", unit: J, kind: derived, equation: "Y*L_o*EA/2*(((1 + eps_star)**2 - 1)/2)**2", description: "Stored energy of one yarn at rupture, w(U*) = (L_oA_o/2)·IE·(½(U*²−1))² (defined after eq. 13.4, §13.3.1), times the Y load sharers (eq. 13.21)."}
+  - {id: x_star, name: Rupture deflection, symbol: "x*", unit: m, kind: derived, equation: "(L_o/2)*sqrt((1 + eps_star)**2 - 1)", description: "Centre deflection at which the yarn stretch U = √(1 + (2x/L_o)²) reaches U* and the sheet tears, ≈ 33 mm at the defaults; the rupture event fires here."}
+  - {id: i_star, name: Sheets penetrated, symbol: i*, unit: "1", kind: derived, equation: "m_p*v0**2/(2*W_star) - 1", description: "Eq. 13.17/13.19 in the limit α_e → 1, where each sheet removes the same Y·w(U*) from ½m_p(v_p^(0))²; i*+1 sheets are needed to stop the projectile, both rounded up for a conservative design. The limit holds while i*·Yρ_oA_oL_o/(3m_p) ≪ 1: 1.4 % error here (6.79 against 6.70 with ρ_o = 1540 kg/m³), 10 % at 300 m/s (60.6 against 54.9)."}
+  - {id: F_x, name: Membrane resisting force, symbol: F(x), unit: N, kind: derived, equation: "8*Y*EA*x**3/L_o**3", description: "Pull of the Y stretched yarn on the projectile, F = dW/dx with W(x) = Y·(L_oA_o/2)·IE·E² and E = 2x²/L_o² for the linear mode of Fig. 13.3; zero on an undeflected sheet and Y·IE·A_o·(U*²−1)^(3/2) ≈ 3.15 kN at rupture."}
+  - {id: E_abs, name: Energy absorbed so far, symbol: "Σw", unit: J, kind: derived, equation: "n_pen*W_star + 2*Y*EA*x**4/L_o**3", description: "Energy banked in the torn sheets plus the energy stored in the sheet being stretched. It always ends at ½m_p(v_p^(0))² ≈ 205 J: a weaker fabric does not absorb less in total, it needs more sheets to do it (simulation: 204.9 J for both the 7-sheet and the 12-sheet stack)."}
+  - {id: x, name: Centre deflection, symbol: x, unit: m, kind: state, default: 0, range: [0, 0.25], description: "How far the projectile has pushed the current sheet; the yarn stretch is U = √(1 + (2x/L_o)²), and x resets to zero when the sheet tears at x*."}
+  - {id: v, name: Projectile speed, symbol: v_p, unit: m/s, kind: state, equation: v0, description: "Starts at the impact speed and is slowed only by the stretching yarn; a heavier projectile is decelerated less by the same F(x) (v̇ = −F/m_p), hence the + arrow from m_p."}
+  - {id: n_pen, name: Sheets torn, symbol: i, unit: "1", kind: state, default: 0, range: [0, 120], description: "Sheet counter i of the recursion (13.3), advanced by each rupture event; at the defaults it ends at 7 = ⌈i*⌉."}
+relations:
+  - {from: x, to: n_pen, sign: "+", delay: 1, mechanism: "When the deflection reaches x* = (L_o/2)·√(U*²−1) the yarn strain hits ½(U*²−1), the sheet tears and the counter advances (rupture event)."}
+  - {from: W_star, to: n_pen, sign: "-", delay: 1, gain: 1.0, mechanism: "Every sheet banks Y·w(U*) before tearing, so a sheet that stores more energy means fewer sheets torn for the same ½m_p(v_p^(0))²."}
+  - {from: v0, to: n_pen, sign: "+", delay: 2, gain: 2.0, mechanism: "The kinetic energy to be banked grows with (v_p^(0))², so more sheets tear before v_p reaches zero (eq. 13.17)."}
+dynamics:
+  time: {unit: s, start: 0, end: 0.025, step: 5e-7}
+  rates:
+    x: v
+    v: -F_x/m_p
+    n_pen: 0
+  integrator: rk4
+events:
+  - {id: rupture, label: Tear, when: "x >= x_star", once: false, sets: {x: 0, n_pen: "n_pen + 1", v: "sqrt(v**2 + 2*(E_abs - (n_pen + 1)*W_star)/m_p)"}, description: "The yarn stretch reaches U*: the sheet tears with exactly Y·w(U*) banked, and the stretch has already taken that energy out of ½m_p v_p². The event resets x to 0 for the next, undeflected sheet and refunds the sliver of overshoot the time step adds, so sheet to sheet v_p^(i+1)² = v_p^(i)² − 2Y·w(U*)/m_p (13.3 with α → 1)."}
+  - {id: stopped, label: Projectile stopped, when: "v <= 0", once: true, stop: true, description: "The remaining kinetic energy was absorbed before the strain reached U*: this sheet holds, so ⌈i*+1⌉ sheets are needed (eq. 13.14)."}
+  - {id: brittle, label: "Degraded fabric: rupture strain −20 % (shock)", shock: {eps_star: -0.2}}
+invariants:
+  - {label: "energy balance (13.2): ½m_p v_p² + Σw", expr: "0.5*m_p*v**2 + E_abs", tolerance: 1e-3}
+cascade:
+  shock: {eps_star: -0.2}
+  default_delay: 1
+  damping: 0.6
+  threshold: 0.02
+  max_depth: 6
+  time_unit: step
+tree:
+  kind: decision
+  title: "Perforation criterion for one sheet of the stack (§13.3.1–13.3.3)"
+  root:
+    label: "Stretch U(x) = √(1+(2x/L_o)²) < U*?"
+    branches:
+      - label: "yes"
+        child:
+          label: "Absorbed Σw ≥ ½m_p(v_p^(0))² yet?"
+          branches:
+            - label: "yes"
+              child: {label: "Stopped: sheet i+1 holds — i = ⌈i*⌉ torn, ⌈i*+1⌉ needed"}
+            - label: "no"
+              child: {label: "Keep stretching: m_p v̇ = −F(x), ẋ = v"}
+      - label: "no"
+        child:
+          label: "Sheet i+1 tears, banks Y·w(U*)"
+          branches:
+            - label: "sheets remain"
+              child: {label: "Next sheet: v_p² has already fallen by 2Y·w(U*)/m_p during the stretch (recursion 13.3, α→1); i ← i+1, x ← 0"}
+            - label: "last sheet"
+              child: {label: "Perforated: residual speed v_p^(i+1)"}
+  algorithms:
+    - {name: decision, title: "A sheet that tears", path: ["no", "sheets remain"], intro: "Follow one sheet in the middle of the stack: the stretch reaches U*, the sheet tears and hands the projectile on with less speed."}
+    - {name: decision, title: "The sheet that holds", path: ["yes", "yes"], intro: "Follow the 8th sheet: 20.8 J is left after 7 tears, less than the 26.3 J it can hold, so the projectile stops at x ≈ 31.5 mm, short of x* = 33.4 mm."}
+figures:
+  - {type: variable_graph, title: "What sets how many sheets a projectile tears"}
+  - {type: influence_matrix, title: "Who moves whom: mass, speed, yarn and rupture strain", caption: "Elasticities at the defaults, where the first sheet is still undeflected: F(x) and Σw start at zero (x = 0, i = 0), so read their dependence from the timeline instead; x* shows how the rupture strain and the span set each sheet's stroke."}
+  - {type: timeline, title: "Deflection, speed and absorbed energy as the projectile tears through the stack", series: [x, v, n_pen, F_x, E_abs]}
+  - {type: scene3d}
+  - {type: tree}
